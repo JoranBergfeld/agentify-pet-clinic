@@ -7,9 +7,9 @@ var token = uniqueString(resourceGroup().id, environmentName)
 var planName = 'plan-${token}'
 var webAppName = 'petclinic-${token}'
 var foundryName = 'foundry-${token}'
-var modelName = 'gpt-4o-mini'
-var modelVersion = '2024-07-18'
-var modelDeploymentName = 'gpt-4o-mini'
+var modelName = 'gpt-5.4-mini'
+var modelVersion = '2026-03-17'
+var modelDeploymentName = 'gpt-5-4-mini'
 var foundryUserRoleDefinitionId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '53ca6127-db72-4b80-b1b0-d745d6d5456d'

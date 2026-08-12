@@ -5,6 +5,10 @@ resource_group="$(azd env get-value AZURE_RESOURCE_GROUP_NAME)"
 web_app="$(azd env get-value SERVICE_WEB_NAME)"
 foundry="$(azd env get-value AZURE_OPENAI_ACCOUNT_NAME)"
 location="$(azd env get-value AZURE_LOCATION)"
+model="$(azd env get-value AZURE_OPENAI_MODEL)"
+deployment="$(azd env get-value AZURE_OPENAI_DEPLOYMENT)"
+price_model="${model#gpt-}"
+price_model="${price_model//-/ }"
 web_id="$(az webapp show --resource-group "${resource_group}" --name "${web_app}" --query id -o tsv)"
 foundry_id="$(az cognitiveservices account show --resource-group "${resource_group}" --name "${foundry}" --query id -o tsv)"
 principal_id="$(az webapp identity show --resource-group "${resource_group}" --name "${web_app}" --query principalId -o tsv)"
@@ -25,11 +29,15 @@ az monitor metrics list --resource "${web_id}" --metric MemoryWorkingSet \
   | jq '{timespan: .timespan, value: [.value[].timeseries[].data[] | select(.maximum != null)]}'
 
 printf '\n## Foundry Models retail prices\n\n'
+az cognitiveservices account deployment show --resource-group "${resource_group}" \
+  --name "${foundry}" --deployment-name "${deployment}" \
+  --query '{model:properties.model.name,version:properties.model.version,sku:sku.name,capacity:sku.capacity}' -o json
 curl --fail --silent --show-error --get 'https://prices.azure.com/api/retail/prices' \
-  --data-urlencode "\$filter=serviceName eq 'Foundry Models' and armRegionName eq '${location}'" \
-  | jq --arg model 'gpt-4o-mini' \
-      '{currencyCode, items: [.Items[] | select((.productName + " " + .skuName + " " + .meterName)
-      | ascii_downcase | contains($model)) | {
+  --data-urlencode "\$filter=serviceName eq 'Foundry Models' and productName eq 'Azure OpenAI GPT5' and armRegionName eq '${location}'" \
+  | jq --arg model "${price_model}" \
+      '{currencyCode: .BillingCurrency, items: [.Items[] | select(
+        .skuName == ($model + " Inp Gl") or .skuName == ($model + " Opt Gl")
+      ) | {
         armRegionName, productName, skuName, meterName, unitPrice, unitOfMeasure
       }]}'
 
