@@ -143,8 +143,18 @@ names.
 
 ## Cleanup
 
-Cleanup evidence is recorded after the disposable resource group and any
-soft-deleted Foundry account have been removed.
+`azd down --force --purge` deleted the resource group and explicitly reported
+purging the Cognitive Services account in 2 minutes 26 seconds.
+
+Independent checks after the command completed returned:
+
+```text
+resourceGroupExists=false
+softDeletedFoundryAccounts=0
+```
+
+No explicit follow-up `az cognitiveservices account purge` was required because
+this version of `azd down --purge` removed the soft-deleted Foundry account.
 
 ## Recommendation
 
