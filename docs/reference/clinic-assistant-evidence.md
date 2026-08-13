@@ -4,10 +4,10 @@ Date: 2026-08-14
 
 ## Validated revisions
 
-- `main`: `1788b55faff9683621723389f4abde52f9168d8d`
-- `origin/main`: `1788b55faff9683621723389f4abde52f9168d8d`
+- `main`: `14af01faba22269092830edb246c292901134697`
+- `origin/main`: `14af01faba22269092830edb246c292901134697`
 - Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
-- This validator reproducibility refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates validation tooling and evidence commands, not the assistant feature itself.
+- This validator topology refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates validation workflows, tooling, and evidence commands, not the assistant feature itself.
 
 ## Commands
 

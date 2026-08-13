@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - run: scripts/test-reference-validator.sh
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
