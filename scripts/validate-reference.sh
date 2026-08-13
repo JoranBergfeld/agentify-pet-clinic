@@ -9,7 +9,7 @@ fail() {
   exit 1
 }
 
-focused_tests='ClinicQueryServiceTests,ClinicAssistantToolsTests,ClinicAssistantModelTests,ClinicAssistantConversationTests,ClinicAssistantBoundaryTests,ClinicAssistantServiceTests,ClinicAssistantControllerTests,ClinicAssistantSessionListenerTests,I18nPropertiesSyncTest'
+focused_tests='ClinicQueryServiceTests,ClinicAssistantToolsTests,ClinicAssistantModelTests,ClinicAssistantConversationTests,ClinicAssistantBoundaryTests,ClinicAssistantBoundaryScenarioTests,ClinicAssistantServiceTests,ClinicAssistantControllerTests,ClinicAssistantSessionListenerTests,I18nPropertiesSyncTest'
 
 git fetch origin main
 git merge-base --is-ancestor origin/main HEAD \
