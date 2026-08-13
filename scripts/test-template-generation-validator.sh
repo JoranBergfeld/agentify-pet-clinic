@@ -12,12 +12,16 @@ bin_dir="$fixture/bin"
 gh_log="$fixture/gh.log"
 gh_state="$fixture/gh-state"
 gh_branch_checks="$fixture/gh-branch-checks"
+gh_repo_view_counts="$fixture/gh-repo-view-counts"
+gh_repo_delete_counts="$fixture/gh-repo-delete-counts"
 uuid_fallback_file="$fixture/random-uuid"
 
 mkdir -p "$bin_dir"
 : >"$gh_log"
 : >"$gh_state"
 : >"$gh_branch_checks"
+: >"$gh_repo_view_counts"
+: >"$gh_repo_delete_counts"
 
 cat >"$bin_dir/gh" <<'EOF'
 #!/usr/bin/env bash
@@ -26,6 +30,8 @@ set -euo pipefail
 log_file="${GH_LOG:?}"
 state_file="${GH_STATE:?}"
 branch_checks_file="${GH_BRANCH_CHECKS:?}"
+repo_view_counts_file="${GH_REPO_VIEW_COUNTS:?}"
+repo_delete_counts_file="${GH_REPO_DELETE_COUNTS:?}"
 
 printf '%s\n' "$*" >>"$log_file"
 
@@ -42,6 +48,43 @@ add_repo() {
 remove_repo() {
   grep -Fxv "$1" "$state_file" >"$state_file.next" || true
   mv "$state_file.next" "$state_file"
+}
+
+read_count() {
+  if [ -s "$1" ]; then
+    cat "$1"
+  else
+    printf '0\n'
+  fi
+}
+
+increment_count() {
+  local current
+
+  current="$(read_count "$1")"
+  current="$((current + 1))"
+  printf '%s\n' "$current" >"$1"
+  printf '%s\n' "$current"
+}
+
+sequence_token() {
+  local sequence="$1"
+  local index="$2"
+  local default_value="$3"
+  local tokens=()
+
+  if [ -z "$sequence" ]; then
+    printf '%s\n' "$default_value"
+    return 0
+  fi
+
+  IFS=, read -r -a tokens <<<"$sequence"
+  if [ "$index" -le "${#tokens[@]}" ] && [ -n "${tokens[$((index - 1))]}" ]; then
+    printf '%s\n' "${tokens[$((index - 1))]}"
+    return 0
+  fi
+
+  printf '%s\n' "$default_value"
 }
 
 branch_check_count() {
@@ -85,47 +128,40 @@ fi
 
 if [ "$1" = "repo" ] && [ "$2" = "view" ]; then
   repo="$3"
+  view_call=0
+  view_behavior="state"
   if [ "$repo" = "${GH_SOURCE_REPO:?}" ] && [ "${4:-}" = "--json" ]; then
     printf 'true\tmain\n'
     exit 0
   fi
 
-  if has_repo "$repo"; then
-    exit 0
-  fi
-
-  exit 1
-fi
-
-if [ "$1" = "api" ]; then
-  owner=""
-  name=""
-
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      -f)
-        shift
-        case "$1" in
-          owner=*) owner="${1#owner=}" ;;
-          name=*) name="${1#name=}" ;;
-        esac
-        ;;
-    esac
-    shift || true
-  done
-
-  repo="${owner}/${name}"
-
-  if [ "${GH_CREATE_PARTIAL_SUCCESS:-false}" = "true" ]; then
-    add_repo "$repo"
-  fi
-
-  if [ "${GH_CREATE_FAIL:-false}" = "true" ]; then
-    exit 1
-  fi
-
-  add_repo "$repo"
-  exit 0
+  view_call="$(increment_count "$repo_view_counts_file")"
+  view_behavior="$(sequence_token "${GH_REPO_VIEW_SEQUENCE:-}" "$view_call" "state")"
+  case "$view_behavior" in
+    state)
+      if has_repo "$repo"; then
+        exit 0
+      fi
+      echo "HTTP 404: Not Found" >&2
+      exit 1
+      ;;
+    missing)
+      remove_repo "$repo"
+      echo "HTTP 404: Not Found" >&2
+      exit 1
+      ;;
+    error)
+      echo "${GH_REPO_VIEW_ERROR_MESSAGE:-temporary repo view failure}" >&2
+      exit 1
+      ;;
+    exists)
+      exit 0
+      ;;
+    *)
+      echo "unexpected repo view behavior: $view_behavior" >&2
+      exit 98
+      ;;
+  esac
 fi
 
 if [ "$1" = "repo" ] && [ "$2" = "create" ]; then
@@ -188,8 +224,33 @@ EOF_INNER
 fi
 
 if [ "$1" = "repo" ] && [ "$2" = "delete" ]; then
-  remove_repo "$3"
-  exit 0
+  delete_call="$(increment_count "$repo_delete_counts_file")"
+  delete_behavior="$(sequence_token "${GH_REPO_DELETE_SEQUENCE:-}" "$delete_call" "success")"
+
+  case "$delete_behavior" in
+    success)
+      remove_repo "$3"
+      exit 0
+      ;;
+    missing)
+      remove_repo "$3"
+      echo "HTTP 404: Not Found" >&2
+      exit 1
+      ;;
+    error)
+      echo "${GH_REPO_DELETE_ERROR_MESSAGE:-temporary repo delete failure}" >&2
+      exit 1
+      ;;
+    error-remove)
+      remove_repo "$3"
+      echo "${GH_REPO_DELETE_ERROR_MESSAGE:-temporary repo delete failure}" >&2
+      exit 1
+      ;;
+    *)
+      echo "unexpected repo delete behavior: $delete_behavior" >&2
+      exit 98
+      ;;
+  esac
 fi
 
 echo "unexpected gh call: $*" >&2
@@ -231,6 +292,8 @@ reset_fake_github() {
   : >"$gh_log"
   : >"$gh_state"
   : >"$gh_branch_checks"
+  : >"$gh_repo_view_counts"
+  : >"$gh_repo_delete_counts"
 }
 
 sanitize_suffix() {
@@ -253,6 +316,8 @@ run_validator() {
     GH_LOG="$gh_log" \
     GH_STATE="$gh_state" \
     GH_BRANCH_CHECKS="$gh_branch_checks" \
+    GH_REPO_VIEW_COUNTS="$gh_repo_view_counts" \
+    GH_REPO_DELETE_COUNTS="$gh_repo_delete_counts" \
     GH_SOURCE_REPO="$source_repo" \
     GH_OWNER_LOGIN="$owner" \
     "$@" \
@@ -261,7 +326,7 @@ run_validator() {
 }
 
 logged_created_repo() {
-  local line owner_arg name_arg
+  local line
 
   while IFS= read -r line; do
     case "$line" in
@@ -270,39 +335,37 @@ logged_created_repo() {
         printf '%s\n' "$3"
         return 0
         ;;
-      api\ *repos/*/generate*)
-        owner_arg="$(printf '%s\n' "$line" | sed -n 's/.*-f owner=\([^ ]*\).*/\1/p')"
-        name_arg="$(printf '%s\n' "$line" | sed -n 's/.*-f name=\([^ ]*\).*/\1/p')"
-        if [ -n "$owner_arg" ] && [ -n "$name_arg" ]; then
-          printf '%s/%s\n' "$owner_arg" "$name_arg"
-          return 0
-        fi
-        ;;
     esac
   done <"$gh_log"
 
   return 1
 }
 
-expect_no_repo_delete_after_failed_create() {
-  local output_file="$fixture/failed-create.log"
-  local created_repo
+expect_cleanup_after_partial_create_failure() {
+  local output_file="$fixture/partial-create.log"
+  local raw_uuid="ABCDEF12-3456-7890-ABCD-1234567890EF!!!"
+  local expected_suffix expected_repo expected_clone_dir
 
   reset_fake_github
+
+  expected_suffix="$(sanitize_suffix "$raw_uuid")"
+  expected_repo="${owner}/agentify-pet-clinic-template-validation-${expected_suffix}"
+  expected_clone_dir="$repo_root/.validate-template-generation.${expected_repo##*/}"
 
   if run_validator "$output_file" \
     "GH_CREATE_FAIL=true" \
     "GH_CREATE_PARTIAL_SUCCESS=true" \
-    "UUIDGEN_OUTPUT=ABCDEF12-3456-7890-ABCD-1234567890EF!!!"; then
+    "UUIDGEN_OUTPUT=$raw_uuid"; then
     echo "validator unexpectedly passed after failed create" >&2
     exit 1
   fi
 
-  created_repo="$(logged_created_repo)"
-  if grep -Fq "repo delete $created_repo --yes" "$gh_log"; then
-    echo "validator should not delete a repo after create fails" >&2
-    exit 1
-  fi
+  test "$(logged_created_repo)" = "$expected_repo"
+  grep -Fqx "repo create $expected_repo --private --template $source_repo" "$gh_log"
+  grep -Fqx "repo delete $expected_repo --yes" "$gh_log"
+  [ ! -s "$gh_state" ]
+  [ ! -e "$expected_clone_dir" ]
+  ! grep -Fq "validated target:" "$output_file"
 }
 
 expect_uuidgen_suffix_and_cleanup() {
@@ -323,6 +386,80 @@ expect_uuidgen_suffix_and_cleanup() {
   grep -Fqx "repo delete $expected_repo --yes" "$gh_log"
   grep -Fxq "validated target: $expected_repo" "$output_file"
   [ ! -e "$expected_clone_dir" ]
+}
+
+expect_cleanup_retries_after_transient_delete_and_view_failures() {
+  local output_file="$fixture/transient-cleanup.log"
+  local raw_uuid="TRANSIENT-CLEANUP-1234"
+  local expected_suffix expected_repo
+
+  reset_fake_github
+
+  expected_suffix="$(sanitize_suffix "$raw_uuid")"
+  expected_repo="${owner}/agentify-pet-clinic-template-validation-${expected_suffix}"
+
+  run_validator "$output_file" \
+    "UUIDGEN_OUTPUT=$raw_uuid" \
+    "GH_REPO_DELETE_SEQUENCE=error,success" \
+    "GH_REPO_VIEW_SEQUENCE=state,error" \
+    "GH_CLEANUP_DELETE_RETRY_INTERVAL=0" \
+    "GH_REPO_DELETE_ERROR_MESSAGE=temporary delete api failure" \
+    "GH_REPO_VIEW_ERROR_MESSAGE=temporary repo view api failure"
+
+  [ "$(grep -Fc "repo delete $expected_repo --yes" "$gh_log")" -eq 2 ]
+  [ "$(grep -Fc "repo view $expected_repo" "$gh_log")" -eq 2 ]
+  grep -Fxq "validated target: $expected_repo" "$output_file"
+  [ ! -s "$gh_state" ]
+}
+
+expect_cleanup_failure_on_persistent_delete_errors() {
+  local output_file="$fixture/persistent-cleanup-failure.log"
+  local raw_uuid="PERSISTENT-CLEANUP-1234"
+  local expected_suffix expected_repo
+
+  reset_fake_github
+
+  expected_suffix="$(sanitize_suffix "$raw_uuid")"
+  expected_repo="${owner}/agentify-pet-clinic-template-validation-${expected_suffix}"
+
+  if run_validator "$output_file" \
+    "UUIDGEN_OUTPUT=$raw_uuid" \
+    "GH_REPO_DELETE_SEQUENCE=error,error,error" \
+    "GH_REPO_VIEW_SEQUENCE=state,error,error,error" \
+    "GH_CLEANUP_DELETE_MAX_ATTEMPTS=3" \
+    "GH_CLEANUP_DELETE_RETRY_INTERVAL=0" \
+    "GH_REPO_DELETE_ERROR_MESSAGE=temporary delete api failure" \
+    "GH_REPO_VIEW_ERROR_MESSAGE=temporary repo view api failure"; then
+    echo "validator unexpectedly passed despite cleanup failure" >&2
+    exit 1
+  fi
+
+  [ "$(grep -Fc "repo delete $expected_repo --yes" "$gh_log")" -eq 3 ]
+  [ "$(grep -Fc "repo view $expected_repo" "$gh_log")" -eq 4 ]
+  grep -Fqx "failed to delete generated repository after 3 attempt(s): $expected_repo" "$output_file"
+  grep -Fqx "temporary delete api failure" "$output_file"
+  grep -Fqx "temporary repo view api failure" "$output_file"
+  [ -s "$gh_state" ]
+}
+
+expect_cleanup_accepts_not_found_delete_without_repo_view_probe() {
+  local output_file="$fixture/not-found-cleanup.log"
+  local raw_uuid="DELETE-NOT-FOUND-1234"
+  local expected_suffix expected_repo
+
+  reset_fake_github
+
+  expected_suffix="$(sanitize_suffix "$raw_uuid")"
+  expected_repo="${owner}/agentify-pet-clinic-template-validation-${expected_suffix}"
+
+  run_validator "$output_file" \
+    "UUIDGEN_OUTPUT=$raw_uuid" \
+    "GH_REPO_DELETE_SEQUENCE=missing"
+
+  [ "$(grep -Fc "repo delete $expected_repo --yes" "$gh_log")" -eq 1 ]
+  [ "$(grep -Fc "repo view $expected_repo" "$gh_log")" -eq 1 ]
+  grep -Fxq "validated target: $expected_repo" "$output_file"
+  [ ! -s "$gh_state" ]
 }
 
 expect_proc_uuid_fallback() {
@@ -368,8 +505,11 @@ expect_waits_for_generated_default_branch() {
   grep -Fxq "validated target: $expected_repo" "$output_file"
 }
 
-expect_no_repo_delete_after_failed_create
+expect_cleanup_after_partial_create_failure
 expect_uuidgen_suffix_and_cleanup
+expect_cleanup_retries_after_transient_delete_and_view_failures
+expect_cleanup_failure_on_persistent_delete_errors
+expect_cleanup_accepts_not_found_delete_without_repo_view_probe
 expect_proc_uuid_fallback
 expect_waits_for_generated_default_branch
 
