@@ -6,7 +6,8 @@ Date: 2026-08-13
 
 - `main`: `9a9825951cedb66dad1b4b700ba5591a0ada69c5`
 - `origin/main`: `9a9825951cedb66dad1b4b700ba5591a0ada69c5`
-- `reference/clinic-assistant` validator base `HEAD`: `0e12601e9990023637e24e634e02107274781d65`
+- Validated Clinic Assistant implementation/test revision: `d95d211f2e70ffd1d0e9c71c997115f716d490eb`
+- This evidence-document refresh is a later documentation-only commit that follows `d95d211f2e70ffd1d0e9c71c997115f716d490eb`, so the validated code/test claim stays pinned to that revision instead of making a self-referential `HEAD` claim.
 
 ## Commands
 
@@ -17,7 +18,7 @@ chmod +x scripts/validate-reference.sh
 scripts/validate-reference.sh
 git rev-parse main
 git rev-parse origin/main
-git rev-parse HEAD
+git rev-parse d95d211f2e70ffd1d0e9c71c997115f716d490eb
 ```
 
 Validator internals:
@@ -58,7 +59,7 @@ grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml
 
 The focused local suite now carries two layers of deterministic local evidence for unsupported and medical boundaries. `ClinicAssistantBoundaryScenarioTests` drives the `/clinic-assistant` endpoint through MockMvc with the real `ClinicAssistantService` and a mocked `ClinicAssistantModel`, then proves the rendered transcript preserves the staff request and explicit refusal without fabricating activity. `ClinicAssistantBoundaryTests` continues to assert the configured `ClinicAssistantConfiguration.SYSTEM_PROMPT` boundary for unsupported or absent requests, read-only/no-mutation claims, veterinary diagnosis or treatment refusal, and multi-match clarification. This is PASS as mock-model endpoint-flow and configuration-boundary evidence only; it does **not** claim live-model compliance.
 
-Historical prototype smoke evidence for those boundary responses remains linked at commit [`ee7397dbe3f15846ff7ba98139fee11ac21d4cb2`](https://github.com/JoranBergfeld/agentify-pet-clinic/blob/ee7397dbe3f15846ff7ba98139fee11ac21d4cb2/docs/prototype/azure-deployment-slice-evidence.md).
+Historical prototype smoke evidence currently proves the live medical-advice refusal path at commit [`ee7397dbe3f15846ff7ba98139fee11ac21d4cb2`](https://github.com/JoranBergfeld/agentify-pet-clinic/blob/ee7397dbe3f15846ff7ba98139fee11ac21d4cb2/docs/prototype/azure-deployment-slice-evidence.md). Attempted-write refusal evidence in this refresh remains MockMvc endpoint-flow/configuration evidence only; a live smoke refresh for that path is still pending Task21.
 
 Deployed smoke refresh belongs to `Build the workshop Azure, Preflight, and cleanup path`.
 
