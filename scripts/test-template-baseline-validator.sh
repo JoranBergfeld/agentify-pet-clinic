@@ -19,6 +19,12 @@ write_clean_pom() {
 EOF
 }
 
+write_clean_gradle() {
+  cat >"$fixture/build.gradle" <<'EOF'
+plugins {}
+EOF
+}
+
 expect_failure() {
   local expected="$1"
   local output
@@ -31,11 +37,13 @@ expect_failure() {
   test "$output" = "template baseline invalid: $expected"
 }
 
-mkdir -p "$fixture/workshop" "$fixture/src/main/java" "$fixture/docs"
+mkdir -p "$fixture/workshop" "$fixture/src/main/java" "$fixture/docs/reference" "$fixture/.azure"
 write_clean_provenance
 write_clean_pom
+write_clean_gradle
 touch "$fixture/mvnw"
 chmod +x "$fixture/mvnw"
+touch "$fixture/.azure/.gitignore"
 
 clean_output="$("$validator" "$fixture")"
 test "$clean_output" = "template baseline is structurally clean"
@@ -47,6 +55,14 @@ rm -rf "$fixture/src/main/java/org/springframework/samples/petclinic/assistant"
 printf '<project><artifactId>spring-ai-starter-model-openai</artifactId></project>\n' >"$fixture/pom.xml"
 expect_failure "Spring AI application dependency is present"
 write_clean_pom
+
+printf "implementation 'org.springframework.ai:spring-ai-starter-model-openai'\n" >"$fixture/build.gradle"
+expect_failure "Spring AI application dependency is present"
+write_clean_gradle
+
+touch "$fixture/docs/reference/clinic-assistant-evidence.md"
+expect_failure "Clinic Assistant evidence document is present"
+rm "$fixture/docs/reference/clinic-assistant-evidence.md"
 
 rm "$fixture/mvnw"
 expect_failure "missing Maven wrapper"
@@ -75,16 +91,33 @@ touch "$fixture/.env"
 expect_failure "generated secret-bearing environment file is present"
 rm "$fixture/.env"
 
+touch "$fixture/.env.local"
+expect_failure "generated secret-bearing environment file is present"
+rm "$fixture/.env.local"
+
 touch "$fixture/terraform.tfstate"
 expect_failure "generated secret-bearing environment file is present"
 rm "$fixture/terraform.tfstate"
+
+touch "$fixture/terraform.tfstate.backup"
+expect_failure "generated secret-bearing environment file is present"
+rm "$fixture/terraform.tfstate.backup"
 
 touch "$fixture/azureProfile.json"
 expect_failure "generated secret-bearing environment file is present"
 rm "$fixture/azureProfile.json"
 
-mkdir -p "$fixture/.git" "$fixture/.worktrees/example"
-touch "$fixture/.git/azureProfile.json" "$fixture/.worktrees/example/terraform.tfstate"
+touch "$fixture/.azure/config.json"
+expect_failure "generated secret-bearing environment file is present"
+rm "$fixture/.azure/config.json"
+
+mkdir -p "$fixture/.git" "$fixture/.worktrees/example/.azure"
+touch \
+  "$fixture/.git/.env.local" \
+  "$fixture/.git/azureProfile.json" \
+  "$fixture/.worktrees/example/.azure/config.json" \
+  "$fixture/.worktrees/example/terraform.tfstate" \
+  "$fixture/.worktrees/example/terraform.tfstate.backup"
 clean_output="$("$validator" "$fixture")"
 test "$clean_output" = "template baseline is structurally clean"
 

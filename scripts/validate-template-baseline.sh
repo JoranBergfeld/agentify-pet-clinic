@@ -9,6 +9,13 @@ fail() {
   exit 1
 }
 
+contains_spring_ai_reference() {
+  local file="$1"
+
+  test -f "$file" || return 1
+  grep -Eq 'spring-ai-|org\.springframework\.ai' "$file"
+}
+
 test -f "$provenance" || fail "missing workshop/baseline.properties"
 grep -Fxq \
   'upstream.repository=https://github.com/spring-projects/spring-petclinic.git' \
@@ -20,12 +27,23 @@ test -f "$root/mvnw" || fail "missing Maven wrapper"
 test -f "$root/pom.xml" || fail "missing Maven project"
 test ! -d "$root/src/main/java/org/springframework/samples/petclinic/assistant" \
   || fail "Clinic Assistant solution code is present"
-! grep -Fq 'spring-ai-' "$root/pom.xml" \
+! contains_spring_ai_reference "$root/pom.xml" \
   || fail "Spring AI application dependency is present"
+! contains_spring_ai_reference "$root/build.gradle" \
+  || fail "Spring AI application dependency is present"
+test ! -f "$root/docs/reference/clinic-assistant-evidence.md" \
+  || fail "Clinic Assistant evidence document is present"
 
 if find "$root" \
   \( -type d \( -name .git -o -name .worktrees \) -prune \) -o \
-  \( -type f \( -name '.env' -o -name '*.tfstate' -o -name 'azureProfile.json' \) -print -quit \) \
+  \( -type f \( \
+      -name '.env' -o \
+      -name '.env.*' -o \
+      -name '*.tfstate' -o \
+      -name '*.tfstate.backup' -o \
+      -name 'azureProfile.json' -o \
+      \( -path "$root/.azure/*" -a ! -path "$root/.azure/.gitignore" \) \
+    \) -print -quit \) \
   | grep -q .; then
   fail "generated secret-bearing environment file is present"
 fi
