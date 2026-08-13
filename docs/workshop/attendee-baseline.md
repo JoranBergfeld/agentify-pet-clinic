@@ -8,6 +8,11 @@ application code, Spring AI dependencies, completed Work Contracts, completed
 Stage Cards, completed Reference Challenge evidence, reference answers,
 generated credentials, secrets, or Azure environment state.
 
+That exclusion also covers reference-only Clinic Assistant UI assets:
+`src/main/resources/templates/assistant/`, Clinic Assistant markers in the
+shared layout/messages/styles baseline files, and `spring.ai.*` application
+properties in `src/main/resources/application.properties`.
+
 Completed Work Contracts, completed Stage Cards, reference answers, and worked
 Reference Challenge evidence are reference-only artifacts. They must live only
 under `docs/reference/`, `workshop/reference/`, or `workshop/completed/`.

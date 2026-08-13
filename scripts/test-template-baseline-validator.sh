@@ -25,6 +25,20 @@ plugins {}
 EOF
 }
 
+copy_clean_baseline_file() {
+  local relative_path="$1"
+
+  mkdir -p "$(dirname "$fixture/$relative_path")"
+  cp "$repo_root/$relative_path" "$fixture/$relative_path"
+}
+
+write_clean_ui_resources() {
+  copy_clean_baseline_file "src/main/resources/templates/fragments/layout.html"
+  copy_clean_baseline_file "src/main/resources/messages/messages.properties"
+  copy_clean_baseline_file "src/main/scss/petclinic.scss"
+  copy_clean_baseline_file "src/main/resources/application.properties"
+}
+
 expect_failure() {
   local expected="$1"
   local output
@@ -52,10 +66,22 @@ expect_clean() {
   test "$clean_output" = "template baseline is structurally clean"
 }
 
+expect_file_append_failure() {
+  local relative_path="$1"
+  local appended_line="$2"
+  local expected="$3"
+
+  printf '%s\n' "$appended_line" >>"$fixture/$relative_path"
+  expect_failure "$expected"
+  copy_clean_baseline_file "$relative_path"
+  expect_clean
+}
+
 mkdir -p "$fixture/workshop" "$fixture/src/main/java" "$fixture/docs" "$fixture/.azure"
 write_clean_provenance
 write_clean_pom
 write_clean_gradle
+write_clean_ui_resources
 touch "$fixture/mvnw"
 chmod +x "$fixture/mvnw"
 touch "$fixture/.azure/.gitignore"
@@ -85,6 +111,31 @@ write_clean_gradle
 expect_reference_only_directory_failure "docs/reference"
 expect_reference_only_directory_failure "workshop/reference"
 expect_reference_only_directory_failure "workshop/completed"
+
+mkdir -p "$fixture/src/main/resources/templates/assistant"
+expect_failure "reference-only directory is present: src/main/resources/templates/assistant/"
+rmdir "$fixture/src/main/resources/templates/assistant"
+expect_clean
+
+expect_file_append_failure \
+  "src/main/resources/templates/fragments/layout.html" \
+  "<!-- clinic-assistant navigation -->" \
+  "Clinic Assistant UI marker is present in src/main/resources/templates/fragments/layout.html"
+
+expect_file_append_failure \
+  "src/main/resources/messages/messages.properties" \
+  "clinicAssistant=Clinic Assistant" \
+  "Clinic Assistant UI marker is present in src/main/resources/messages/messages.properties"
+
+expect_file_append_failure \
+  "src/main/scss/petclinic.scss" \
+  ".clinic-assistant-panel { color: #000; }" \
+  "Clinic Assistant UI marker is present in src/main/scss/petclinic.scss"
+
+expect_file_append_failure \
+  "src/main/resources/application.properties" \
+  "spring.ai.openai.api-key=test-key" \
+  "Spring AI application property is present in src/main/resources/application.properties"
 
 rm "$fixture/mvnw"
 expect_failure "missing Maven wrapper"

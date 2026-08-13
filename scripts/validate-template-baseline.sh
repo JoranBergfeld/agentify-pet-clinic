@@ -16,6 +16,20 @@ contains_spring_ai_reference() {
   grep -Eq 'spring-ai-|org\.springframework\.ai' "$file"
 }
 
+contains_clinic_assistant_ui_marker() {
+  local file="$1"
+
+  test -f "$file" || return 1
+  grep -Eq 'clinic-assistant|clinicAssistant' "$file"
+}
+
+contains_spring_ai_application_property() {
+  local file="$1"
+
+  test -f "$file" || return 1
+  grep -Eq '^[[:space:]]*spring\.ai\.' "$file"
+}
+
 require_absent_reference_only_directory() {
   local relative_dir="$1"
 
@@ -41,6 +55,18 @@ test ! -d "$root/src/main/java/org/springframework/samples/petclinic/assistant" 
 require_absent_reference_only_directory "docs/reference"
 require_absent_reference_only_directory "workshop/reference"
 require_absent_reference_only_directory "workshop/completed"
+require_absent_reference_only_directory "src/main/resources/templates/assistant"
+! contains_clinic_assistant_ui_marker \
+  "$root/src/main/resources/templates/fragments/layout.html" \
+  || fail "Clinic Assistant UI marker is present in src/main/resources/templates/fragments/layout.html"
+! contains_clinic_assistant_ui_marker \
+  "$root/src/main/resources/messages/messages.properties" \
+  || fail "Clinic Assistant UI marker is present in src/main/resources/messages/messages.properties"
+! contains_clinic_assistant_ui_marker "$root/src/main/scss/petclinic.scss" \
+  || fail "Clinic Assistant UI marker is present in src/main/scss/petclinic.scss"
+! contains_spring_ai_application_property \
+  "$root/src/main/resources/application.properties" \
+  || fail "Spring AI application property is present in src/main/resources/application.properties"
 
 if find "$root" \
   \( -type d \( -name .git -o -name .worktrees \) -prune \) -o \
