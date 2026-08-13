@@ -30,7 +30,9 @@ final class ClinicAssistantConversation {
 	}
 
 	List<Turn> turns() {
-		return List.copyOf(this.turns);
+		synchronized (this) {
+			return List.copyOf(this.turns);
+		}
 	}
 
 	public List<Turn> getTurns() {
@@ -38,15 +40,21 @@ final class ClinicAssistantConversation {
 	}
 
 	void addUser(String content) {
-		this.turns.add(new Turn("user", content, List.of()));
+		synchronized (this) {
+			this.turns.add(new Turn("user", content, List.of()));
+		}
 	}
 
 	void addAssistant(String content, List<ClinicAssistantActivity> activities) {
-		this.turns.add(new Turn("assistant", content, activities));
+		synchronized (this) {
+			this.turns.add(new Turn("assistant", content, activities));
+		}
 	}
 
 	void clear() {
-		this.turns.clear();
+		synchronized (this) {
+			this.turns.clear();
+		}
 	}
 
 	record Turn(String role, String content, List<ClinicAssistantActivity> activities) {

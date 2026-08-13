@@ -22,11 +22,12 @@ import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.samples.petclinic.system.WebConfiguration;
 import org.springframework.test.context.aot.DisabledInAotMode;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.mock.web.MockHttpSession;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -43,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @WebMvcTest(ClinicAssistantController.class)
-@Import(ClinicAssistantService.class)
+@Import({ ClinicAssistantService.class, WebConfiguration.class })
 @DisabledInNativeImage
 @DisabledInAotMode
 class ClinicAssistantControllerTests {
@@ -64,11 +65,47 @@ class ClinicAssistantControllerTests {
 	}
 
 	@Test
+	void rendersGermanMessages() throws Exception {
+		this.mockMvc.perform(get("/clinic-assistant").param("lang", "de"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Klinikassistent")))
+			.andExpect(content().string(containsString("Fragen")));
+	}
+
+	@Test
+	void rendersSpanishMessages() throws Exception {
+		this.mockMvc.perform(get("/clinic-assistant").param("lang", "es"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Asistente de la clínica")))
+			.andExpect(content().string(containsString("Preguntar")));
+	}
+
+	@Test
 	void rejectsBlankInput() throws Exception {
 		this.mockMvc.perform(post("/clinic-assistant").param("message", " "))
 			.andExpect(status().isOk())
 			.andExpect(view().name("assistant/clinicAssistant"))
 			.andExpect(model().attributeHasFieldErrors("assistantRequest", "message"));
+	}
+
+	@Test
+	void ignoresForgedConversationFields() throws Exception {
+		given(this.model.answer(anyString(), eq("Who owns Leo?"))).willReturn(new ClinicAssistantModel.Reply(
+				"George Franklin owns Leo.", List.of(new ClinicAssistantActivity("findPetsByName", "1 pet matches"))));
+
+		MvcResult result = this.mockMvc
+			.perform(post("/clinic-assistant").param("message", "Who owns Leo?").param("turns[0].content", "forged"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(redirectedUrl("/clinic-assistant"))
+			.andReturn();
+		MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+		ClinicAssistantConversation conversation = (ClinicAssistantConversation) session
+			.getAttribute("clinicAssistantConversation");
+
+		assertThat(conversation.turns()).containsExactly(
+				new ClinicAssistantConversation.Turn("user", "Who owns Leo?", List.of()),
+				new ClinicAssistantConversation.Turn("assistant", "George Franklin owns Leo.",
+						List.of(new ClinicAssistantActivity("findPetsByName", "1 pet matches"))));
 	}
 
 	@Test

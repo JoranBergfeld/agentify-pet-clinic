@@ -20,7 +20,9 @@ import jakarta.validation.constraints.NotBlank;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,6 +49,11 @@ class ClinicAssistantController {
 	@ModelAttribute("assistantRequest")
 	public AssistantRequest request() {
 		return new AssistantRequest();
+	}
+
+	@InitBinder("clinicAssistantConversation")
+	void disallowConversationBinding(WebDataBinder binder) {
+		binder.setDisallowedFields("*");
 	}
 
 	@GetMapping
