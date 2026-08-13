@@ -2,14 +2,41 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+gh_bin="${GH_BIN:-gh}"
+git_bin="${GIT_BIN:-git}"
+uuidgen_bin="${UUIDGEN_BIN:-uuidgen}"
+random_uuid_file="${RANDOM_UUID_FILE:-/proc/sys/kernel/random/uuid}"
 source_repo="${1:-JoranBergfeld/agentify-pet-clinic}"
-owner="${2:-$(gh api user --jq .login)}"
+owner="${2:-$("$gh_bin" api user --jq .login)}"
 generated_repo=""
 clone_dir=""
+created_repo=false
 
 fail() {
   echo "template generation validation failed: $*" >&2
   exit 1
+}
+
+generate_repo_suffix() {
+  local raw_suffix
+
+  if raw_suffix="$("$uuidgen_bin" 2>/dev/null)"; then
+    :
+  elif [ -r "$random_uuid_file" ]; then
+    raw_suffix="$(<"$random_uuid_file")"
+  else
+    fail "no collision-resistant UUID source is available"
+  fi
+
+  raw_suffix="$(
+    printf '%s' "$raw_suffix" \
+      | tr '[:upper:]' '[:lower:]' \
+      | tr -cd 'a-z0-9-' \
+      | sed 's/^-*//; s/-*$//'
+  )"
+  [ -n "$raw_suffix" ] || fail "generated repository suffix is empty"
+
+  printf '%s\n' "$raw_suffix"
 }
 
 cleanup() {
@@ -30,8 +57,10 @@ cleanup() {
     esac
   fi
 
-  if [ -n "${generated_repo:-}" ] && gh repo view "$generated_repo" >/dev/null 2>&1; then
-    gh repo delete "$generated_repo" --yes >/dev/null || cleanup_status=$?
+  if [ "${created_repo:-false}" = "true" ] \
+    && [ -n "${generated_repo:-}" ] \
+    && "$gh_bin" repo view "$generated_repo" >/dev/null 2>&1; then
+    "$gh_bin" repo delete "$generated_repo" --yes >/dev/null || cleanup_status=$?
   fi
 
   if [ "$status" -eq 0 ] && [ "$cleanup_status" -ne 0 ]; then
@@ -50,7 +79,7 @@ esac
 
 [ -n "$owner" ] || fail "owner must not be empty"
 
-source_metadata="$(gh repo view "$source_repo" --json isTemplate,defaultBranchRef --jq '[.isTemplate, (.defaultBranchRef.name // "")] | @tsv')"
+source_metadata="$("$gh_bin" repo view "$source_repo" --json isTemplate,defaultBranchRef --jq '[.isTemplate, (.defaultBranchRef.name // "")] | @tsv')"
 IFS=$'\t' read -r source_is_template source_default_branch <<<"$source_metadata"
 
 [ "$source_is_template" = "true" ] \
@@ -62,37 +91,37 @@ repo_basename="${source_repo##*/}"
 attempt=0
 
 while :; do
-  repo_suffix="$(date -u +%Y%m%d%H%M%S)-$$-$attempt"
+  repo_suffix="$(generate_repo_suffix)"
+  if [ "$attempt" -gt 0 ]; then
+    repo_suffix="${repo_suffix}-${attempt}"
+  fi
   repo_name="${repo_basename}-template-validation-${repo_suffix}"
   generated_repo="${owner}/${repo_name}"
   clone_dir="$repo_root/.validate-template-generation.${repo_name}"
 
-  if ! gh repo view "$generated_repo" >/dev/null 2>&1 && [ ! -e "$clone_dir" ]; then
+  if ! "$gh_bin" repo view "$generated_repo" >/dev/null 2>&1 && [ ! -e "$clone_dir" ]; then
     break
   fi
 
   attempt=$((attempt + 1))
 done
 
-gh api \
-  --method POST \
-  -H "Accept: application/vnd.github+json" \
-  "repos/$source_repo/generate" \
-  -f owner="$owner" \
-  -f name="$repo_name" \
-  -F private=true \
+"$gh_bin" repo create "$generated_repo" \
+  --private \
+  --template "$source_repo" \
   >/dev/null
+created_repo=true
 
-gh repo clone "$generated_repo" "$clone_dir" >/dev/null
+"$gh_bin" repo clone "$generated_repo" "$clone_dir" >/dev/null
 
 (
   cd "$clone_dir"
 
-  current_branch="$(git branch --show-current)"
+  current_branch="$("$git_bin" branch --show-current)"
   [ "$current_branch" = "main" ] \
     || fail "generated repository branch is not main: $current_branch"
 
-  status_output="$(git status --short)"
+  status_output="$("$git_bin" status --short)"
   [ -z "$status_output" ] \
     || fail "generated repository working tree is not clean"
 
