@@ -16,12 +16,14 @@
 
 package org.springframework.samples.petclinic.assistant;
 
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
@@ -30,10 +32,15 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class ClinicAssistantConversationTests {
 
 	@Test
-	void createsAUuidConversationWithImmutableTurns() {
+	void createsAStringConversationWithPackagePrivateTypesAndImmutableTurns() {
 		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
 
-		assertThat(conversation.id()).isInstanceOf(UUID.class);
+		assertThat(conversation.id()).isInstanceOf(String.class);
+		assertThatCode(() -> UUID.fromString(conversation.id())).doesNotThrowAnyException();
+		assertThat(Modifier.isFinal(ClinicAssistantConversation.class.getModifiers())).isTrue();
+		assertThat(Modifier.isPublic(ClinicAssistantConversation.class.getModifiers())).isFalse();
+		assertThat(Modifier.isPublic(ClinicAssistantConversation.Turn.class.getModifiers())).isFalse();
+		assertThat(Modifier.isPublic(ClinicAssistantActivity.class.getModifiers())).isFalse();
 		assertThat(conversation.turns()).isEmpty();
 		assertThatExceptionOfType(UnsupportedOperationException.class).isThrownBy(() -> conversation.turns()
 			.add(new ClinicAssistantConversation.Turn("user", "Who owns Leo?", List.of())));

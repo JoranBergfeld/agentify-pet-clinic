@@ -102,7 +102,7 @@ class ClinicAssistantControllerTests {
 			.andExpect(status().is3xxRedirection())
 			.andExpect(redirectedUrl("/clinic-assistant"));
 
-		verify(this.model).reset(conversation.id().toString());
+		verify(this.model).reset(conversation.id());
 		assertThat(conversation.turns()).isEmpty();
 	}
 

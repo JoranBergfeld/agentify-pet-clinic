@@ -16,5 +16,5 @@
 
 package org.springframework.samples.petclinic.assistant;
 
-public record ClinicAssistantActivity(String tool, String outcome) {
+record ClinicAssistantActivity(String tool, String outcome) {
 }

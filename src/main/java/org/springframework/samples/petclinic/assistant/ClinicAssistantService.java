@@ -27,13 +27,13 @@ class ClinicAssistantService {
 	}
 
 	void ask(ClinicAssistantConversation conversation, String message) {
-		ClinicAssistantModel.Reply reply = this.model.answer(conversation.id().toString(), message);
+		ClinicAssistantModel.Reply reply = this.model.answer(conversation.id(), message);
 		conversation.addUser(message);
 		conversation.addAssistant(reply.answer(), reply.activities());
 	}
 
 	void reset(ClinicAssistantConversation conversation) {
-		this.model.reset(conversation.id().toString());
+		this.model.reset(conversation.id());
 		conversation.clear();
 	}
 

@@ -38,9 +38,8 @@ class ClinicAssistantServiceTests {
 	@Test
 	void recordsTheUserAnswerAndVisibleActivity() {
 		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
-		given(this.model.answer(conversation.id().toString(), "Who owns Leo?"))
-			.willReturn(new ClinicAssistantModel.Reply("George Franklin owns Leo.",
-					List.of(new ClinicAssistantActivity("findPetsByName", "1 pet matches"))));
+		given(this.model.answer(conversation.id(), "Who owns Leo?")).willReturn(new ClinicAssistantModel.Reply(
+				"George Franklin owns Leo.", List.of(new ClinicAssistantActivity("findPetsByName", "1 pet matches"))));
 
 		this.service.ask(conversation, "Who owns Leo?");
 
@@ -57,7 +56,7 @@ class ClinicAssistantServiceTests {
 
 		this.service.reset(conversation);
 
-		verify(this.model).reset(conversation.id().toString());
+		verify(this.model).reset(conversation.id());
 		assertThat(conversation.turns()).isEmpty();
 	}
 
@@ -65,7 +64,7 @@ class ClinicAssistantServiceTests {
 	void doesNotRetainAnOrphanUserTurnWhenTheModelFails() {
 		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
 		IllegalStateException failure = new IllegalStateException("tool failure");
-		given(this.model.answer(conversation.id().toString(), "Who owns Basil?")).willThrow(failure);
+		given(this.model.answer(conversation.id(), "Who owns Basil?")).willThrow(failure);
 
 		Throwable thrown = catchThrowable(() -> this.service.ask(conversation, "Who owns Basil?"));
 

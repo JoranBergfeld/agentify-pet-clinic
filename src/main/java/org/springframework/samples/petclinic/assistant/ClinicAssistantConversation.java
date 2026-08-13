@@ -19,18 +19,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public final class ClinicAssistantConversation {
+final class ClinicAssistantConversation {
 
-	private final UUID id = UUID.randomUUID();
+	private final String id = UUID.randomUUID().toString();
 
 	private final List<Turn> turns = new ArrayList<>();
 
-	public UUID id() {
+	String id() {
 		return this.id;
 	}
 
-	public List<Turn> turns() {
+	List<Turn> turns() {
 		return List.copyOf(this.turns);
+	}
+
+	public List<Turn> getTurns() {
+		return turns();
 	}
 
 	void addUser(String content) {
@@ -45,7 +49,7 @@ public final class ClinicAssistantConversation {
 		this.turns.clear();
 	}
 
-	public record Turn(String role, String content, List<ClinicAssistantActivity> activities) {
+	record Turn(String role, String content, List<ClinicAssistantActivity> activities) {
 
 		public Turn {
 			activities = List.copyOf(activities);
