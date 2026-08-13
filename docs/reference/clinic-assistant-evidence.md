@@ -1,13 +1,13 @@
 # Clinic Assistant reference evidence
 
-Date: 2026-08-13
+Date: 2026-08-14
 
 ## Validated revisions
 
-- `main`: `9a9825951cedb66dad1b4b700ba5591a0ada69c5`
-- `origin/main`: `9a9825951cedb66dad1b4b700ba5591a0ada69c5`
-- Validated Clinic Assistant implementation/test revision: `d95d211f2e70ffd1d0e9c71c997115f716d490eb`
-- This evidence-document refresh is a later documentation-only commit that follows `d95d211f2e70ffd1d0e9c71c997115f716d490eb`, so the validated code/test claim stays pinned to that revision instead of making a self-referential `HEAD` claim.
+- `main`: `b1e497370029a57b41d7a6f405003a462f2129ed`
+- `origin/main`: `b1e497370029a57b41d7a6f405003a462f2129ed`
+- Validated Clinic Assistant implementation/test revision: `c28137d7bdfc2795076d3701aea1a93804baaa8b`
+- This evidence-document refresh is a later documentation-only commit that follows `c28137d7bdfc2795076d3701aea1a93804baaa8b`, so the validated code/test claim stays pinned to that revision instead of making a self-referential `HEAD` claim.
 
 ## Commands
 
@@ -15,10 +15,13 @@ Executed:
 
 ```text
 chmod +x scripts/validate-reference.sh
+chmod +x scripts/test-validate-reference-validator.sh
+scripts/test-validate-reference-validator.sh
 scripts/validate-reference.sh
+./mvnw -q test
 git rev-parse main
 git rev-parse origin/main
-git rev-parse d95d211f2e70ffd1d0e9c71c997115f716d490eb
+git rev-parse c28137d7bdfc2795076d3701aea1a93804baaa8b
 ```
 
 Validator internals:
@@ -28,12 +31,22 @@ git fetch origin main
 git merge-base --is-ancestor origin/main HEAD
 test -d src/main/java/org/springframework/samples/petclinic/assistant
 grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml
-./mvnw -q -Dtest='ClinicQueryServiceTests,ClinicAssistantToolsTests,ClinicAssistantModelTests,ClinicAssistantConversationTests,ClinicAssistantBoundaryTests,ClinicAssistantBoundaryScenarioTests,ClinicAssistantServiceTests,ClinicAssistantControllerTests,ClinicAssistantSessionListenerTests,I18nPropertiesSyncTest' test
+./mvnw -q -Dtest='ClinicQueryServiceTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantToolsTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantModelTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantConversationTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantBoundaryTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantBoundaryScenarioTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantServiceTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantControllerTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='ClinicAssistantSessionListenerTests' -Dsurefire.failIfNoSpecifiedTests=true test
+./mvnw -q -Dtest='I18nPropertiesSyncTest' -Dsurefire.failIfNoSpecifiedTests=true test
 ./mvnw -q test
 ```
 
 ## Results
 
+- `scripts/test-validate-reference-validator.sh`: PASS — proves focused classes run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true`, then proves `MissingReferenceValidationTest` stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
 - Focused assistant suite: PASS — 10 suite reports, 38 tests, 0 failures, 0 errors, 0 skipped
 - Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 107 tests, 0 failures, 0 errors, 2 skipped
