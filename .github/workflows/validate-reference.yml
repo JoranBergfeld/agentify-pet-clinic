@@ -1,0 +1,24 @@
+name: Validate Clinic Assistant reference
+
+on:
+  pull_request:
+    branches: [reference/clinic-assistant]
+  push:
+    branches: [reference/clinic-assistant]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: scripts/validate-reference.sh
