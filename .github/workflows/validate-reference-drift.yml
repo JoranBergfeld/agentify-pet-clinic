@@ -1,0 +1,27 @@
+name: Validate Clinic Assistant reference drift
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-reference-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Clinic Assistant reference branch
+        uses: actions/checkout@v4
+        with:
+          ref: reference/clinic-assistant
+          fetch-depth: 0
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Validate Clinic Assistant reference branch
+        run: scripts/validate-reference.sh
