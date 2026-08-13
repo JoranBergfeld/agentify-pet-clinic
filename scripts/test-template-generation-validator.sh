@@ -11,11 +11,13 @@ owner="test-owner"
 bin_dir="$fixture/bin"
 gh_log="$fixture/gh.log"
 gh_state="$fixture/gh-state"
+gh_branch_checks="$fixture/gh-branch-checks"
 uuid_fallback_file="$fixture/random-uuid"
 
 mkdir -p "$bin_dir"
 : >"$gh_log"
 : >"$gh_state"
+: >"$gh_branch_checks"
 
 cat >"$bin_dir/gh" <<'EOF'
 #!/usr/bin/env bash
@@ -23,6 +25,7 @@ set -euo pipefail
 
 log_file="${GH_LOG:?}"
 state_file="${GH_STATE:?}"
+branch_checks_file="${GH_BRANCH_CHECKS:?}"
 
 printf '%s\n' "$*" >>"$log_file"
 
@@ -41,9 +44,43 @@ remove_repo() {
   mv "$state_file.next" "$state_file"
 }
 
+branch_check_count() {
+  if [ -s "$branch_checks_file" ]; then
+    cat "$branch_checks_file"
+  else
+    printf '0\n'
+  fi
+}
+
+increment_branch_check_count() {
+  local current
+
+  current="$(branch_check_count)"
+  printf '%s\n' "$((current + 1))" >"$branch_checks_file"
+}
+
+branch_ready() {
+  [ "$(branch_check_count)" -ge "${GH_BRANCH_READY_AFTER_ATTEMPTS:-0}" ]
+}
+
 if [ "$1" = "api" ] && [ "${2:-}" = "user" ]; then
   printf '%s\n' "${GH_OWNER_LOGIN:-test-owner}"
   exit 0
+fi
+
+if [ "$1" = "api" ] && [[ "${2:-}" == repos/*/branches/* ]]; then
+  repo_path="${2#repos/}"
+  repo="${repo_path%/branches/*}"
+
+  if has_repo "$repo"; then
+    increment_branch_check_count
+    if branch_ready; then
+      printf '{"name":"%s"}\n' "${2##*/}"
+      exit 0
+    fi
+  fi
+
+  exit 1
 fi
 
 if [ "$1" = "repo" ] && [ "$2" = "view" ]; then
@@ -131,6 +168,12 @@ fi
 
 if [ "$1" = "repo" ] && [ "$2" = "clone" ]; then
   dest="$4"
+
+  if [ "${GH_CLONE_REQUIRES_BRANCH_READY:-false}" = "true" ] && ! branch_ready; then
+    mkdir -p "$dest"
+    exit 0
+  fi
+
   mkdir -p "$dest/scripts"
   cat >"$dest/scripts/validate-template-baseline.sh" <<'EOF_INNER'
 #!/usr/bin/env bash
@@ -187,6 +230,7 @@ chmod +x "$bin_dir/uuidgen"
 reset_fake_github() {
   : >"$gh_log"
   : >"$gh_state"
+  : >"$gh_branch_checks"
 }
 
 sanitize_suffix() {
@@ -208,6 +252,7 @@ run_validator() {
     RANDOM_UUID_FILE="$uuid_fallback_file" \
     GH_LOG="$gh_log" \
     GH_STATE="$gh_state" \
+    GH_BRANCH_CHECKS="$gh_branch_checks" \
     GH_SOURCE_REPO="$source_repo" \
     GH_OWNER_LOGIN="$owner" \
     "$@" \
@@ -300,8 +345,32 @@ expect_proc_uuid_fallback() {
   grep -Fxq "validated target: $expected_repo" "$output_file"
 }
 
+expect_waits_for_generated_default_branch() {
+  local output_file="$fixture/branch-wait.log"
+  local raw_uuid="WAIT-FOR-BRANCH-1234"
+  local expected_suffix expected_repo
+
+  reset_fake_github
+
+  expected_suffix="$(sanitize_suffix "$raw_uuid")"
+  expected_repo="${owner}/agentify-pet-clinic-template-validation-${expected_suffix}"
+
+  run_validator "$output_file" \
+    "UUIDGEN_OUTPUT=$raw_uuid" \
+    "GH_CLONE_REQUIRES_BRANCH_READY=true" \
+    "GH_BRANCH_READY_AFTER_ATTEMPTS=2" \
+    "GH_TEMPLATE_READY_POLL_INTERVAL=0" \
+    "GH_TEMPLATE_READY_MAX_ATTEMPTS=3"
+
+  [ "$(grep -Fc "api repos/$expected_repo/branches/main" "$gh_log")" -eq 2 ]
+  grep -Fqx "repo create $expected_repo --private --template $source_repo" "$gh_log"
+  grep -Fqx "repo delete $expected_repo --yes" "$gh_log"
+  grep -Fxq "validated target: $expected_repo" "$output_file"
+}
+
 expect_no_repo_delete_after_failed_create
 expect_uuidgen_suffix_and_cleanup
 expect_proc_uuid_fallback
+expect_waits_for_generated_default_branch
 
 echo "template generation validator tests passed"

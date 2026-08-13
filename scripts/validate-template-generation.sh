@@ -6,6 +6,8 @@ gh_bin="${GH_BIN:-gh}"
 git_bin="${GIT_BIN:-git}"
 uuidgen_bin="${UUIDGEN_BIN:-uuidgen}"
 random_uuid_file="${RANDOM_UUID_FILE:-/proc/sys/kernel/random/uuid}"
+template_ready_max_attempts="${GH_TEMPLATE_READY_MAX_ATTEMPTS:-30}"
+template_ready_poll_interval="${GH_TEMPLATE_READY_POLL_INTERVAL:-2}"
 source_repo="${1:-JoranBergfeld/agentify-pet-clinic}"
 owner="${2:-$("$gh_bin" api user --jq .login)}"
 generated_repo=""
@@ -37,6 +39,25 @@ generate_repo_suffix() {
   [ -n "$raw_suffix" ] || fail "generated repository suffix is empty"
 
   printf '%s\n' "$raw_suffix"
+}
+
+wait_for_generated_default_branch() {
+  local attempt=1
+
+  while [ "$attempt" -le "$template_ready_max_attempts" ]; do
+    if "$gh_bin" api "repos/${generated_repo}/branches/${source_default_branch}" \
+      >/dev/null 2>&1; then
+      return 0
+    fi
+
+    if [ "$attempt" -eq "$template_ready_max_attempts" ]; then
+      fail \
+        "generated repository default branch did not become ready: ${generated_repo}@${source_default_branch}"
+    fi
+
+    sleep "$template_ready_poll_interval"
+    attempt=$((attempt + 1))
+  done
 }
 
 cleanup() {
@@ -111,6 +132,8 @@ done
   --template "$source_repo" \
   >/dev/null
 created_repo=true
+
+wait_for_generated_default_branch
 
 "$gh_bin" repo clone "$generated_repo" "$clone_dir" >/dev/null
 
