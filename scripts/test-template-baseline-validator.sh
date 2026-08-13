@@ -137,6 +137,11 @@ expect_file_append_failure \
   "spring.ai.openai.api-key=test-key" \
   "Spring AI application property is present in src/main/resources/application.properties"
 
+expect_file_append_failure \
+  "src/main/resources/application.properties" \
+  "# spring.ai.openai.api-key=test-key" \
+  "Spring AI application property is present in src/main/resources/application.properties"
+
 rm "$fixture/mvnw"
 expect_failure "missing Maven wrapper"
 touch "$fixture/mvnw"

@@ -27,7 +27,7 @@ contains_spring_ai_application_property() {
   local file="$1"
 
   test -f "$file" || return 1
-  grep -Eq '^[[:space:]]*spring\.ai\.' "$file"
+  grep -Fq 'spring.ai.' "$file"
 }
 
 require_absent_reference_only_directory() {
