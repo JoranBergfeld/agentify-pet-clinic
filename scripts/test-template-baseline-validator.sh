@@ -37,7 +37,22 @@ expect_failure() {
   test "$output" = "template baseline invalid: $expected"
 }
 
-mkdir -p "$fixture/workshop" "$fixture/src/main/java" "$fixture/docs/reference" "$fixture/.azure"
+expect_reference_only_directory_failure() {
+  local relative_dir="$1"
+
+  mkdir -p "$fixture/$relative_dir"
+  expect_failure "reference-only directory is present: $relative_dir/"
+  rmdir "$fixture/$relative_dir"
+}
+
+expect_clean() {
+  local clean_output
+
+  clean_output="$("$validator" "$fixture")"
+  test "$clean_output" = "template baseline is structurally clean"
+}
+
+mkdir -p "$fixture/workshop" "$fixture/src/main/java" "$fixture/docs" "$fixture/.azure"
 write_clean_provenance
 write_clean_pom
 write_clean_gradle
@@ -45,8 +60,15 @@ touch "$fixture/mvnw"
 chmod +x "$fixture/mvnw"
 touch "$fixture/.azure/.gitignore"
 
-clean_output="$("$validator" "$fixture")"
-test "$clean_output" = "template baseline is structurally clean"
+expect_clean
+
+mkdir -p "$fixture/docs/workshop" "$fixture/workshop/templates"
+touch \
+  "$fixture/docs/workshop/work-contract-template.md" \
+  "$fixture/workshop/stage-card-template.md" \
+  "$fixture/workshop/reference-answer-template.md" \
+  "$fixture/workshop/reference-challenge-template.md"
+expect_clean
 
 mkdir -p "$fixture/src/main/java/org/springframework/samples/petclinic/assistant"
 expect_failure "Clinic Assistant solution code is present"
@@ -60,9 +82,9 @@ printf "implementation 'org.springframework.ai:spring-ai-starter-model-openai'\n
 expect_failure "Spring AI application dependency is present"
 write_clean_gradle
 
-touch "$fixture/docs/reference/clinic-assistant-evidence.md"
-expect_failure "Clinic Assistant evidence document is present"
-rm "$fixture/docs/reference/clinic-assistant-evidence.md"
+expect_reference_only_directory_failure "docs/reference"
+expect_reference_only_directory_failure "workshop/reference"
+expect_reference_only_directory_failure "workshop/completed"
 
 rm "$fixture/mvnw"
 expect_failure "missing Maven wrapper"
@@ -118,7 +140,6 @@ touch \
   "$fixture/.worktrees/example/.azure/config.json" \
   "$fixture/.worktrees/example/terraform.tfstate" \
   "$fixture/.worktrees/example/terraform.tfstate.backup"
-clean_output="$("$validator" "$fixture")"
-test "$clean_output" = "template baseline is structurally clean"
+expect_clean
 
 echo "template baseline validator tests passed"

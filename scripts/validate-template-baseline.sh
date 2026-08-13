@@ -16,6 +16,13 @@ contains_spring_ai_reference() {
   grep -Eq 'spring-ai-|org\.springframework\.ai' "$file"
 }
 
+require_absent_reference_only_directory() {
+  local relative_dir="$1"
+
+  test ! -e "$root/$relative_dir" \
+    || fail "reference-only directory is present: $relative_dir/"
+}
+
 test -f "$provenance" || fail "missing workshop/baseline.properties"
 grep -Fxq \
   'upstream.repository=https://github.com/spring-projects/spring-petclinic.git' \
@@ -31,8 +38,9 @@ test ! -d "$root/src/main/java/org/springframework/samples/petclinic/assistant" 
   || fail "Spring AI application dependency is present"
 ! contains_spring_ai_reference "$root/build.gradle" \
   || fail "Spring AI application dependency is present"
-test ! -f "$root/docs/reference/clinic-assistant-evidence.md" \
-  || fail "Clinic Assistant evidence document is present"
+require_absent_reference_only_directory "docs/reference"
+require_absent_reference_only_directory "workshop/reference"
+require_absent_reference_only_directory "workshop/completed"
 
 if find "$root" \
   \( -type d \( -name .git -o -name .worktrees \) -prune \) -o \

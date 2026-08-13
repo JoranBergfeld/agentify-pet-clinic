@@ -8,6 +8,12 @@ application code, Spring AI dependencies, completed Work Contracts, completed
 Stage Cards, completed Reference Challenge evidence, reference answers,
 generated credentials, secrets, or Azure environment state.
 
+Completed Work Contracts, completed Stage Cards, reference answers, and worked
+Reference Challenge evidence are reference-only artifacts. They must live only
+under `docs/reference/`, `workshop/reference/`, or `workshop/completed/`.
+Those directories are reserved for reference material and must stay absent on
+template `main`. Blank templates may live elsewhere.
+
 Baseline provenance is recorded in `workshop/baseline.properties`:
 
 - Upstream: `https://github.com/spring-projects/spring-petclinic.git`
