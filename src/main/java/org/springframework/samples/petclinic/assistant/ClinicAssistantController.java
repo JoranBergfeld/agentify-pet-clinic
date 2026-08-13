@@ -30,8 +30,10 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 
 @Controller
 @RequestMapping("/clinic-assistant")
-@SessionAttributes("clinicAssistantConversation")
+@SessionAttributes(ClinicAssistantController.CONVERSATION_ATTRIBUTE)
 class ClinicAssistantController {
+
+	static final String CONVERSATION_ATTRIBUTE = "clinicAssistantConversation";
 
 	private static final String VIEWS_CLINIC_ASSISTANT = "assistant/clinicAssistant";
 
@@ -41,7 +43,7 @@ class ClinicAssistantController {
 		this.assistant = assistant;
 	}
 
-	@ModelAttribute("clinicAssistantConversation")
+	@ModelAttribute(CONVERSATION_ATTRIBUTE)
 	public ClinicAssistantConversation conversation() {
 		return new ClinicAssistantConversation();
 	}
@@ -51,7 +53,7 @@ class ClinicAssistantController {
 		return new AssistantRequest();
 	}
 
-	@InitBinder("clinicAssistantConversation")
+	@InitBinder(CONVERSATION_ATTRIBUTE)
 	void disallowConversationBinding(WebDataBinder binder) {
 		binder.setDisallowedFields("*");
 	}
@@ -63,7 +65,7 @@ class ClinicAssistantController {
 
 	@PostMapping
 	public String ask(@Valid @ModelAttribute("assistantRequest") AssistantRequest request, BindingResult binding,
-			@ModelAttribute("clinicAssistantConversation") ClinicAssistantConversation conversation) {
+			@ModelAttribute(CONVERSATION_ATTRIBUTE) ClinicAssistantConversation conversation) {
 		if (binding.hasErrors()) {
 			return VIEWS_CLINIC_ASSISTANT;
 		}
@@ -72,7 +74,7 @@ class ClinicAssistantController {
 	}
 
 	@PostMapping("/reset")
-	public String reset(@ModelAttribute("clinicAssistantConversation") ClinicAssistantConversation conversation) {
+	public String reset(@ModelAttribute(CONVERSATION_ATTRIBUTE) ClinicAssistantConversation conversation) {
 		this.assistant.reset(conversation);
 		return "redirect:/clinic-assistant";
 	}

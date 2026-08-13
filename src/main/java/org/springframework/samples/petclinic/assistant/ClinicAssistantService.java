@@ -35,6 +35,10 @@ class ClinicAssistantService {
 	}
 
 	void reset(ClinicAssistantConversation conversation) {
+		expire(conversation);
+	}
+
+	void expire(ClinicAssistantConversation conversation) {
 		synchronized (conversation) {
 			this.model.reset(conversation.id());
 			conversation.clear();
