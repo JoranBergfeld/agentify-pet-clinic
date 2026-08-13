@@ -64,15 +64,19 @@ run_focused_test_class() {
   assert_surefire_report_generated "$test_class"
 }
 
+refresh_origin_main_tracking_ref() {
+  git fetch origin +refs/heads/main:refs/remotes/origin/main
+}
+
 main() {
   local root="${1:-$default_root}"
 
   cd "$root"
   load_focused_test_classes
 
-  git fetch origin main
-  git merge-base --is-ancestor origin/main HEAD \
-    || fail "origin/main is not an ancestor of HEAD"
+  refresh_origin_main_tracking_ref
+  git merge-base --is-ancestor refs/remotes/origin/main HEAD \
+    || fail "refs/remotes/origin/main is not an ancestor of HEAD"
   test -d src/main/java/org/springframework/samples/petclinic/assistant \
     || fail "missing Clinic Assistant source directory"
   grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml \

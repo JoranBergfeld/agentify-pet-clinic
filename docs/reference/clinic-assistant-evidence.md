@@ -7,7 +7,7 @@ Date: 2026-08-14
 - `main`: `1788b55faff9683621723389f4abde52f9168d8d`
 - `origin/main`: `1788b55faff9683621723389f4abde52f9168d8d`
 - Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
-- This evidence-document refresh is a later documentation-only commit that follows `b85347b5545ef62c78364199099c83dbb55bba10`, so the validated code/test claim stays pinned to that revision instead of making a self-referential `HEAD` claim.
+- This validator reproducibility refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates validation tooling and evidence commands, not the assistant feature itself.
 
 ## Commands
 
@@ -15,20 +15,20 @@ Executed:
 
 ```text
 chmod +x scripts/validate-reference.sh
-chmod +x scripts/test-validate-reference-validator.sh
-scripts/test-validate-reference-validator.sh
+chmod +x scripts/test-reference-validator.sh
+scripts/test-reference-validator.sh
 scripts/validate-reference.sh
 ./mvnw -q test
 git rev-parse main
-git rev-parse origin/main
+git rev-parse refs/remotes/origin/main
 git rev-parse b85347b5545ef62c78364199099c83dbb55bba10
 ```
 
 Validator internals:
 
 ```text
-git fetch origin main
-git merge-base --is-ancestor origin/main HEAD
+git fetch origin +refs/heads/main:refs/remotes/origin/main
+git merge-base --is-ancestor refs/remotes/origin/main HEAD
 test -d src/main/java/org/springframework/samples/petclinic/assistant
 grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml
 ./mvnw -q -Dtest='ClinicQueryServiceTests' -Dsurefire.failIfNoSpecifiedTests=true test
@@ -46,7 +46,7 @@ grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml
 
 ## Results
 
-- `scripts/test-validate-reference-validator.sh`: PASS — proves focused classes run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true`, then proves `MissingReferenceValidationTest` stops validation before the full-suite fallback.
+- `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main` and reaches the focused-test gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
 - Focused assistant suite: PASS — 10 suite reports, 38 tests, 0 failures, 0 errors, 0 skipped
 - Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 107 tests, 0 failures, 0 errors, 2 skipped

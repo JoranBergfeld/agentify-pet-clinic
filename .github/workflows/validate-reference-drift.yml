@@ -19,8 +19,8 @@ jobs:
           fetch-depth: 0
       - name: Verify Clinic Assistant reference ancestry
         run: |
-          git fetch origin main
-          git merge-base --is-ancestor origin/main HEAD
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor refs/remotes/origin/main HEAD
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
