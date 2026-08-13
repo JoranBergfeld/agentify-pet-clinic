@@ -99,7 +99,7 @@ class ClinicQueryService {
 	record VisitSummary(LocalDate date, String description) {
 	}
 
-	record VeterinarianSummary(Integer id, String fullName, List<String> specialties) {
+	record VeterinarianSummary(Integer veterinarianId, String fullName, List<String> specialties) {
 	}
 
 }

@@ -16,6 +16,7 @@
 
 package org.springframework.samples.petclinic.assistant;
 
+import java.lang.reflect.RecordComponent;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -121,12 +122,16 @@ class ClinicQueryServiceTests {
 	}
 
 	@Test
-	void listsVeterinariansWithSortedSpecialtyNames() {
+	void listsVeterinariansWithExactRecordContractAndSortedSpecialtyNames() {
 		Vet helen = vet(2, "Helen", "Leary").withSpecialty("surgery").withSpecialty("radiology").build();
 		given(this.vets.findAll()).willReturn(List.of(helen));
 
+		assertThat(ClinicQueryService.VeterinarianSummary.class.getRecordComponents())
+			.extracting(RecordComponent::getName)
+			.containsExactly("veterinarianId", "fullName", "specialties");
+
 		assertThat(this.service.listVeterinarians()).singleElement().satisfies(vet -> {
-			assertThat(vet.id()).isEqualTo(2);
+			assertThat(vet.veterinarianId()).isEqualTo(2);
 			assertThat(vet.fullName()).isEqualTo("Helen Leary");
 			assertThat(vet.specialties()).containsExactly("radiology", "surgery");
 		});
