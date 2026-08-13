@@ -4,10 +4,10 @@ Date: 2026-08-14
 
 ## Validated revisions
 
-- `main`: `b1e497370029a57b41d7a6f405003a462f2129ed`
-- `origin/main`: `b1e497370029a57b41d7a6f405003a462f2129ed`
-- Validated Clinic Assistant implementation/test revision: `c28137d7bdfc2795076d3701aea1a93804baaa8b`
-- This evidence-document refresh is a later documentation-only commit that follows `c28137d7bdfc2795076d3701aea1a93804baaa8b`, so the validated code/test claim stays pinned to that revision instead of making a self-referential `HEAD` claim.
+- `main`: `1788b55faff9683621723389f4abde52f9168d8d`
+- `origin/main`: `1788b55faff9683621723389f4abde52f9168d8d`
+- Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
+- This evidence-document refresh is a later documentation-only commit that follows `b85347b5545ef62c78364199099c83dbb55bba10`, so the validated code/test claim stays pinned to that revision instead of making a self-referential `HEAD` claim.
 
 ## Commands
 
@@ -21,7 +21,7 @@ scripts/validate-reference.sh
 ./mvnw -q test
 git rev-parse main
 git rev-parse origin/main
-git rev-parse c28137d7bdfc2795076d3701aea1a93804baaa8b
+git rev-parse b85347b5545ef62c78364199099c83dbb55bba10
 ```
 
 Validator internals:
