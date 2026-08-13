@@ -1,25 +1,91 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$root"
+default_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 fail() {
   echo "reference validation failed: $*" >&2
   exit 1
 }
 
-focused_tests='ClinicQueryServiceTests,ClinicAssistantToolsTests,ClinicAssistantModelTests,ClinicAssistantConversationTests,ClinicAssistantBoundaryTests,ClinicAssistantBoundaryScenarioTests,ClinicAssistantServiceTests,ClinicAssistantControllerTests,ClinicAssistantSessionListenerTests,I18nPropertiesSyncTest'
+default_focused_test_classes=(
+  ClinicQueryServiceTests
+  ClinicAssistantToolsTests
+  ClinicAssistantModelTests
+  ClinicAssistantConversationTests
+  ClinicAssistantBoundaryTests
+  ClinicAssistantBoundaryScenarioTests
+  ClinicAssistantServiceTests
+  ClinicAssistantControllerTests
+  ClinicAssistantSessionListenerTests
+  I18nPropertiesSyncTest
+)
 
-git fetch origin main
-git merge-base --is-ancestor origin/main HEAD \
-  || fail "origin/main is not an ancestor of HEAD"
-test -d src/main/java/org/springframework/samples/petclinic/assistant \
-  || fail "missing Clinic Assistant source directory"
-grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml \
-  || fail "missing spring-ai-starter-model-openai in pom.xml"
+focused_test_classes=()
 
-./mvnw -q -Dtest="$focused_tests" test
-./mvnw -q test
+load_focused_test_classes() {
+  if [ -n "${REFERENCE_FOCUSED_TEST_CLASSES:-}" ]; then
+    IFS=',' read -r -a focused_test_classes <<<"${REFERENCE_FOCUSED_TEST_CLASSES}"
+  else
+    focused_test_classes=("${default_focused_test_classes[@]}")
+  fi
 
-echo "reference branch is current and validated"
+  local index test_class
+
+  for index in "${!focused_test_classes[@]}"; do
+    test_class="${focused_test_classes[$index]//[[:space:]]/}"
+    [ -n "$test_class" ] || fail "focused test class list contains an empty entry"
+    focused_test_classes[$index]="$test_class"
+  done
+}
+
+clear_surefire_report_artifacts() {
+  local test_class="$1"
+
+  mkdir -p target/surefire-reports
+  find target/surefire-reports -maxdepth 1 -type f \
+    \( -name "TEST-*${test_class}.xml" -o -name "*${test_class}.txt" \) \
+    -delete
+}
+
+assert_surefire_report_generated() {
+  local test_class="$1"
+
+  find target/surefire-reports -maxdepth 1 -type f -name "TEST-*${test_class}.xml" | grep -q . \
+    || fail "missing Surefire report for $test_class"
+}
+
+run_focused_test_class() {
+  local test_class="$1"
+
+  echo "running focused reference test: $test_class"
+  clear_surefire_report_artifacts "$test_class"
+  ./mvnw -q -Dtest="$test_class" -Dsurefire.failIfNoSpecifiedTests=true test
+  assert_surefire_report_generated "$test_class"
+}
+
+main() {
+  local root="${1:-$default_root}"
+
+  cd "$root"
+  load_focused_test_classes
+
+  git fetch origin main
+  git merge-base --is-ancestor origin/main HEAD \
+    || fail "origin/main is not an ancestor of HEAD"
+  test -d src/main/java/org/springframework/samples/petclinic/assistant \
+    || fail "missing Clinic Assistant source directory"
+  grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml \
+    || fail "missing spring-ai-starter-model-openai in pom.xml"
+
+  for test_class in "${focused_test_classes[@]}"; do
+    run_focused_test_class "$test_class"
+  done
+
+  echo "running full Maven test suite"
+  ./mvnw -q test
+
+  echo "reference branch is current and validated"
+}
+
+main "$@"
