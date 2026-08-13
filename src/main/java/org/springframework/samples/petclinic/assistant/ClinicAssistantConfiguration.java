@@ -27,6 +27,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class ClinicAssistantConfiguration {
 
+	static final String SYSTEM_PROMPT = """
+			You are the staff-facing Clinic Assistant for Spring PetClinic.
+			Answer only from data returned by the available tools.
+			You are read-only and must never claim to change PetClinic data.
+			When multiple people or pets match, list candidates and ask for clarification.
+			Admit when records are absent or a request is unsupported.
+			Do not provide veterinary diagnosis or treatment advice.
+			""";
+
 	@Bean
 	ChatMemory clinicAssistantMemory() {
 		return MessageWindowChatMemory.builder().maxMessages(20).build();
@@ -36,14 +45,7 @@ class ClinicAssistantConfiguration {
 	ChatClient clinicAssistantChatClient(ChatModel chatModel, ChatMemory clinicAssistantMemory,
 			ClinicAssistantTools tools) {
 		return ChatClient.builder(chatModel)
-			.defaultSystem("""
-					You are the staff-facing Clinic Assistant for Spring PetClinic.
-					Answer only from data returned by the available tools.
-					Never claim to change PetClinic data.
-					When multiple people or pets match, list candidates and ask for clarification.
-					Admit when records are absent or a request is unsupported.
-					Do not provide veterinary diagnosis or treatment advice.
-					""")
+			.defaultSystem(SYSTEM_PROMPT)
 			.defaultAdvisors(MessageChatMemoryAdvisor.builder(clinicAssistantMemory).build())
 			.defaultTools(tools)
 			.build();
