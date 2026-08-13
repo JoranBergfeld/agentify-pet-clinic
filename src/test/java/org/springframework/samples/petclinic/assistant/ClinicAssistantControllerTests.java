@@ -1,0 +1,109 @@
+/*
+ * Copyright 2012-2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.springframework.samples.petclinic.assistant;
+
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledInNativeImage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.aot.DisabledInAotMode;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.mock.web.MockHttpSession;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+
+@WebMvcTest(ClinicAssistantController.class)
+@Import(ClinicAssistantService.class)
+@DisabledInNativeImage
+@DisabledInAotMode
+class ClinicAssistantControllerTests {
+
+	@Autowired
+	private MockMvc mockMvc;
+
+	@MockitoBean
+	private ClinicAssistantModel model;
+
+	@Test
+	void showsTheAssistantPage() throws Exception {
+		this.mockMvc.perform(get("/clinic-assistant"))
+			.andExpect(status().isOk())
+			.andExpect(view().name("assistant/clinicAssistant"))
+			.andExpect(model().attributeExists("clinicAssistantConversation", "assistantRequest"))
+			.andExpect(content().string(containsString("fa-comments")));
+	}
+
+	@Test
+	void rejectsBlankInput() throws Exception {
+		this.mockMvc.perform(post("/clinic-assistant").param("message", " "))
+			.andExpect(status().isOk())
+			.andExpect(view().name("assistant/clinicAssistant"))
+			.andExpect(model().attributeHasFieldErrors("assistantRequest", "message"));
+	}
+
+	@Test
+	void preservesTranscriptAndVisibleActivityInTheSession() throws Exception {
+		given(this.model.answer(anyString(), eq("Who owns Leo?"))).willReturn(new ClinicAssistantModel.Reply(
+				"George Franklin owns Leo.", List.of(new ClinicAssistantActivity("findPetsByName", "1 pet matches"))));
+
+		MvcResult result = this.mockMvc.perform(post("/clinic-assistant").param("message", "Who owns Leo?"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(redirectedUrl("/clinic-assistant"))
+			.andReturn();
+		MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+
+		this.mockMvc.perform(get("/clinic-assistant").session(session))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Who owns Leo?")))
+			.andExpect(content().string(containsString("George Franklin owns Leo.")))
+			.andExpect(content().string(containsString("findPetsByName")))
+			.andExpect(content().string(containsString("1 pet matches")));
+	}
+
+	@Test
+	void resetsTheConversation() throws Exception {
+		MvcResult page = this.mockMvc.perform(get("/clinic-assistant")).andReturn();
+		MockHttpSession session = (MockHttpSession) page.getRequest().getSession(false);
+		ClinicAssistantConversation conversation = (ClinicAssistantConversation) session
+			.getAttribute("clinicAssistantConversation");
+		conversation.addUser("Who owns Leo?");
+
+		this.mockMvc.perform(post("/clinic-assistant/reset").session(session))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(redirectedUrl("/clinic-assistant"));
+
+		verify(this.model).reset(conversation.id().toString());
+		assertThat(conversation.turns()).isEmpty();
+	}
+
+}

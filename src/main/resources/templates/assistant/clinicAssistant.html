@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+<html xmlns:th="https://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout (~{::body},'assistant')}">
+
+<body>
+
+  <h2 th:text="#{clinicAssistant}">Clinic Assistant</h2>
+  <p class="text-muted" th:text="#{clinicAssistantDescription}">Read-only answers from PetClinic records.</p>
+
+  <div th:each="turn : ${clinicAssistantConversation.turns}" class="assistant-turn"
+    th:classappend="${turn.role == 'user'} ? ' assistant-turn-user' : ' assistant-turn-assistant'">
+    <strong th:if="${turn.role == 'user'}" th:text="#{clinicAssistantYou}">You</strong>
+    <strong th:unless="${turn.role == 'user'}" th:text="#{clinicAssistant}">Clinic Assistant</strong>
+    <p th:text="${turn.content}"></p>
+    <ul th:if="${!turn.activities.empty}" class="assistant-activity">
+      <li th:each="activity : ${turn.activities}">
+        <code th:text="${activity.tool}"></code>
+        <span th:text="${activity.outcome}"></span>
+      </li>
+    </ul>
+  </div>
+
+  <form th:action="@{/clinic-assistant}" th:object="${assistantRequest}" method="post">
+    <div class="mb-3">
+      <label for="message" class="form-label" th:text="#{clinicAssistantPrompt}">Ask about owners, pets, visits, or veterinarians</label>
+      <textarea id="message" class="form-control" rows="3" th:field="*{message}"></textarea>
+      <span class="help-block" th:if="${#fields.hasErrors('message')}" th:errors="*{message}"></span>
+    </div>
+    <button type="submit" class="btn btn-primary" th:text="#{clinicAssistantAsk}">Ask</button>
+  </form>
+
+  <form th:action="@{/clinic-assistant/reset}" method="post">
+    <button type="submit" class="btn btn-secondary" th:text="#{clinicAssistantReset}">Reset conversation</button>
+  </form>
+
+</body>
+
+</html>

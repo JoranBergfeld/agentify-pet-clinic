@@ -209,6 +209,26 @@ hr {
   border-top: 1px dotted $spring-brown;
 }
 
+.assistant-turn {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-left: 4px solid $spring-grey;
+  background: white;
+}
+
+.assistant-turn-user {
+  border-left-color: $spring-brown;
+}
+
+.assistant-turn-assistant {
+  border-left-color: $spring-green;
+}
+
+.assistant-activity {
+  margin-bottom: 0;
+  color: $spring-grey;
+}
+
 @import "typography.scss";
 @import "header.scss";
 @import "responsive.scss";

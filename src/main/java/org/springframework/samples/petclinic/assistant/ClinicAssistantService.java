@@ -2,7 +2,6 @@
  * Copyright 2012-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
@@ -16,5 +15,26 @@
 
 package org.springframework.samples.petclinic.assistant;
 
-public record ClinicAssistantActivity(String tool, String outcome) {
+import org.springframework.stereotype.Service;
+
+@Service
+class ClinicAssistantService {
+
+	private final ClinicAssistantModel model;
+
+	ClinicAssistantService(ClinicAssistantModel model) {
+		this.model = model;
+	}
+
+	void ask(ClinicAssistantConversation conversation, String message) {
+		ClinicAssistantModel.Reply reply = this.model.answer(conversation.id().toString(), message);
+		conversation.addUser(message);
+		conversation.addAssistant(reply.answer(), reply.activities());
+	}
+
+	void reset(ClinicAssistantConversation conversation) {
+		this.model.reset(conversation.id().toString());
+		conversation.clear();
+	}
+
 }
