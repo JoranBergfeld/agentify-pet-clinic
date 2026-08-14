@@ -87,30 +87,41 @@ for (( check = 1; check <= WORKSHOP_AZURE_RETRY_ATTEMPTS; check++ )); do
   deleted_id="$(deleted_account_id)" ||
     fail 'could not inspect deleted Foundry accounts'
   if [[ -n "$deleted_id" ]]; then
-    deleted_account_present='yes'
-    if [[ "$purge_succeeded" == no ]]; then
-      explicit_purge_required='yes'
-      if az cognitiveservices account purge \
-        --name "$foundry" \
-        --resource-group "$resource_group" \
-        --location "$location" \
-        --subscription "$subscription_id" >/dev/null 2>&1; then
-        purge_succeeded='yes'
-      else
-        printf 'ERROR: explicit Foundry purge failed; retry cleanup after resolving Azure permissions or service errors\n' >&2
-        printf 'Retry the failed command with:\n' >&2
-        printf "  az cognitiveservices account purge --name '%s' --resource-group '%s' --location '%s'\n" \
-          "$foundry" "$resource_group" "$location" >&2
-        exit 1
-      fi
+    explicit_purge_required='yes'
+    if az cognitiveservices account purge \
+      --name "$foundry" \
+      --resource-group "$resource_group" \
+      --location "$location" \
+      --subscription "$subscription_id" >/dev/null 2>&1; then
+      purge_succeeded='yes'
+      break
     fi
-  else
-    deleted_account_present='no'
+    printf 'ERROR: explicit Foundry purge failed; retry cleanup after resolving Azure permissions or service errors\n' >&2
+    printf 'Retry the failed command with:\n' >&2
+    printf "  az cognitiveservices account purge --name '%s' --resource-group '%s' --location '%s'\n" \
+      "$foundry" "$resource_group" "$location" >&2
+    exit 1
   fi
   if (( check < WORKSHOP_AZURE_RETRY_ATTEMPTS )); then
     sleep "$WORKSHOP_AZURE_RETRY_SECONDS"
   fi
 done
+
+if [[ "$purge_succeeded" == yes ]]; then
+  for (( check = 1; check <= WORKSHOP_AZURE_RETRY_ATTEMPTS; check++ )); do
+    deleted_id="$(deleted_account_id)" ||
+      fail 'could not inspect deleted Foundry accounts'
+    if [[ -n "$deleted_id" ]]; then
+      deleted_account_present='yes'
+    else
+      deleted_account_present='no'
+    fi
+    if (( check < WORKSHOP_AZURE_RETRY_ATTEMPTS )); then
+      sleep "$WORKSHOP_AZURE_RETRY_SECONDS"
+    fi
+  done
+fi
+
 if [[ "$deleted_account_present" == yes ]]; then
   printf 'ERROR: Foundry soft-delete record remained after %s checks\n' \
     "$WORKSHOP_AZURE_RETRY_ATTEMPTS" >&2

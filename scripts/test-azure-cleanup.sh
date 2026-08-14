@@ -204,23 +204,26 @@ add_call "$scratch/explicit-purge/fixtures" 11 az '' \
   cognitiveservices account purge --name "$foundry" \
   --resource-group "$resource_group" --location "$location" \
   --subscription "$subscription_id"
-add_call "$scratch/explicit-purge/fixtures" 12 sleep '' 0
-add_call "$scratch/explicit-purge/fixtures" 13 az '' \
+add_call "$scratch/explicit-purge/fixtures" 12 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_call "$scratch/explicit-purge/fixtures" 14 sleep '' 0
-add_call "$scratch/explicit-purge/fixtures" 15 az '' \
+add_call "$scratch/explicit-purge/fixtures" 13 sleep '' 0
+add_call "$scratch/explicit-purge/fixtures" 14 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_call "$scratch/explicit-purge/fixtures" 16 sleep '' 0
-add_call "$scratch/explicit-purge/fixtures" 17 az '' \
+add_call "$scratch/explicit-purge/fixtures" 15 sleep '' 0
+add_call "$scratch/explicit-purge/fixtures" 16 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_call "$scratch/explicit-purge/fixtures" 18 sleep '' 0
-add_call "$scratch/explicit-purge/fixtures" 19 az '' \
+add_call "$scratch/explicit-purge/fixtures" 17 sleep '' 0
+add_call "$scratch/explicit-purge/fixtures" 18 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_success_dates "$scratch/explicit-purge/fixtures" 20
+add_call "$scratch/explicit-purge/fixtures" 19 sleep '' 0
+add_call "$scratch/explicit-purge/fixtures" 20 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_success_dates "$scratch/explicit-purge/fixtures" 21
 run_case explicit-purge 0
 grep -Fq 'Explicit Foundry purge required: `yes`' \
   "$scratch/explicit-purge/evidence/cleanup-20260814T092537Z.md"
@@ -242,19 +245,64 @@ add_call "$scratch/delayed-appearance/fixtures" 15 az '' \
   cognitiveservices account purge --name "$foundry" \
   --resource-group "$resource_group" --location "$location" \
   --subscription "$subscription_id"
-add_call "$scratch/delayed-appearance/fixtures" 16 sleep '' 0
-add_call "$scratch/delayed-appearance/fixtures" 17 az '' \
+add_call "$scratch/delayed-appearance/fixtures" 16 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_call "$scratch/delayed-appearance/fixtures" 18 sleep '' 0
-add_call "$scratch/delayed-appearance/fixtures" 19 az '' \
+add_call "$scratch/delayed-appearance/fixtures" 17 sleep '' 0
+add_call "$scratch/delayed-appearance/fixtures" 18 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_success_dates "$scratch/delayed-appearance/fixtures" 20
+add_call "$scratch/delayed-appearance/fixtures" 19 sleep '' 0
+add_call "$scratch/delayed-appearance/fixtures" 20 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/delayed-appearance/fixtures" 21 sleep '' 0
+add_call "$scratch/delayed-appearance/fixtures" 22 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/delayed-appearance/fixtures" 23 sleep '' 0
+add_call "$scratch/delayed-appearance/fixtures" 24 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_success_dates "$scratch/delayed-appearance/fixtures" 25
 run_case delayed-appearance 0
 grep -Fq 'cognitiveservices account purge' \
   "$scratch/delayed-appearance/commands.log" ||
   fail_test 'delayed deleted-account appearance was not purged'
+
+start_fixture final-attempt-appearance
+add_down_and_absence_checks final-attempt-appearance
+for number in 10 12 14 16; do
+  add_call "$scratch/final-attempt-appearance/fixtures" "$number" az '' \
+    cognitiveservices account list-deleted --subscription "$subscription_id" \
+    --query "$deleted_query" --output tsv
+done
+for number in 11 13 15 17; do
+  add_call "$scratch/final-attempt-appearance/fixtures" "$number" sleep '' 0
+done
+add_call "$scratch/final-attempt-appearance/fixtures" 18 az "$deleted_id" \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/final-attempt-appearance/fixtures" 19 az '' \
+  cognitiveservices account purge --name "$foundry" \
+  --resource-group "$resource_group" --location "$location" \
+  --subscription "$subscription_id"
+for number in 20 22 24 26; do
+  add_call "$scratch/final-attempt-appearance/fixtures" "$number" az '' \
+    cognitiveservices account list-deleted --subscription "$subscription_id" \
+    --query "$deleted_query" --output tsv
+  add_call "$scratch/final-attempt-appearance/fixtures" "$((number + 1))" sleep '' 0
+done
+add_call "$scratch/final-attempt-appearance/fixtures" 28 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_success_dates "$scratch/final-attempt-appearance/fixtures" 29
+run_case final-attempt-appearance 0
+[[ "$(grep -c 'cognitiveservices account list-deleted' \
+  "$scratch/final-attempt-appearance/commands.log")" -eq 10 ]] ||
+  fail_test 'final-attempt purge did not start a fresh verification window'
+grep -Fq 'Explicit Foundry purge required: `yes`' \
+  "$scratch/final-attempt-appearance/evidence/cleanup-20260814T092537Z.md"
 
 start_fixture remaining-rg
 add_down_and_absence_checks remaining-rg true
@@ -336,13 +384,13 @@ add_call "$scratch/timeout/fixtures" 11 az '' \
   cognitiveservices account purge --name "$foundry" \
   --resource-group "$resource_group" --location "$location" \
   --subscription "$subscription_id"
-for number in 12 14 16 18; do
-  add_call "$scratch/timeout/fixtures" "$number" sleep '' 0
-done
-for number in 13 15 17 19; do
+for number in 12 14 16 18 20; do
   add_call "$scratch/timeout/fixtures" "$number" az "$deleted_id" \
     cognitiveservices account list-deleted --subscription "$subscription_id" \
     --query "$deleted_query" --output tsv
+done
+for number in 13 15 17 19; do
+  add_call "$scratch/timeout/fixtures" "$number" sleep '' 0
 done
 run_case timeout 1
 assert_stderr_contains timeout \
