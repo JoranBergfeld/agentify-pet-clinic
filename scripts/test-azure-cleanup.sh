@@ -300,30 +300,32 @@ add_call "$scratch/purge-failure/fixtures" 11 az '' \
   --subscription "$subscription_id"
 set_status "$scratch/purge-failure/fixtures" 11 az 1
 add_call "$scratch/purge-failure/fixtures" 12 sleep '' 0
-add_call "$scratch/purge-failure/fixtures" 13 az "$deleted_id" \
+add_call "$scratch/purge-failure/fixtures" 13 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_call "$scratch/purge-failure/fixtures" 14 az '' \
-  cognitiveservices account purge --name "$foundry" \
-  --resource-group "$resource_group" --location "$location" \
-  --subscription "$subscription_id"
-add_call "$scratch/purge-failure/fixtures" 15 sleep '' 0
-add_call "$scratch/purge-failure/fixtures" 16 az '' \
+add_call "$scratch/purge-failure/fixtures" 14 sleep '' 0
+add_call "$scratch/purge-failure/fixtures" 15 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_call "$scratch/purge-failure/fixtures" 17 sleep '' 0
-add_call "$scratch/purge-failure/fixtures" 18 az '' \
+add_call "$scratch/purge-failure/fixtures" 16 sleep '' 0
+add_call "$scratch/purge-failure/fixtures" 17 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_call "$scratch/purge-failure/fixtures" 19 sleep '' 0
-add_call "$scratch/purge-failure/fixtures" 20 az '' \
+add_call "$scratch/purge-failure/fixtures" 18 sleep '' 0
+add_call "$scratch/purge-failure/fixtures" 19 az '' \
   cognitiveservices account list-deleted --subscription "$subscription_id" \
   --query "$deleted_query" --output tsv
-add_success_dates "$scratch/purge-failure/fixtures" 21
-run_case purge-failure 0
-[[ "$(grep -c 'cognitiveservices account purge' \
-  "$scratch/purge-failure/commands.log")" -eq 2 ]] ||
-  fail_test 'failed explicit purge was not retried exactly once'
+add_success_dates "$scratch/purge-failure/fixtures" 20
+run_case purge-failure 1 \
+  'ERROR: explicit Foundry purge failed; retry cleanup after resolving Azure permissions or service errors'
+assert_stderr_contains purge-failure \
+  "az cognitiveservices account purge --name '$foundry' --resource-group '$resource_group' --location '$location'"
+[[ "$(wc -l <"$scratch/purge-failure/commands.log")" -eq 11 ]] ||
+  fail_test 'purge failure did not stop cleanup immediately'
+! grep -Fq 'Azure cleanup passed' "$scratch/purge-failure/stdout" ||
+  fail_test 'purge failure emitted passing cleanup output'
+test -z "$(find "$scratch/purge-failure/evidence" -type f -print -quit)" ||
+  fail_test 'purge failure wrote passing cleanup evidence'
 
 start_fixture timeout
 add_down_and_absence_checks timeout

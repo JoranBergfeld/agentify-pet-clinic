@@ -82,7 +82,6 @@ deleted_account_id() {
 
 explicit_purge_required='no'
 purge_succeeded='no'
-purge_failures=0
 deleted_account_present='no'
 for (( check = 1; check <= WORKSHOP_AZURE_RETRY_ATTEMPTS; check++ )); do
   deleted_id="$(deleted_account_id)" ||
@@ -98,7 +97,11 @@ for (( check = 1; check <= WORKSHOP_AZURE_RETRY_ATTEMPTS; check++ )); do
         --subscription "$subscription_id" >/dev/null 2>&1; then
         purge_succeeded='yes'
       else
-        purge_failures="$((purge_failures + 1))"
+        printf 'ERROR: explicit Foundry purge failed; retry cleanup after resolving Azure permissions or service errors\n' >&2
+        printf 'Retry the failed command with:\n' >&2
+        printf "  az cognitiveservices account purge --name '%s' --resource-group '%s' --location '%s'\n" \
+          "$foundry" "$resource_group" "$location" >&2
+        exit 1
       fi
     fi
   else
@@ -112,10 +115,6 @@ if [[ "$deleted_account_present" == yes ]]; then
   printf 'ERROR: Foundry soft-delete record remained after %s checks\n' \
     "$WORKSHOP_AZURE_RETRY_ATTEMPTS" >&2
   printf 'Remaining resource: Microsoft.CognitiveServices/accounts state=soft-deleted\n' >&2
-  if (( purge_failures > 0 )); then
-    printf 'Explicit purge failures during observation window: %s\n' \
-      "$purge_failures" >&2
-  fi
   printf 'Retry cleanup and verify with:\n' >&2
   printf "  az cognitiveservices account purge --name '%s' --resource-group '%s' --location '%s'\n" \
     "$foundry" "$resource_group" "$location" >&2
