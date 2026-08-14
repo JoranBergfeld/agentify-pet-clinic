@@ -138,6 +138,34 @@ run_case subscription-mismatch 1 \
 [[ "$(wc -l <"$scratch/subscription-mismatch/commands.log")" -eq 6 ]] ||
   fail_test 'subscription mismatch did not fail before azd down'
 
+start_fixture partial-provision
+set_status "$scratch/partial-provision/fixtures" 1 azd 1
+set_status "$scratch/partial-provision/fixtures" 3 azd 1
+: >"$scratch/partial-provision/fixtures/001-azd.stdout"
+: >"$scratch/partial-provision/fixtures/003-azd.stdout"
+printf '%s' 'workshop-secret' \
+  >"$scratch/partial-provision/fixtures/004-azd.stdout"
+add_call "$scratch/partial-provision/fixtures" 7 az "$foundry" \
+  cognitiveservices account list --resource-group "$resource_group" \
+  --subscription "$subscription_id" --query '[0].name' --output tsv
+add_call "$scratch/partial-provision/fixtures" 8 azd '' down --force --purge
+add_call "$scratch/partial-provision/fixtures" 9 az false \
+  group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
+add_call "$scratch/partial-provision/fixtures" 10 az '' \
+  resource list --subscription "$subscription_id" --query "$active_query" --output tsv
+for number in 11 13 15 17 19; do
+  add_call "$scratch/partial-provision/fixtures" "$number" az '' \
+    cognitiveservices account list-deleted --subscription "$subscription_id" \
+    --query "$deleted_query" --output tsv
+done
+for number in 12 14 16 18; do
+  add_call "$scratch/partial-provision/fixtures" "$number" sleep '' 0
+done
+add_success_dates "$scratch/partial-provision/fixtures" 20
+run_case partial-provision 0
+grep -Fq 'Azure cleanup passed' "$scratch/partial-provision/stdout" ||
+  fail_test 'partial provision cleanup did not pass'
+
 start_fixture normal-purge
 add_down_and_absence_checks normal-purge
 add_call "$scratch/normal-purge/fixtures" 10 az '' \

@@ -23,9 +23,13 @@ azd_value() {
   printf '%s\n' "$value"
 }
 
-foundry="$(azd_value AZURE_OPENAI_ACCOUNT_NAME)"
+azd_value_optional() {
+  azd env get-value "$1" 2>/dev/null || true
+}
+
+foundry="$(azd_value_optional AZURE_OPENAI_ACCOUNT_NAME)"
 location="$(azd_value AZURE_LOCATION)"
-resource_group="$(azd_value AZURE_RESOURCE_GROUP_NAME)"
+resource_group="$(azd_value_optional AZURE_RESOURCE_GROUP_NAME)"
 environment_name="$(azd env get-value AZURE_ENV_NAME 2>/dev/null || true)"
 subscription_id="$(azd_value AZURE_SUBSCRIPTION_ID)"
 account_subscription_id="$(az account show --query id --output tsv 2>/dev/null)" ||
@@ -34,6 +38,21 @@ require_nonempty 'Azure subscription' "$subscription_id"
 require_nonempty 'active Azure CLI subscription' "$account_subscription_id"
 [[ "$subscription_id" == "$account_subscription_id" ]] ||
   fail 'azd subscription does not match the active Azure CLI subscription'
+
+if [[ -z "$resource_group" ]]; then
+  [[ "$environment_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] ||
+    fail 'could not safely derive the resource group after partial provisioning'
+  resource_group="rg-$environment_name"
+fi
+
+if [[ -z "$foundry" ]]; then
+  foundry="$(
+    az cognitiveservices account list \
+      --resource-group "$resource_group" \
+      --subscription "$subscription_id" \
+      --query '[0].name' --output tsv 2>/dev/null
+  )" || fail 'could not discover the Foundry account after partial provisioning'
+fi
 
 safe_environment='not recorded (unsafe or unavailable)'
 if [[ "$environment_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] &&
@@ -74,6 +93,7 @@ if [[ -n "$active_resources" ]]; then
 fi
 
 deleted_account_id() {
+  [[ -n "$foundry" ]] || return 0
   az cognitiveservices account list-deleted \
     --subscription "$subscription_id" \
     --query "[?name=='${foundry}' && location=='${location}'].id | [0]" \
