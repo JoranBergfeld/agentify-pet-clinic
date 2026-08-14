@@ -10,16 +10,38 @@ test -f "$azure_yaml"
 test -f "$main_bicep"
 test -f "$resources_bicep"
 
-grep -Fqx 'name: agentic-engineering-workshop' "$azure_yaml"
-grep -Fqx '  template: agentic-engineering-workshop@1.0.0' "$azure_yaml"
-grep -Fq '    project: .' "$azure_yaml"
-grep -Fq '    language: java' "$azure_yaml"
-grep -Fq '    host: appservice' "$azure_yaml"
-grep -Fq '    dist: target' "$azure_yaml"
-grep -Fq '        shell: sh' "$azure_yaml"
-grep -Fq '        run: ./mvnw -q -DskipTests package' "$azure_yaml"
-grep -Fq '  provider: bicep' "$azure_yaml"
-grep -Fq '  path: infra' "$azure_yaml"
+python3 - "$azure_yaml" <<'PY'
+import sys
+
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    manifest = yaml.safe_load(manifest_file)
+
+expected_values = {
+    ("name",): "agentic-engineering-workshop",
+    ("metadata", "template"): "agentic-engineering-workshop@1.0.0",
+    ("services", "web", "project"): ".",
+    ("services", "web", "language"): "java",
+    ("services", "web", "host"): "appservice",
+    ("services", "web", "dist"): "target",
+    ("services", "web", "hooks", "prepackage", "shell"): "sh",
+    ("services", "web", "hooks", "prepackage", "run"): "./mvnw -q -DskipTests package",
+    ("infra", "provider"): "bicep",
+    ("infra", "path"): "infra",
+}
+
+for path, expected in expected_values.items():
+    value = manifest
+    try:
+        for key in path:
+            value = value[key]
+    except (KeyError, TypeError):
+        raise AssertionError(f"azure.yaml is missing {'.'.join(path)}") from None
+    assert value == expected, (
+        f"azure.yaml {'.'.join(path)} must be {expected!r}, got {value!r}"
+    )
+PY
 
 grep -Fqx "targetScope = 'subscription'" "$main_bicep"
 grep -Fq '@minLength(1)' "$main_bicep"
