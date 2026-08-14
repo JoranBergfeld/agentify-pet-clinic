@@ -30,10 +30,17 @@ The starter should omit Azure AI Search, Foundry projects, persistent chat stora
 
 ## Required permissions
 
-The simplest workshop requirement is **Owner on the isolated resource group**. A narrower equivalent is:
+This research-stage envelope originally considered permissions limited to an
+isolated resource group. That was an early design option, not the permission
+contract for the implemented attendee path. The implemented workshop path
+requires subscription-scope permissions because `infra/main.bicep` creates the
+resource group at subscription scope and readiness validates deployment
+authority at that scope.
 
-- **Contributor** on the isolated resource group for resource creation, deployment, inspection, and deletion.
-- **User Access Administrator** or **Role Based Access Control Administrator** on that resource group for managed-identity role assignments.
+- **Owner at subscription scope**; or
+- **Contributor at subscription scope** plus **User Access Administrator at
+  subscription scope** or **Role Based Access Control Administrator at
+  subscription scope**.
 
 Contributor alone cannot create role assignments.
 
@@ -47,7 +54,8 @@ Resource providers:
 - `Microsoft.Authorization` for role assignments
 - `Microsoft.KeyVault` only if the fallback authentication path is selected
 
-Provider registration operates at subscription scope. If attendees have only resource-group permissions, subscription administrators must register required providers before Preflight.
+Provider registration also operates at subscription scope. Resource-group-only
+permissions do not qualify for the implemented readiness and deployment path.
 
 ## Price snapshot
 

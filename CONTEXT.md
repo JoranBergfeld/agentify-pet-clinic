@@ -84,6 +84,10 @@ _Avoid_: Starter app, greenfield project, setup exercise
 Evidence completed before the workshop that an attendee can run and test the Inherited System locally, use the Copilot client, and deploy and reach it in Azure without being taught its architecture.
 _Avoid_: Live setup, installation guide
 
+**Workshop Azure Path**:
+The workshop-owned, attendee-operated lifecycle for checking Azure readiness, deploying and verifying the Inherited System, capturing redacted evidence, and proving cleanup of the attendee's isolated environment.
+_Avoid_: Reference deployment, production platform, one-off prototype
+
 **Unfamiliar Codebase**:
 A working application in a technology the participant need not already know deeply, used to practice agent-assisted orientation before changing it.
 _Avoid_: Beginner codebase, prerequisite technology

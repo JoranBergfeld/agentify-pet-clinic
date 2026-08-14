@@ -1,0 +1,16 @@
+name: agentic-engineering-workshop
+metadata:
+  template: agentic-engineering-workshop@1.0.0
+services:
+  web:
+    project: .
+    language: java
+    host: appservice
+    dist: target
+    hooks:
+      prepackage:
+        shell: sh
+        run: ./mvnw -q -DskipTests package
+infra:
+  provider: bicep
+  path: infra
