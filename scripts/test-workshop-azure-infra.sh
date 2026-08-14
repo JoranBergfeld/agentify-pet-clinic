@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 azure_yaml="$root/azure.yaml"
 main_bicep="$root/infra/main.bicep"
+main_parameters="$root/infra/main.parameters.json"
 resources_bicep="$root/infra/resources.bicep"
 guide="$root/docs/workshop/azure-preflight-and-cleanup.md"
 research="$root/docs/research/azure-permission-and-cost-envelope.md"
@@ -11,6 +12,7 @@ readme="$root/README.md"
 
 test -f "$azure_yaml"
 test -f "$main_bicep"
+test -f "$main_parameters"
 test -f "$resources_bicep"
 test -f "$guide"
 test -f "$research"
@@ -84,6 +86,17 @@ for path, expected in expected_values.items():
     assert value == expected, (
         f"azure.yaml {'.'.join(path)} must be {expected!r}, got {value!r}"
     )
+PY
+
+python3 - "$main_parameters" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as parameters_file:
+    parameters = json.load(parameters_file)["parameters"]
+
+assert parameters["environmentName"]["value"] == "${AZURE_ENV_NAME}"
+assert parameters["location"]["value"] == "${AZURE_LOCATION}"
 PY
 
 grep -Fqx "targetScope = 'subscription'" "$main_bicep"
