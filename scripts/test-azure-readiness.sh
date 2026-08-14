@@ -87,7 +87,7 @@ make_fixture() {
     cognitiveservices model list --location swedencentral --output json
   ((call_number += 1))
   add_call "$fixture_dir" "$call_number" az \
-    '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":20,"limit":100}]' \
+    '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":"0.0","limit":"1000.0"}]' \
     cognitiveservices usage list --location swedencentral --output json
   ((call_number += 1))
   add_call "$fixture_dir" "$call_number" az \
@@ -154,6 +154,8 @@ make_fixture success
 run_case success 0
 grep -Fq 'subscription: 11111111...5555' "$scratch/success/stdout"
 ! grep -Fq "$subscription_id" "$scratch/success/stdout"
+[[ ! -s "$scratch/success/stderr" ]] ||
+  fail_test "success emitted stderr: $(cat "$scratch/success/stderr")"
 [[ "$(wc -l <"$scratch/success/commands.log")" -eq 12 ]]
 
 make_fixture success-with-azd-subscription azd
@@ -254,9 +256,21 @@ run_case missing-sku 1 \
 
 make_fixture insufficient-model-quota
 replace_stdout insufficient-model-quota 11 az \
-  '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":95,"limit":100}]'
+  '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":"995.0","limit":"1000.0"}]'
 run_case insufficient-model-quota 1 \
   'ERROR: model quota has 5 capacity remaining, but 10 is required'
+
+make_fixture unknown-model-quota
+replace_stdout unknown-model-quota 11 az \
+  '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":"unknown","limit":"1000.0"}]'
+run_case unknown-model-quota 1 \
+  'ERROR: model quota was not reported for gpt-5.4-mini GlobalStandard in Sweden Central'
+
+make_fixture non-integral-model-quota
+replace_stdout non-integral-model-quota 11 az \
+  '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":"995.5","limit":"1000.0"}]'
+run_case non-integral-model-quota 1 \
+  'ERROR: model quota was not reported for gpt-5.4-mini GlobalStandard in Sweden Central'
 
 make_fixture insufficient-rbac
 replace_stdout insufficient-rbac 12 az \

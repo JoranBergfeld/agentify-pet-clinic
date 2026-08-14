@@ -102,13 +102,18 @@ usage_json="$(
 quota_values="$(jq -er \
   --arg model "$AZURE_OPENAI_MODEL" \
   --arg sku "$AZURE_OPENAI_DEPLOYMENT_SKU" '
+  def integral_quota_count:
+    try tonumber catch empty
+    | select(type == "number" and floor == .)
+    | floor;
   [.[]
     | select(
         (.name.localizedValue // "" | contains($model))
         and (.name.localizedValue // "" | contains($sku))
       )
-    | select((.currentValue | type) == "number" and (.limit | type) == "number")
-    | [.currentValue, .limit]]
+    | (.currentValue | integral_quota_count) as $current
+    | (.limit | integral_quota_count) as $limit
+    | [$current, $limit]]
   | if length == 1 then .[0] | @tsv else empty end
 ' <<<"$usage_json" 2>/dev/null)" ||
   fail "model quota was not reported for $AZURE_OPENAI_MODEL $AZURE_OPENAI_DEPLOYMENT_SKU in $AZURE_LOCATION_DISPLAY_NAME"
