@@ -21,6 +21,7 @@ cookie_jar=''
 cookie_read=''
 data=''
 location='no'
+post='no'
 url=''
 
 while (($#)); do
@@ -35,6 +36,12 @@ while (($#)); do
       ;;
     --data-urlencode)
       data="$2"
+      post='yes'
+      shift 2
+      ;;
+    --data)
+      data="$2"
+      post='yes'
       shift 2
       ;;
     --location)
@@ -51,7 +58,7 @@ while (($#)); do
   esac
 done
 
-printf '%s|%s|%s|%s|%s\n' "$url" "$cookie_jar" "$cookie_read" "$location" "$data" >>"$log"
+printf '%s|%s|%s|%s|%s|%s\n' "$url" "$cookie_jar" "$cookie_read" "$location" "$data" "$post" >>"$log"
 
 case "$url|$data" in
   https://example.invalid/clinic-assistant\|)
@@ -122,25 +129,27 @@ expect_happy_path_and_request_contract() {
     exit 1
   fi
 
-  test "$(wc -l <"$curl_log")" -eq 10
+  test "$(wc -l <"$curl_log")" -eq 16
   local cookie_jar
   cookie_jar="$(awk -F'|' 'NR == 1 { print $2 }' "$curl_log")"
   test -n "$cookie_jar"
   awk -F'|' -v jar="$cookie_jar" '
     NR == 1 {
-      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "") exit 1
+      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no") exit 1
       next
     }
-    NR >= 2 && NR <= 8 {
-      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "yes" || $5 !~ /^message=/) exit 1
+    NR == 2 || NR == 4 || NR == 6 || NR == 8 || NR == 10 || NR == 12 || NR == 14 {
+      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "yes" || $5 !~ /^message=/ || $6 != "yes") exit 1
+      if (NR == 2 && $5 != "message=Look up Samantha. Report the exact recorded visit dates and descriptions, and include the pet name Leo in the response.") exit 1
+      if (NR == 4 && $5 != "message=Who is George Franklin, and which pet named Leo belongs to this owner?") exit 1
       next
     }
-    NR == 9 {
-      if ($1 != "https://example.invalid/clinic-assistant/reset" || $2 != jar || $3 != jar || $4 != "yes" || $5 != "") exit 1
+    NR == 3 || NR == 5 || NR == 7 || NR == 9 || NR == 11 || NR == 13 || NR == 15 {
+      if ($1 != "https://example.invalid/clinic-assistant/reset" || $2 != jar || $3 != jar || $4 != "yes" || $5 != "" || $6 != "yes") exit 1
       next
     }
-    NR == 10 {
-      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "") exit 1
+    NR == 16 {
+      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no") exit 1
     }
   ' "$curl_log"
   grep -Fxq 'reference deployed smoke passed (7 scenarios plus reset)' "$output_file"

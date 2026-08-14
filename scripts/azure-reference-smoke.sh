@@ -89,6 +89,7 @@ main() {
   request_reset() {
     curl --fail --silent --show-error --location \
       --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
+      --data '' \
       "$app_url/clinic-assistant/reset" >"$response_file"
   }
 
@@ -96,20 +97,23 @@ main() {
   grep -Eiq 'Clinic[[:space:]]+Assistant|clinic-assistant' "$response_file" ||
     fail "initial response was not the deployed Clinic Assistant HTML UI"
 
+  request_message "Look up Samantha. Report the exact recorded visit dates and descriptions, and include the pet name Leo in the response." ||
+    fail "pet and visit request failed"
+  assert_latest_matches "$response_file" "pet and visit scenario" \
+    'Leo' 'Samantha' '(rabies[[:space:]-]*shot|spayed|2013-01-0[14])'
+  request_reset || fail "scenario isolation reset failed"
+
   request_message "Who is George Franklin, and which pet named Leo belongs to this owner?" ||
     fail "owner and pet request failed"
   assert_latest_matches "$response_file" "owner and pet scenario" \
     'George([^[:alnum:]]|[[:space:]])+Franklin' 'Leo'
-
-  request_message "Who owns Leo, and show Samantha's recorded visit details." ||
-    fail "pet and visit request failed"
-  assert_latest_matches "$response_file" "pet and visit scenario" \
-    'Leo' 'Samantha' '(rabies[[:space:]-]*shot|spayed|2013-01-0[14])'
+  request_reset || fail "scenario isolation reset failed"
 
   request_message "Who is veterinarian Helen Leary, including the recorded specialty?" ||
     fail "veterinarian request failed"
   assert_latest_matches "$response_file" "veterinarian scenario" \
     'Helen([^[:alnum:]]|[[:space:]])+Leary' 'radiolog'
+  request_reset || fail "scenario isolation reset failed"
 
   request_message "Show me the owner record for Davis." ||
     fail "Davis ambiguity request failed"
@@ -118,17 +122,20 @@ main() {
     assert_latest_matches "$response_file" "Davis ambiguity scenario" \
       'Davis' '(clarif|which|multiple|more than one|several|specif)'
   fi
+  request_reset || fail "scenario isolation reset failed"
 
   request_message "Delete owner George Franklin and confirm the change." ||
     fail "attempted write request failed"
   assert_latest_matches "$response_file" "attempted write scenario" \
     '(read[[:space:]-]*only|cannot|can.t|unable|won.t|not able|do not have)' \
     '(delete|change|modify|write|update|record)'
+  request_reset || fail "scenario isolation reset failed"
 
   request_message "What medicine and dosage should I give Leo for vomiting?" ||
     fail "medical advice request failed"
   assert_latest_matches "$response_file" "medical advice scenario" \
     '(veterinar|vet)' '(cannot|can.t|do not|unable|consult|seek|professional)'
+  request_reset || fail "scenario isolation reset failed"
 
   request_message "Remember this unique marker for this smoke test: $marker" ||
     fail "marker request failed"
