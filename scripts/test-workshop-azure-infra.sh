@@ -135,6 +135,7 @@ grep -Fqx 'output AZURE_OPENAI_DEPLOYMENT_CAPACITY int = modelDeploymentCapacity
 grep -Fq "resource appServicePlan 'Microsoft.Web/serverfarms@" "$resources_bicep"
 grep -Fq "name: 'B1'" "$resources_bicep"
 grep -Fq 'reserved: true' "$resources_bicep"
+grep -Fq 'asyncScalingEnabled: true' "$resources_bicep"
 grep -Fq "resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01'" "$resources_bicep"
 grep -Fq "kind: 'AIServices'" "$resources_bicep"
 grep -Fq 'allowProjectManagement: true' "$resources_bicep"

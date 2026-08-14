@@ -29,6 +29,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2024-11-01' = {
   }
   properties: {
     reserved: true
+    asyncScalingEnabled: true
   }
 }
 
