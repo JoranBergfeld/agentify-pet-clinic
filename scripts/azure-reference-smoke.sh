@@ -73,21 +73,21 @@ main() {
   trap "rm -rf '$scratch'" EXIT
 
   request_get() {
-    curl --fail --silent --show-error --retry 2 --retry-delay 2 --retry-all-errors \
+    curl --fail --silent --show-error --retry 3 --retry-delay 20 --retry-all-errors \
       --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
       "$app_url/clinic-assistant" >"$response_file"
   }
 
   request_message() {
     local message="$1"
-    curl --fail --silent --show-error --retry 2 --retry-delay 2 --retry-all-errors --location \
+    curl --fail --silent --show-error --retry 3 --retry-delay 20 --retry-all-errors --location \
       --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
       --data-urlencode "message=$message" \
       "$app_url/clinic-assistant" >"$response_file"
   }
 
   request_reset() {
-    curl --fail --silent --show-error --retry 2 --retry-delay 2 --retry-all-errors --location \
+    curl --fail --silent --show-error --retry 3 --retry-delay 20 --retry-all-errors --location \
       --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
       --data '' \
       "$app_url/clinic-assistant/reset" >"$response_file"
