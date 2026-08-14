@@ -4,8 +4,8 @@ Date: 2026-08-14
 
 ## Validated revisions
 
-- `main`: `8e00f3754a4d77f5e2c0fb59f33990f177fdb462`
-- `origin/main`: `8e00f3754a4d77f5e2c0fb59f33990f177fdb462`
+- `main`: `8e00f37303945917aa334bafdfbf5ab333f364b8`
+- `origin/main`: `8e00f37303945917aa334bafdfbf5ab333f364b8`
 - Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
 - This Gradle parity refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates build configuration, dependency parity, validation workflows, and evidence commands, not the assistant feature itself.
 
