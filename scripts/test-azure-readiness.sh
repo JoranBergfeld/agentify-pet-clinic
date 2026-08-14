@@ -94,7 +94,7 @@ make_fixture() {
     '[{"roleDefinitionName":"Owner","scope":"/subscriptions/11111111-2222-3333-4444-555555555555"}]' \
     role assignment list --assignee user@example.com \
     --scope "/subscriptions/$subscription_id" --include-inherited --include-groups \
-    --all --output json
+    --output json
 }
 
 replace_stdout() {

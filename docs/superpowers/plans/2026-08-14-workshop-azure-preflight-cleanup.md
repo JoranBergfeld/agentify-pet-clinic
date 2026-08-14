@@ -240,7 +240,9 @@ az cognitiveservices model list --location swedencentral --query <model-query> -
 {"name":"gpt-5.4-mini","version":"2026-03-17","skus":["GlobalStandard"]}
 az cognitiveservices usage list --location swedencentral --query <quota-query> -o tsv
 1000
-az role assignment list --assignee 22222222-2222-2222-2222-222222222222 --include-inherited --all -o json
+az role assignment list --assignee 22222222-2222-2222-2222-222222222222 \
+  --scope /subscriptions/11111111-1111-1111-1111-111111111111 \
+  --include-inherited --include-groups -o json
 [{"roleDefinitionName":"Owner","scope":"/subscriptions/11111111-1111-1111-1111-111111111111"}]
 azd auth login --check-status
 exit 0
@@ -383,7 +385,8 @@ az cognitiveservices model list \
    `limit - currentValue >= WORKSHOP_AZURE_DEPLOYMENT_CAPACITY`.
 9. Subscription-level authority. Accept `Owner`, or accept both `Contributor`
    and one of `User Access Administrator` / `Role Based Access Control
-   Administrator`, from `az role assignment list --include-inherited --all`.
+   Administrator`, from `az role assignment list --scope <subscription-scope>
+   --include-inherited --include-groups`.
 
 Print only the redacted subscription, region, model/version, SKU, and capacity
 on success.

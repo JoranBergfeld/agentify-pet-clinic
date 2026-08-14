@@ -121,7 +121,7 @@ fi
 
 roles_json="$(
   az role assignment list --assignee "$principal" --scope "$subscription_scope" \
-    --include-inherited --include-groups --all --output json 2>/dev/null
+    --include-inherited --include-groups --output json 2>/dev/null
 )" || fail 'could not check deployment authority; verify Microsoft.Authorization access and retry'
 has_owner="$(jq -r 'any(.[];
   .roleDefinitionName == "Owner"
