@@ -21,16 +21,16 @@ principal="$(az account show --query user.name --output tsv 2>/dev/null)" ||
 azd auth login --check-status >/dev/null 2>&1 ||
   fail 'Azure Developer CLI authentication required; run: azd auth login'
 
-explicit_subscription="${AZURE_SUBSCRIPTION_ID-}"
-if [[ -z "$explicit_subscription" ]]; then
-  explicit_subscription="$(azd env get-value AZURE_SUBSCRIPTION_ID 2>/dev/null || true)"
+expected_subscription="${AZURE_SUBSCRIPTION_ID-}"
+if [[ -z "$expected_subscription" ]]; then
+  expected_subscription="$(azd env get-value AZURE_SUBSCRIPTION_ID 2>/dev/null || true)"
 fi
-[[ -n "$explicit_subscription" ]] ||
+[[ -n "$expected_subscription" ]] ||
   fail 'select a subscription explicitly by setting AZURE_SUBSCRIPTION_ID or in the azd environment'
-if [[ "$account_subscription" != "$explicit_subscription" ]]; then
-  fail 'Azure CLI selected subscription does not match the explicit AZURE_SUBSCRIPTION_ID; run: az account set --subscription "$AZURE_SUBSCRIPTION_ID"'
+if [[ "$account_subscription" != "$expected_subscription" ]]; then
+  fail "Azure CLI selected subscription does not match the expected subscription; run: az account set --subscription $expected_subscription"
 fi
-subscription_scope="/subscriptions/$explicit_subscription"
+subscription_scope="/subscriptions/$expected_subscription"
 
 providers=(
   Microsoft.Resources
@@ -135,7 +135,7 @@ has_role_admin="$(jq -r 'any(.[];
 
 cat <<EOF
 Azure readiness checks passed
-subscription: $(redact_subscription "$explicit_subscription")
+subscription: $(redact_subscription "$expected_subscription")
 location: $AZURE_LOCATION_DISPLAY_NAME ($AZURE_LOCATION)
 model: $AZURE_OPENAI_MODEL
 model version: $AZURE_OPENAI_MODEL_VERSION

@@ -193,9 +193,16 @@ replace_stdout unset-subscription 4 azd ''
 run_case unset-subscription 1 \
   'ERROR: select a subscription explicitly by setting AZURE_SUBSCRIPTION_ID or in the azd environment' unset
 
+make_fixture mismatched-azd-subscription azd
+replace_stdout mismatched-azd-subscription 1 az \
+  'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+run_case mismatched-azd-subscription 1 \
+  "ERROR: Azure CLI selected subscription does not match the expected subscription; run: az account set --subscription $subscription_id" \
+  unset
+
 make_fixture mismatched-subscription
 run_case mismatched-subscription 1 \
-  'ERROR: Azure CLI selected subscription does not match the explicit AZURE_SUBSCRIPTION_ID; run: az account set --subscription "$AZURE_SUBSCRIPTION_ID"' \
+  'ERROR: Azure CLI selected subscription does not match the expected subscription; run: az account set --subscription aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' \
   'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 make_fixture unregistered-provider
