@@ -22,4 +22,6 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew test
       - run: scripts/validate-reference.sh

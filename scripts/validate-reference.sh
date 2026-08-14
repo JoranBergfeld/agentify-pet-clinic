@@ -64,6 +64,11 @@ run_focused_test_class() {
   assert_surefire_report_generated "$test_class"
 }
 
+run_gradle_compile_validation() {
+  echo "running Gradle compile validation"
+  ./gradlew -q compileJava
+}
+
 refresh_origin_main_tracking_ref() {
   git fetch origin +refs/heads/main:refs/remotes/origin/main
 }
@@ -81,6 +86,14 @@ main() {
     || fail "missing Clinic Assistant source directory"
   grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml \
     || fail "missing spring-ai-starter-model-openai in pom.xml"
+  grep -Fq "spring-ai-bom:2.0.0" build.gradle \
+    || fail "missing spring-ai-bom platform in build.gradle"
+  grep -Fq "spring-ai-starter-model-openai" build.gradle \
+    || fail "missing spring-ai-starter-model-openai in build.gradle"
+  grep -Fq "azure-identity:1.18.2" build.gradle \
+    || fail "missing azure-identity in build.gradle"
+
+  run_gradle_compile_validation
 
   for test_class in "${focused_test_classes[@]}"; do
     run_focused_test_class "$test_class"
