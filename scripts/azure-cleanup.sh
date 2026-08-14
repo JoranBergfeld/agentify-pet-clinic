@@ -31,6 +31,9 @@ azd_value_optional() {
 }
 
 foundry="$(azd_value_optional AZURE_OPENAI_ACCOUNT_NAME)"
+if [[ -z "$foundry" ]]; then
+  foundry="${WORKSHOP_AZURE_FOUNDRY_NAME:-}"
+fi
 location="$(azd_value AZURE_LOCATION)"
 resource_group="$(azd_value_optional AZURE_RESOURCE_GROUP_NAME)"
 environment_name="$(azd_value_optional AZURE_ENV_NAME)"
@@ -64,6 +67,8 @@ if [[ -z "$foundry" ]]; then
     foundry=''
   fi
 fi
+[[ "$foundry" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,62}[A-Za-z0-9]$ ]] ||
+  fail 'Foundry account name is unavailable; recover it from azd or set WORKSHOP_AZURE_FOUNDRY_NAME before cleanup'
 
 safe_environment='not recorded (unsafe or unavailable)'
 if [[ "$environment_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] &&
@@ -116,7 +121,6 @@ if [[ -n "$active_resources" ]]; then
 fi
 
 deleted_account_id() {
-  [[ -n "$foundry" ]] || return 0
   az cognitiveservices account list-deleted \
     --subscription "$subscription_id" \
     --query "[?name=='${foundry}' && location=='${location}'].id | [0]" \

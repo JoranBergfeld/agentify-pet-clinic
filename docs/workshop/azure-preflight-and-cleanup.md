@@ -187,6 +187,20 @@ Run cleanup from the same repository and `azd` environment:
 scripts/azure-cleanup.sh
 ```
 
+Cleanup must know the exact Foundry account name so it can inspect and purge
+soft-deleted records. If the `azd` environment no longer contains
+`AZURE_OPENAI_ACCOUNT_NAME`, recover the name from retained deployment output
+or the Azure portal and supply it explicitly:
+
+```bash
+WORKSHOP_AZURE_FOUNDRY_NAME='<exact-account-name>' scripts/azure-cleanup.sh
+```
+
+Do not guess the name. The script may recover it from an existing resource
+group after partial provisioning. If `azd`, that discovery, and the override
+cannot provide a safe account name, cleanup stops before `azd down` and writes
+no PASS evidence.
+
 The script captures required values, runs exactly `azd down --force --purge`,
 verifies that the resource group and active App Service/Foundry resources are
 absent, discovers and explicitly purges a soft-deleted Foundry account when

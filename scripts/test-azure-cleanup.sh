@@ -103,12 +103,14 @@ run_case() {
   local name="$1"
   local expected_status="$2"
   local expected_message="${3-}"
+  local foundry_override="${4-}"
   local case_dir="$scratch/$name"
   local status=0
 
   WORKSHOP_AZURE_FIXTURE_DIR="$case_dir/fixtures" \
     WORKSHOP_AZURE_COMMAND_LOG="$case_dir/commands.log" \
     WORKSHOP_AZURE_EVIDENCE_DIR="$case_dir/evidence" \
+    WORKSHOP_AZURE_FOUNDRY_NAME="$foundry_override" \
     WORKSHOP_AZURE_RETRY_SECONDS=0 \
     WORKSHOP_AZURE_RETRY_ATTEMPTS=5 \
     PATH="$case_dir/bin" \
@@ -183,16 +185,41 @@ add_call "$scratch/already-absent/fixtures" 7 az '' \
 set_status "$scratch/already-absent/fixtures" 7 az 1
 add_call "$scratch/already-absent/fixtures" 8 az false \
   group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
-add_call "$scratch/already-absent/fixtures" 9 azd '' down --force --purge
-add_call "$scratch/already-absent/fixtures" 10 az false \
-  group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
-add_call "$scratch/already-absent/fixtures" 11 az '' \
-  resource list --subscription "$subscription_id" --query "$active_query" --output tsv
-for number in 12 13 14 15; do
-  add_call "$scratch/already-absent/fixtures" "$number" sleep '' 0
+run_case already-absent 1 \
+  'ERROR: Foundry account name is unavailable; recover it from azd or set WORKSHOP_AZURE_FOUNDRY_NAME before cleanup'
+[[ "$(wc -l <"$scratch/already-absent/commands.log")" -eq 8 ]] ||
+  fail_test 'missing Foundry name did not fail before azd down'
+test -z "$(find "$scratch/already-absent/evidence" -type f -print -quit)" ||
+  fail_test 'missing Foundry name wrote passing cleanup evidence'
+
+start_fixture override-purge
+set_status "$scratch/override-purge/fixtures" 1 azd 1
+printf '%s\n' 'ERROR: environment value was not found' \
+  >"$scratch/override-purge/fixtures/001-azd.stdout"
+add_down_and_absence_checks override-purge
+add_call "$scratch/override-purge/fixtures" 10 az "$deleted_id" \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/override-purge/fixtures" 11 az '' \
+  cognitiveservices account purge --name "$foundry" \
+  --resource-group "$resource_group" --location "$location" \
+  --subscription "$subscription_id"
+for number in 12 14 16 18 20; do
+  add_call "$scratch/override-purge/fixtures" "$number" az '' \
+    cognitiveservices account list-deleted --subscription "$subscription_id" \
+    --query "$deleted_query" --output tsv
 done
-add_success_dates "$scratch/already-absent/fixtures" 16
-run_case already-absent 0
+for number in 13 15 17 19; do
+  add_call "$scratch/override-purge/fixtures" "$number" sleep '' 0
+done
+add_success_dates "$scratch/override-purge/fixtures" 21
+run_case override-purge 0 '' "$foundry"
+grep -Fq 'cognitiveservices account list-deleted' \
+  "$scratch/override-purge/commands.log" ||
+  fail_test 'Foundry override did not inspect soft-deleted accounts'
+grep -Fq "cognitiveservices account purge --name $foundry" \
+  "$scratch/override-purge/commands.log" ||
+  fail_test 'Foundry override did not purge the soft-deleted account'
 
 start_fixture transient-group-query
 add_call "$scratch/transient-group-query/fixtures" 7 azd '' down --force --purge
