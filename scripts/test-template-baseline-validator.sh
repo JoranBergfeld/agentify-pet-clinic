@@ -94,6 +94,10 @@ write_clean_ui_resources
 touch "$fixture/mvnw"
 chmod +x "$fixture/mvnw"
 touch "$fixture/.azure/.gitignore"
+cat >"$fixture/.gitignore" <<'EOF'
+.workshop-evidence/
+EOF
+git -C "$fixture" init --quiet
 
 expect_clean
 
@@ -131,10 +135,13 @@ expect_reference_only_directory_failure "workshop/completed"
 
 mkdir -p "$fixture/.workshop-evidence"
 touch "$fixture/.workshop-evidence/preflight-example.md"
-expect_failure "generated evidence directory is present: .workshop-evidence/"
+expect_clean
+git -C "$fixture" add --force .workshop-evidence/preflight-example.md
+expect_failure "tracked generated evidence is present: .workshop-evidence/"
+git -C "$fixture" rm --cached --quiet .workshop-evidence/preflight-example.md
 rm "$fixture/.workshop-evidence/preflight-example.md"
 touch "$fixture/.workshop-evidence/cleanup-example.md"
-expect_failure "generated evidence directory is present: .workshop-evidence/"
+expect_clean
 rm -rf "$fixture/.workshop-evidence"
 
 expect_reference_only_file_failure "scripts/azure-reference-smoke.sh"

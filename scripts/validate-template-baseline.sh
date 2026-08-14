@@ -44,6 +44,21 @@ require_absent_reference_only_file() {
     || fail "reference-only file is present: $relative_path"
 }
 
+require_no_tracked_evidence() {
+  local tracked_evidence
+
+  if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    tracked_evidence="$(
+      git -C "$root" ls-files -- '.workshop-evidence' '.workshop-evidence/**'
+    )"
+    [[ -z "$tracked_evidence" ]] ||
+      fail "tracked generated evidence is present: .workshop-evidence/"
+  else
+    test ! -e "$root/.workshop-evidence" ||
+      fail "generated evidence directory is present: .workshop-evidence/"
+  fi
+}
+
 test -f "$provenance" || fail "missing workshop/baseline.properties"
 grep -Fxq \
   'upstream.repository=https://github.com/spring-projects/spring-petclinic.git' \
@@ -63,8 +78,7 @@ require_absent_reference_only_directory "docs/reference"
 require_absent_reference_only_directory "workshop/reference"
 require_absent_reference_only_directory "workshop/completed"
 require_absent_reference_only_directory "src/main/resources/templates/assistant"
-test ! -e "$root/.workshop-evidence" \
-  || fail "generated evidence directory is present: .workshop-evidence/"
+require_no_tracked_evidence
 require_absent_reference_only_file "scripts/azure-reference-smoke.sh"
 require_absent_reference_only_file "scripts/test-azure-reference-smoke.sh"
 ! contains_clinic_assistant_ui_marker \
@@ -79,18 +93,29 @@ require_absent_reference_only_file "scripts/test-azure-reference-smoke.sh"
   "$root/src/main/resources/application.properties" \
   || fail "Spring AI application property is present in src/main/resources/application.properties"
 
-if find "$root" \
-  \( -type d \( -name .git -o -name .worktrees \) -prune \) -o \
-  \( -type f \( \
-      -name '.env' -o \
-      -name '.env.*' -o \
-      -name '*.tfstate' -o \
-      -name '*.tfstate.backup' -o \
-      -name 'azureProfile.json' -o \
-      \( -path "$root/.azure/*" -a ! -path "$root/.azure/.gitignore" \) \
-    \) -print -quit \) \
-  | grep -q .; then
-  fail "generated secret-bearing environment file is present"
+inside_git='no'
+if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  inside_git='yes'
 fi
+
+while IFS= read -r -d '' generated_file; do
+  relative_path="${generated_file#"$root/"}"
+  if [[ "$inside_git" == yes ]] &&
+    git -C "$root" check-ignore --quiet -- "$relative_path"; then
+    continue
+  fi
+  fail "generated secret-bearing environment file is present"
+done < <(
+  find "$root" \
+    \( -type d \( -name .git -o -name .worktrees \) -prune \) -o \
+    \( -type f \( \
+        -name '.env' -o \
+        -name '.env.*' -o \
+        -name '*.tfstate' -o \
+        -name '*.tfstate.backup' -o \
+        -name 'azureProfile.json' -o \
+        \( -path "$root/.azure/*" -a ! -path "$root/.azure/.gitignore" \) \
+      \) -print0 \)
+)
 
 echo "template baseline is structurally clean"
