@@ -19,6 +19,10 @@ java {
   targetCompatibility = JavaVersion.VERSION_17
 }
 
+tasks.withType(JavaCompile).configureEach {
+  options.release = 17
+}
+
 repositories {
   mavenCentral()
 }
@@ -58,7 +62,21 @@ dependencies {
 }
 
 tasks.named('test') {
+  dependsOn("assertJava17Release")
   useJUnitPlatform()
+}
+
+tasks.register("assertJava17Release") {
+  doLast {
+    def misconfiguredTasks = tasks.withType(JavaCompile).findAll { task ->
+      task.options.release.orNull != 17
+    }.collect { task -> task.path }
+    if (!misconfiguredTasks.isEmpty()) {
+      throw new GradleException(
+        "JavaCompile tasks must set options.release = 17: ${misconfiguredTasks.join(', ')}"
+      )
+    }
+  }
 }
 
 tasks.named("cyclonedxDirectBom").configure {

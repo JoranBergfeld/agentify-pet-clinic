@@ -10,6 +10,7 @@ source_repo="JoranBergfeld/agentify-pet-clinic"
 owner="test-owner"
 bin_dir="$fixture/bin"
 gh_log="$fixture/gh.log"
+gradle_log="$fixture/gradle.log"
 gh_state="$fixture/gh-state"
 gh_branch_checks="$fixture/gh-branch-checks"
 gh_repo_view_counts="$fixture/gh-repo-view-counts"
@@ -18,6 +19,7 @@ uuid_fallback_file="$fixture/random-uuid"
 
 mkdir -p "$bin_dir"
 : >"$gh_log"
+: >"$gradle_log"
 : >"$gh_state"
 : >"$gh_branch_checks"
 : >"$gh_repo_view_counts"
@@ -215,11 +217,26 @@ if [ "$1" = "repo" ] && [ "$2" = "clone" ]; then
 #!/usr/bin/env bash
 exit 0
 EOF_INNER
+  cat >"$dest/gradlew" <<'EOF_INNER'
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf '%s\n' "$*" >>"${FAKE_GRADLE_LOG:?}"
+
+case "$*" in
+  '-q assertJava17Release test' | 'assertJava17Release test')
+    exit 0
+    ;;
+esac
+
+echo "unexpected gradle call: $*" >&2
+exit 97
+EOF_INNER
   cat >"$dest/mvnw" <<'EOF_INNER'
 #!/usr/bin/env bash
 exit 0
 EOF_INNER
-  chmod +x "$dest/scripts/validate-template-baseline.sh" "$dest/mvnw"
+  chmod +x "$dest/scripts/validate-template-baseline.sh" "$dest/gradlew" "$dest/mvnw"
   exit 0
 fi
 
@@ -290,6 +307,7 @@ chmod +x "$bin_dir/uuidgen"
 
 reset_fake_github() {
   : >"$gh_log"
+  : >"$gradle_log"
   : >"$gh_state"
   : >"$gh_branch_checks"
   : >"$gh_repo_view_counts"
@@ -314,6 +332,7 @@ run_validator() {
     UUIDGEN_BIN="$bin_dir/uuidgen" \
     RANDOM_UUID_FILE="$uuid_fallback_file" \
     GH_LOG="$gh_log" \
+    FAKE_GRADLE_LOG="$gradle_log" \
     GH_STATE="$gh_state" \
     GH_BRANCH_CHECKS="$gh_branch_checks" \
     GH_REPO_VIEW_COUNTS="$gh_repo_view_counts" \
@@ -382,6 +401,7 @@ expect_uuidgen_suffix_and_cleanup() {
   run_validator "$output_file" \
     "UUIDGEN_OUTPUT=$raw_uuid"
 
+  grep -Fxq -- "-q assertJava17Release test" "$gradle_log"
   grep -Fqx "repo create $expected_repo --private --template $source_repo" "$gh_log"
   grep -Fqx "repo delete $expected_repo --yes" "$gh_log"
   grep -Fxq "validated target: $expected_repo" "$output_file"
@@ -406,6 +426,7 @@ expect_cleanup_retries_after_transient_delete_and_view_failures() {
     "GH_REPO_DELETE_ERROR_MESSAGE=temporary delete api failure" \
     "GH_REPO_VIEW_ERROR_MESSAGE=temporary repo view api failure"
 
+  grep -Fxq -- "-q assertJava17Release test" "$gradle_log"
   [ "$(grep -Fc "repo delete $expected_repo --yes" "$gh_log")" -eq 2 ]
   [ "$(grep -Fc "repo view $expected_repo" "$gh_log")" -eq 2 ]
   grep -Fxq "validated target: $expected_repo" "$output_file"
@@ -456,6 +477,7 @@ expect_cleanup_accepts_not_found_delete_without_repo_view_probe() {
     "UUIDGEN_OUTPUT=$raw_uuid" \
     "GH_REPO_DELETE_SEQUENCE=missing"
 
+  grep -Fxq -- "-q assertJava17Release test" "$gradle_log"
   [ "$(grep -Fc "repo delete $expected_repo --yes" "$gh_log")" -eq 1 ]
   [ "$(grep -Fc "repo view $expected_repo" "$gh_log")" -eq 1 ]
   grep -Fxq "validated target: $expected_repo" "$output_file"
@@ -477,6 +499,7 @@ expect_proc_uuid_fallback() {
     "UUIDGEN_SHOULD_FAIL=true" \
     "UUIDGEN_OUTPUT=unused"
 
+  grep -Fxq -- "-q assertJava17Release test" "$gradle_log"
   grep -Fqx "repo create $expected_repo --private --template $source_repo" "$gh_log"
   grep -Fqx "repo delete $expected_repo --yes" "$gh_log"
   grep -Fxq "validated target: $expected_repo" "$output_file"
@@ -499,6 +522,7 @@ expect_waits_for_generated_default_branch() {
     "GH_TEMPLATE_READY_POLL_INTERVAL=0" \
     "GH_TEMPLATE_READY_MAX_ATTEMPTS=3"
 
+  grep -Fxq -- "-q assertJava17Release test" "$gradle_log"
   [ "$(grep -Fc "api repos/$expected_repo/branches/main" "$gh_log")" -eq 2 ]
   grep -Fqx "repo create $expected_repo --private --template $source_repo" "$gh_log"
   grep -Fqx "repo delete $expected_repo --yes" "$gh_log"
