@@ -66,7 +66,7 @@ run_focused_test_class() {
 
 run_gradle_compile_validation() {
   echo "running Gradle compile validation"
-  ./gradlew -q compileJava
+  ./gradlew -q assertJava17Release compileJava
 }
 
 refresh_origin_main_tracking_ref() {

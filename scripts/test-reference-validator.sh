@@ -91,7 +91,7 @@ log_file="${FAKE_GRADLE_LOG:?}"
 printf '%s\n' "$*" >>"$log_file"
 
 case "$*" in
-  '-q compileJava' | 'compileJava')
+  '-q assertJava17Release compileJava' | 'assertJava17Release compileJava')
     exit 0
     ;;
   'test')
@@ -178,7 +178,7 @@ EOF
 )"
 
   expected_gradle_log="$(cat <<'EOF'
--q compileJava
+-q assertJava17Release compileJava
 EOF
 )"
 
@@ -231,7 +231,7 @@ expect_missing_class_failure() {
 
   grep -Fxq "fetch origin +refs/heads/main:refs/remotes/origin/main" "$stub_git_log"
   grep -Fxq "merge-base --is-ancestor refs/remotes/origin/main HEAD" "$stub_git_log"
-  grep -Fxq -- "-q compileJava" "$stub_gradle_log"
+  grep -Fxq -- "-q assertJava17Release compileJava" "$stub_gradle_log"
   grep -Fxq "FOCUSED ClinicAssistantToolsTests true" "$stub_mvn_log"
   grep -Fxq "FOCUSED MissingReferenceValidationTest true" "$stub_mvn_log"
   ! grep -Fxq "FULL_SUITE" "$stub_mvn_log"
@@ -311,7 +311,7 @@ expect_single_branch_clone_fetches_origin_main_and_reaches_test_gate() {
 
   git -C "$single_branch_clone" show-ref --verify --quiet refs/remotes/origin/main
   git -C "$single_branch_clone" merge-base --is-ancestor refs/remotes/origin/main HEAD
-  grep -Fxq -- "-q compileJava" "$single_branch_gradle_log"
+  grep -Fxq -- "-q assertJava17Release compileJava" "$single_branch_gradle_log"
   grep -Fxq "FOCUSED ClinicAssistantToolsTests true" "$single_branch_mvn_log"
   grep -Fxq "FULL_SUITE" "$single_branch_mvn_log"
   grep -Fxq "reference branch is current and validated" "$single_branch_output_file"

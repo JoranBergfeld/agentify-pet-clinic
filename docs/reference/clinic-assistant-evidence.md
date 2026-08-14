@@ -4,17 +4,18 @@ Date: 2026-08-14
 
 ## Validated revisions
 
-- `main`: `8e00f37303945917aa334bafdfbf5ab333f364b8`
-- `origin/main`: `8e00f37303945917aa334bafdfbf5ab333f364b8`
+- `main`: `9d52d5c47aa7cf68f58899b72a14feb27d80b7ec`
+- `origin/main`: `9d52d5c47aa7cf68f58899b72a14feb27d80b7ec`
 - Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
-- This Gradle parity refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates build configuration, dependency parity, validation workflows, and evidence commands, not the assistant feature itself.
+- This Java 17 release-floor refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates build configuration, template/reference validation commands, and evidence text, not the assistant feature itself.
 
 ## Commands
 
 Executed:
 
 ```text
-./gradlew test
+./gradlew -q assertJava17Release
+./gradlew -q test
 scripts/test-reference-validator.sh
 scripts/validate-reference.sh
 ./mvnw -q test
@@ -30,7 +31,7 @@ grep -Fq '<artifactId>spring-ai-starter-model-openai</artifactId>' pom.xml
 grep -Fq 'spring-ai-bom:2.0.0' build.gradle
 grep -Fq 'spring-ai-starter-model-openai' build.gradle
 grep -Fq 'azure-identity:1.18.2' build.gradle
-./gradlew -q compileJava
+./gradlew -q assertJava17Release compileJava
 ./mvnw -q -Dtest='ClinicQueryServiceTests' -Dsurefire.failIfNoSpecifiedTests=true test
 ./mvnw -q -Dtest='ClinicAssistantToolsTests' -Dsurefire.failIfNoSpecifiedTests=true test
 ./mvnw -q -Dtest='ClinicAssistantModelTests' -Dsurefire.failIfNoSpecifiedTests=true test
@@ -46,8 +47,9 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 
 ## Results
 
-- `./gradlew test`: PASS — 29 suite reports, 109 tests, 0 failures, 0 errors, 4 skipped
-- `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
+- `./gradlew -q assertJava17Release`: PASS — every `JavaCompile` task reports `options.release = 17`
+- `./gradlew -q test`: PASS — 29 suite reports, 109 tests, 0 failures, 0 errors, 4 skipped
+- `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
 - Focused assistant suite: PASS — 10 suite reports, 38 tests, 0 failures, 0 errors, 0 skipped
 - Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 107 tests, 0 failures, 0 errors, 2 skipped

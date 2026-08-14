@@ -216,6 +216,7 @@ wait_for_generated_default_branch
     || fail "generated repository working tree is not clean"
 
   ./scripts/validate-template-baseline.sh
+  ./gradlew -q assertJava17Release test
   ./mvnw -q test
 )
 
