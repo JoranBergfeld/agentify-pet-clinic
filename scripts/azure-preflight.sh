@@ -5,6 +5,9 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib/workshop-azure.sh
 source "$root/scripts/lib/workshop-azure.sh"
 
+readonly PREFLIGHT_COMMAND_VERSION='1.0.0'
+readonly PREFLIGHT_EVIDENCE_SCHEMA_VERSION='1.0'
+
 evidence_dir="${WORKSHOP_AZURE_EVIDENCE_DIR:-$root/.workshop-evidence}"
 cleanup_deadline="${WORKSHOP_AZURE_CLEANUP_DEADLINE-}"
 require_nonempty WORKSHOP_AZURE_CLEANUP_DEADLINE "$cleanup_deadline"
@@ -65,17 +68,8 @@ retry_until 'application health' health_is_up
 resources_json="$(
   az resource list --resource-group "$resource_group" --output json 2>/dev/null
 )" || fail 'could not list deployed resources'
-jq -e '
-  [.[]?.type | ascii_downcase] as $types
-  | ($types | length) == 4
-  and ($types | sort) == ([
-    "microsoft.cognitiveservices/accounts",
-    "microsoft.cognitiveservices/accounts/deployments",
-    "microsoft.web/serverfarms",
-    "microsoft.web/sites"
-  ] | sort)
-' >/dev/null 2>&1 <<<"$resources_json" ||
-  fail 'deployed resource topology does not exactly match the workshop baseline'
+resource_evidence="$(jq -er '[.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.properties.provisioningState // empty)}] as $resources | ($resources | length) == 4 and ($resources | map(.normalizedType) | sort) == (["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] | sort) and all($resources[]; .state == "Succeeded") | if . then $resources | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end' <<<"$resources_json" 2>/dev/null)" ||
+  fail 'deployed resources are missing, unexpected, or not successfully provisioned'
 
 deployment_json="$(
   az cognitiveservices account deployment show \
@@ -88,12 +82,9 @@ jq -e \
   --arg model "$model" \
   --arg version "$model_version" \
   --arg sku "$deployment_sku" \
-  --argjson capacity "$deployment_capacity" '
-  .properties.model.name == $model
-  and .properties.model.version == $version
-  and .sku.name == $sku
-  and .sku.capacity == $capacity
-' >/dev/null 2>&1 <<<"$deployment_json" ||
+  --argjson capacity "$deployment_capacity" \
+  '.properties.model.name == $model and .properties.model.version == $version and .sku.name == $sku and .sku.capacity == $capacity' \
+  >/dev/null 2>&1 <<<"$deployment_json" ||
   fail 'model deployment values do not exactly match the azd outputs'
 
 identity_json="$(
@@ -102,11 +93,7 @@ identity_json="$(
     --resource-group "$resource_group" \
     --output json 2>/dev/null
 )" || fail 'could not inspect the web app managed identity'
-principal_id="$(jq -er '
-  select(.type == "SystemAssigned")
-  | .principalId
-  | select(type == "string" and length > 0)
-' <<<"$identity_json" 2>/dev/null)" ||
+principal_id="$(jq -er 'select(.type == "SystemAssigned") | .principalId | select(type == "string" and length > 0)' <<<"$identity_json" 2>/dev/null)" ||
   fail 'web app system-assigned managed identity is missing'
 
 foundry_scope="$(
@@ -126,13 +113,9 @@ roles_json="$(
 )" || fail 'could not inspect the Foundry role assignment'
 jq -e \
   --arg principal "$principal_id" \
-  --arg scope "$foundry_scope" '
-  any(.[];
-    .roleDefinitionName == "Foundry User"
-    and .principalId == $principal
-    and .scope == $scope
-  )
-' >/dev/null 2>&1 <<<"$roles_json" ||
+  --arg scope "$foundry_scope" \
+  'any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and .scope == $scope)' \
+  >/dev/null 2>&1 <<<"$roles_json" ||
   fail 'Foundry User assignment is missing at the Foundry resource scope'
 
 settings_json="$(
@@ -145,9 +128,9 @@ settings_json="$(
 require_app_setting() {
   local name="$1"
   local expected_value="$2"
-  jq -e --arg name "$name" --arg value "$expected_value" '
-    [.[]? | select(.name == $name and .value == $value)] | length == 1
-  ' >/dev/null 2>&1 <<<"$settings_json" ||
+  jq -e --arg name "$name" --arg value "$expected_value" \
+    '[.[]? | select(.name == $name and .value == $value)] | length == 1' \
+    >/dev/null 2>&1 <<<"$settings_json" ||
     fail "required app setting $name is missing or has an unexpected value"
 }
 
@@ -169,6 +152,8 @@ mkdir -p "$evidence_dir"
 cat >"$evidence_file" <<EOF
 # Azure Preflight Evidence
 
+- Command version: \`$PREFLIGHT_COMMAND_VERSION\`
+- Evidence schema version: \`$PREFLIGHT_EVIDENCE_SCHEMA_VERSION\`
 - UTC: \`$deployed_time\`
 - Git revision: \`$revision\`
 - Subscription: \`$(redact_subscription "$subscription_id")\`
@@ -178,7 +163,7 @@ cat >"$evidence_file" <<EOF
 - Deployment: \`$deployment\`
 - SKU: \`$deployment_sku\`
 - Capacity: \`$deployment_capacity\`
-- Resource types: \`Microsoft.Web/serverfarms\`, \`Microsoft.Web/sites\`, \`Microsoft.CognitiveServices/accounts\`, \`Microsoft.CognitiveServices/accounts/deployments\`
+$resource_evidence
 - Managed identity: \`present (SystemAssigned)\`
 - Role: \`Foundry User\`
 - Role scope category: \`Foundry resource\`

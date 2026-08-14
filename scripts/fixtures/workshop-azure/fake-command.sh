@@ -36,6 +36,15 @@ for index in "${!expected_args[@]}"; do
   fi
 done
 
+if [[ -f "$prefix.stdin" ]]; then
+  actual_stdin="$(cat)"
+  expected_stdin="$(cat "$prefix.stdin")"
+  if [[ "$actual_stdin" != "$expected_stdin" ]]; then
+    echo "unexpected stdin for call $call_number: $command_name $*" >&2
+    exit 99
+  fi
+fi
+
 [[ ! -f "$prefix.stdout" ]] || cat "$prefix.stdout"
 [[ ! -f "$prefix.stderr" ]] || cat "$prefix.stderr" >&2
 status=0

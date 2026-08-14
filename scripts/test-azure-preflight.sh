@@ -13,6 +13,12 @@ web_app="workshop-web-secret"
 app_url="https://workshop-web-secret.azurewebsites.net"
 foundry="workshop-foundry-secret"
 foundry_scope="/subscriptions/$subscription_id/resourceGroups/$resource_group/providers/Microsoft.CognitiveServices/accounts/$foundry"
+health_filter='.status // empty'
+resources_filter='[.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.properties.provisioningState // empty)}] as $resources | ($resources | length) == 4 and ($resources | map(.normalizedType) | sort) == (["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] | sort) and all($resources[]; .state == "Succeeded") | if . then $resources | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end'
+deployment_filter='.properties.model.name == $model and .properties.model.version == $version and .sku.name == $sku and .sku.capacity == $capacity'
+identity_filter='select(.type == "SystemAssigned") | .principalId | select(type == "string" and length > 0)'
+role_filter='any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and .scope == $scope)'
+setting_filter='[.[]? | select(.name == $name and .value == $value)] | length == 1'
 
 cleanup() {
   rm -rf "$scratch"
@@ -39,6 +45,16 @@ add_call() {
   printf '%s' "$stdout" >"$prefix.stdout"
 }
 
+add_jq_call() {
+  local fixture_dir="$1"
+  local number="$2"
+  local stdout="$3"
+  local stdin="$4"
+  shift 4
+  add_call "$fixture_dir" "$number" jq "$stdout" "$@"
+  printf '%s' "$stdin" >"$fixture_dir/$(printf '%03d' "$number")-jq.stdin"
+}
+
 make_success_fixture() {
   local name="$1"
   local case_dir="$scratch/$name"
@@ -54,10 +70,9 @@ make_success_fixture() {
   cp "$library" "$project_dir/scripts/lib/workshop-azure.sh"
   ln -s "$fake_command" "$project_dir/scripts/azure-readiness.sh"
 
-  for command in az azd curl git date sleep; do
+  for command in az azd curl git date sleep jq; do
     ln -s "$fake_command" "$bin_dir/$command"
   done
-  ln -s "$(command -v jq)" "$bin_dir/jq"
   for command in bash basename cat dirname mkdir rm wc; do
     ln -s "$(command -v "$command")" "$bin_dir/$command"
   done
@@ -77,32 +92,61 @@ make_success_fixture() {
   add_call "$fixture_dir" 13 az "$subscription_id" account show --query id --output tsv
   add_call "$fixture_dir" 14 curl '{"status":"STARTING"}' \
     --fail --silent --show-error "$app_url/actuator/health"
-  add_call "$fixture_dir" 15 sleep '' 1
-  add_call "$fixture_dir" 16 curl '{"status":"UP"}' \
+  add_jq_call "$fixture_dir" 15 'STARTING' '{"status":"STARTING"}' \
+    -r "$health_filter"
+  add_call "$fixture_dir" 16 sleep '' 1
+  add_call "$fixture_dir" 17 curl '{"status":"UP"}' \
     --fail --silent --show-error "$app_url/actuator/health"
-  add_call "$fixture_dir" 17 az \
-    '[{"type":"Microsoft.Web/serverfarms"},{"type":"Microsoft.Web/sites"},{"type":"Microsoft.CognitiveServices/accounts"},{"type":"Microsoft.CognitiveServices/accounts/deployments"}]' \
+  add_jq_call "$fixture_dir" 18 'UP' '{"status":"UP"}' \
+    -r "$health_filter"
+  resources_json='[{"type":"Microsoft.Web/serverfarms","name":"plan-secret","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.Web/sites","name":"workshop-web-secret","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts","name":"workshop-foundry-secret","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts/deployments","name":"gpt-5-4-mini","properties":{"provisioningState":"Succeeded"}}]'
+  resource_evidence='- Resource: `Microsoft.CognitiveServices/accounts`; provisioningState: `Succeeded`
+- Resource: `Microsoft.CognitiveServices/accounts/deployments`; provisioningState: `Succeeded`
+- Resource: `Microsoft.Web/serverfarms`; provisioningState: `Succeeded`
+- Resource: `Microsoft.Web/sites`; provisioningState: `Succeeded`'
+  add_call "$fixture_dir" 19 az "$resources_json" \
     resource list --resource-group "$resource_group" --output json
-  add_call "$fixture_dir" 18 az \
-    '{"properties":{"model":{"name":"gpt-5.4-mini","version":"2026-03-17"}},"sku":{"name":"GlobalStandard","capacity":10}}' \
+  add_jq_call "$fixture_dir" 20 "$resource_evidence" "$resources_json" \
+    -er "$resources_filter"
+  deployment_json='{"properties":{"model":{"name":"gpt-5.4-mini","version":"2026-03-17"}},"sku":{"name":"GlobalStandard","capacity":10}}'
+  add_call "$fixture_dir" 21 az "$deployment_json" \
     cognitiveservices account deployment show --name "$foundry" \
     --resource-group "$resource_group" --deployment-name gpt-5-4-mini --output json
-  add_call "$fixture_dir" 19 az \
-    "{\"type\":\"SystemAssigned\",\"principalId\":\"$principal_id\",\"tenantId\":\"ffffffff-1111-2222-3333-444444444444\"}" \
+  add_jq_call "$fixture_dir" 22 'true' "$deployment_json" \
+    -e --arg model gpt-5.4-mini --arg version 2026-03-17 \
+    --arg sku GlobalStandard --argjson capacity 10 "$deployment_filter"
+  identity_json="{\"type\":\"SystemAssigned\",\"principalId\":\"$principal_id\",\"tenantId\":\"ffffffff-1111-2222-3333-444444444444\"}"
+  add_call "$fixture_dir" 23 az "$identity_json" \
     webapp identity show --name "$web_app" --resource-group "$resource_group" --output json
-  add_call "$fixture_dir" 20 az "$foundry_scope" \
+  add_jq_call "$fixture_dir" 24 "$principal_id" "$identity_json" \
+    -er "$identity_filter"
+  add_call "$fixture_dir" 25 az "$foundry_scope" \
     cognitiveservices account show --name "$foundry" --resource-group "$resource_group" \
     --query id --output tsv
-  add_call "$fixture_dir" 21 az \
-    "[{\"roleDefinitionName\":\"Foundry User\",\"scope\":\"$foundry_scope\",\"principalId\":\"$principal_id\"}]" \
+  roles_json="[{\"roleDefinitionName\":\"Foundry User\",\"scope\":\"$foundry_scope\",\"principalId\":\"$principal_id\"}]"
+  add_call "$fixture_dir" 26 az "$roles_json" \
     role assignment list --assignee-object-id "$principal_id" --scope "$foundry_scope" --output json
-  add_call "$fixture_dir" 22 az \
-    "[{\"name\":\"AZURE_OPENAI_ENDPOINT\",\"value\":\"https://$foundry.openai.azure.com\"},{\"name\":\"AZURE_OPENAI_MICROSOFT_FOUNDRY\",\"value\":\"true\"},{\"name\":\"AZURE_OPENAI_DEPLOYMENT\",\"value\":\"gpt-5-4-mini\"},{\"name\":\"AZURE_OPENAI_MODEL\",\"value\":\"gpt-5.4-mini\"},{\"name\":\"JAVA_OPTS\",\"value\":\"-Xms256m -Xmx1024m\"},{\"name\":\"WEBSITES_PORT\",\"value\":\"8080\"}]" \
+  add_jq_call "$fixture_dir" 27 'true' "$roles_json" \
+    -e --arg principal "$principal_id" --arg scope "$foundry_scope" "$role_filter"
+  settings_json="[{\"name\":\"AZURE_OPENAI_ENDPOINT\",\"value\":\"https://$foundry.openai.azure.com\"},{\"name\":\"AZURE_OPENAI_MICROSOFT_FOUNDRY\",\"value\":\"true\"},{\"name\":\"AZURE_OPENAI_DEPLOYMENT\",\"value\":\"gpt-5-4-mini\"},{\"name\":\"AZURE_OPENAI_MODEL\",\"value\":\"gpt-5.4-mini\"},{\"name\":\"JAVA_OPTS\",\"value\":\"-Xms256m -Xmx1024m\"},{\"name\":\"WEBSITES_PORT\",\"value\":\"8080\"}]"
+  add_call "$fixture_dir" 28 az "$settings_json" \
     webapp config appsettings list --name "$web_app" --resource-group "$resource_group" --output json
-  add_call "$fixture_dir" 23 git '0123456789abcdef0123456789abcdef01234567' \
+  add_jq_call "$fixture_dir" 29 'true' "$settings_json" \
+    -e --arg name AZURE_OPENAI_ENDPOINT --arg value "https://$foundry.openai.azure.com" "$setting_filter"
+  add_jq_call "$fixture_dir" 30 'true' "$settings_json" \
+    -e --arg name AZURE_OPENAI_MICROSOFT_FOUNDRY --arg value true "$setting_filter"
+  add_jq_call "$fixture_dir" 31 'true' "$settings_json" \
+    -e --arg name AZURE_OPENAI_DEPLOYMENT --arg value gpt-5-4-mini "$setting_filter"
+  add_jq_call "$fixture_dir" 32 'true' "$settings_json" \
+    -e --arg name AZURE_OPENAI_MODEL --arg value gpt-5.4-mini "$setting_filter"
+  add_jq_call "$fixture_dir" 33 'true' "$settings_json" \
+    -e --arg name JAVA_OPTS --arg value '-Xms256m -Xmx1024m' "$setting_filter"
+  add_jq_call "$fixture_dir" 34 'true' "$settings_json" \
+    -e --arg name WEBSITES_PORT --arg value 8080 "$setting_filter"
+  add_call "$fixture_dir" 35 git '0123456789abcdef0123456789abcdef01234567' \
     -C "$project_dir" rev-parse HEAD
-  add_call "$fixture_dir" 24 date '20260814T090548Z' -u +%Y%m%dT%H%M%SZ
-  add_call "$fixture_dir" 25 date '2026-08-14T09:05:48Z' -u +%Y-%m-%dT%H:%M:%SZ
+  add_call "$fixture_dir" 36 date '20260814T090548Z' -u +%Y%m%dT%H%M%SZ
+  add_call "$fixture_dir" 37 date '2026-08-14T09:05:48Z' -u +%Y-%m-%dT%H:%M:%SZ
 }
 
 run_case() {
@@ -136,7 +180,7 @@ mapfile -t commands <"$scratch/success/commands.log"
   fail_test 'readiness was not called first'
 [[ "${commands[1]}" == 'azd up --no-prompt' ]] ||
   fail_test 'azd up did not follow readiness'
-[[ "$(wc -l <"$scratch/success/commands.log")" -eq 25 ]] ||
+[[ "$(wc -l <"$scratch/success/commands.log")" -eq 37 ]] ||
   fail_test 'success did not execute every expected verification'
 
 evidence="$scratch/success/evidence/preflight-20260814T090548Z.md"
@@ -145,6 +189,8 @@ grep -Fq 'Git revision: `0123456789abcdef0123456789abcdef01234567`' "$evidence"
 grep -Fq 'Subscription: `11111111...5555`' "$evidence"
 grep -Fq 'Application health: `UP`' "$evidence"
 for expected in \
+  'Command version: `1.0.0`' \
+  'Evidence schema version: `1.0`' \
   'UTC: `2026-08-14T09:05:48Z`' \
   'Region: `swedencentral`' \
   'Model: `gpt-5.4-mini`' \
@@ -152,7 +198,10 @@ for expected in \
   'Deployment: `gpt-5-4-mini`' \
   'SKU: `GlobalStandard`' \
   'Capacity: `10`' \
-  'Resource types: `Microsoft.Web/serverfarms`, `Microsoft.Web/sites`, `Microsoft.CognitiveServices/accounts`, `Microsoft.CognitiveServices/accounts/deployments`' \
+  'Resource: `Microsoft.Web/serverfarms`; provisioningState: `Succeeded`' \
+  'Resource: `Microsoft.Web/sites`; provisioningState: `Succeeded`' \
+  'Resource: `Microsoft.CognitiveServices/accounts`; provisioningState: `Succeeded`' \
+  'Resource: `Microsoft.CognitiveServices/accounts/deployments`; provisioningState: `Succeeded`' \
   'Managed identity: `present (SystemAssigned)`' \
   'Role: `Foundry User`' \
   'Role scope category: `Foundry resource`' \
@@ -171,6 +220,7 @@ for expected in \
     fail_test "evidence omitted expected field: $expected"
 done
 for secret in "$subscription_id" "$principal_id" "$foundry" "$web_app" "$app_url" \
+  'plan-secret' \
   'ffffffff-1111-2222-3333-444444444444' 'token'; do
   ! grep -Fq "$secret" "$evidence" ||
     fail_test "evidence disclosed forbidden value: $secret"
@@ -190,37 +240,66 @@ run_case readiness-failure 1
 
 make_success_fixture health-timeout
 printf '%s' '{"status":"STARTING"}' \
-  >"$scratch/health-timeout/fixtures/016-curl.stdout"
-rm -f "$scratch/health-timeout/fixtures"/0{17,18,19,20,21,22,23,24,25}-*
-add_call "$scratch/health-timeout/fixtures" 17 sleep '' 1
-add_call "$scratch/health-timeout/fixtures" 18 curl '{"status":"STARTING"}' \
+  >"$scratch/health-timeout/fixtures/017-curl.stdout"
+printf '%s' '{"status":"STARTING"}' \
+  >"$scratch/health-timeout/fixtures/018-jq.stdin"
+printf '%s' 'STARTING' >"$scratch/health-timeout/fixtures/018-jq.stdout"
+rm -f "$scratch/health-timeout/fixtures"/0{19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37}-*
+add_call "$scratch/health-timeout/fixtures" 19 sleep '' 1
+add_call "$scratch/health-timeout/fixtures" 20 curl '{"status":"STARTING"}' \
   --fail --silent --show-error "$app_url/actuator/health"
+add_jq_call "$scratch/health-timeout/fixtures" 21 'STARTING' '{"status":"STARTING"}' \
+  -r "$health_filter"
 run_case health-timeout 1 \
   'ERROR: application health did not succeed after 3 attempts'
 
 make_success_fixture missing-resource
-printf '%s' \
-  '[{"type":"Microsoft.Web/serverfarms"},{"type":"Microsoft.Web/sites"},{"type":"Microsoft.CognitiveServices/accounts"}]' \
-  >"$scratch/missing-resource/fixtures/017-az.stdout"
+missing_resources='[{"type":"Microsoft.Web/serverfarms","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.Web/sites","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts","properties":{"provisioningState":"Succeeded"}}]'
+printf '%s' "$missing_resources" >"$scratch/missing-resource/fixtures/019-az.stdout"
+printf '%s' "$missing_resources" >"$scratch/missing-resource/fixtures/020-jq.stdin"
+printf '%s\n' 1 >"$scratch/missing-resource/fixtures/020-jq.status"
 run_case missing-resource 1 \
-  'ERROR: deployed resource topology does not exactly match the workshop baseline'
+  'ERROR: deployed resources are missing, unexpected, or not successfully provisioned'
+
+make_success_fixture failed-provisioning
+failed_resources='[{"type":"Microsoft.Web/serverfarms","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.Web/sites","properties":{"provisioningState":"Failed"}},{"type":"Microsoft.CognitiveServices/accounts","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts/deployments","properties":{"provisioningState":"Succeeded"}}]'
+printf '%s' "$failed_resources" >"$scratch/failed-provisioning/fixtures/019-az.stdout"
+printf '%s' "$failed_resources" >"$scratch/failed-provisioning/fixtures/020-jq.stdin"
+printf '%s\n' 1 >"$scratch/failed-provisioning/fixtures/020-jq.status"
+run_case failed-provisioning 1 \
+  'ERROR: deployed resources are missing, unexpected, or not successfully provisioned'
 
 make_success_fixture wrong-model-capacity
-printf '%s' \
-  '{"properties":{"model":{"name":"gpt-5.4-mini","version":"2026-03-17"}},"sku":{"name":"GlobalStandard","capacity":9}}' \
-  >"$scratch/wrong-model-capacity/fixtures/018-az.stdout"
+wrong_deployment='{"properties":{"model":{"name":"gpt-5.4-mini","version":"2026-03-17"}},"sku":{"name":"GlobalStandard","capacity":9}}'
+printf '%s' "$wrong_deployment" >"$scratch/wrong-model-capacity/fixtures/021-az.stdout"
+printf '%s' "$wrong_deployment" >"$scratch/wrong-model-capacity/fixtures/022-jq.stdin"
+printf '%s\n' 1 >"$scratch/wrong-model-capacity/fixtures/022-jq.status"
 run_case wrong-model-capacity 1 \
   'ERROR: model deployment values do not exactly match the azd outputs'
 
+make_success_fixture missing-identity
+missing_identity='{"type":"None","principalId":null}'
+printf '%s' "$missing_identity" >"$scratch/missing-identity/fixtures/023-az.stdout"
+printf '%s' "$missing_identity" >"$scratch/missing-identity/fixtures/024-jq.stdin"
+printf '%s\n' 1 >"$scratch/missing-identity/fixtures/024-jq.status"
+run_case missing-identity 1 \
+  'ERROR: web app system-assigned managed identity is missing'
+
 make_success_fixture missing-role
-printf '%s' '[]' >"$scratch/missing-role/fixtures/021-az.stdout"
+printf '%s' '[]' >"$scratch/missing-role/fixtures/026-az.stdout"
+printf '%s' '[]' >"$scratch/missing-role/fixtures/027-jq.stdin"
+printf '%s\n' 1 >"$scratch/missing-role/fixtures/027-jq.status"
 run_case missing-role 1 \
   'ERROR: Foundry User assignment is missing at the Foundry resource scope'
 
 make_success_fixture missing-app-setting
-printf '%s' \
-  "[{\"name\":\"AZURE_OPENAI_ENDPOINT\",\"value\":\"https://$foundry.openai.azure.com\"},{\"name\":\"AZURE_OPENAI_MICROSOFT_FOUNDRY\",\"value\":\"true\"},{\"name\":\"AZURE_OPENAI_DEPLOYMENT\",\"value\":\"gpt-5-4-mini\"},{\"name\":\"AZURE_OPENAI_MODEL\",\"value\":\"gpt-5.4-mini\"},{\"name\":\"JAVA_OPTS\",\"value\":\"-Xms256m -Xmx1024m\"}]" \
-  >"$scratch/missing-app-setting/fixtures/022-az.stdout"
+missing_settings="[{\"name\":\"AZURE_OPENAI_ENDPOINT\",\"value\":\"https://$foundry.openai.azure.com\"},{\"name\":\"AZURE_OPENAI_MICROSOFT_FOUNDRY\",\"value\":\"true\"},{\"name\":\"AZURE_OPENAI_DEPLOYMENT\",\"value\":\"gpt-5-4-mini\"},{\"name\":\"AZURE_OPENAI_MODEL\",\"value\":\"gpt-5.4-mini\"},{\"name\":\"JAVA_OPTS\",\"value\":\"-Xms256m -Xmx1024m\"}]"
+printf '%s' "$missing_settings" >"$scratch/missing-app-setting/fixtures/028-az.stdout"
+for number in 29 30 31 32 33 34; do
+  printf '%s' "$missing_settings" \
+    >"$scratch/missing-app-setting/fixtures/$(printf '%03d' "$number")-jq.stdin"
+done
+printf '%s\n' 1 >"$scratch/missing-app-setting/fixtures/034-jq.status"
 run_case missing-app-setting 1 \
   'ERROR: required app setting WEBSITES_PORT is missing or has an unexpected value'
 
