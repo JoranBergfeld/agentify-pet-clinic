@@ -93,7 +93,7 @@ model_matches="$(jq -c \
 [[ "$(jq 'length' <<<"$model_matches")" -gt 0 ]] ||
   fail "model $AZURE_OPENAI_MODEL version $AZURE_OPENAI_MODEL_VERSION is unavailable in $AZURE_LOCATION_DISPLAY_NAME"
 jq -e --arg sku "$AZURE_OPENAI_DEPLOYMENT_SKU" \
-  'any(.[]; any(.skus[]?; .name == $sku))' >/dev/null 2>&1 <<<"$model_matches" ||
+  'any(.[]; any(.model.skus[]?; .name == $sku))' >/dev/null 2>&1 <<<"$model_matches" ||
   fail "model $AZURE_OPENAI_MODEL version $AZURE_OPENAI_MODEL_VERSION does not offer SKU $AZURE_OPENAI_DEPLOYMENT_SKU in $AZURE_LOCATION_DISPLAY_NAME"
 
 usage_json="$(

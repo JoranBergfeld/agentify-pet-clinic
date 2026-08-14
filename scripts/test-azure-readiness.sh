@@ -83,7 +83,7 @@ make_fixture() {
     --output json
   ((call_number += 1))
   add_call "$fixture_dir" "$call_number" az \
-    '[{"model":{"name":"gpt-5.4-mini","version":"2026-03-17"},"skus":[{"name":"GlobalStandard"}]}]' \
+    '[{"kind":"OpenAI","model":{"name":"gpt-5.4-mini","version":"2026-03-17","skus":[{"name":"GlobalStandard"}]}},{"kind":"AIServices","model":{"name":"gpt-5.4-mini","version":"2026-03-17","skus":[{"name":"GlobalStandard"}]}}]' \
     cognitiveservices model list --location swedencentral --output json
   ((call_number += 1))
   add_call "$fixture_dir" "$call_number" az \
