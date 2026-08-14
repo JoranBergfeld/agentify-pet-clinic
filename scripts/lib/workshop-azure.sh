@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 readonly AZURE_LOCATION="${AZURE_LOCATION:-swedencentral}"
 readonly AZURE_LOCATION_DISPLAY_NAME="${AZURE_LOCATION_DISPLAY_NAME:-Sweden Central}"
@@ -12,7 +13,7 @@ readonly WORKSHOP_AZURE_RETRY_ATTEMPTS="${WORKSHOP_AZURE_RETRY_ATTEMPTS:-12}"
 
 fail() {
   echo "ERROR: $*" >&2
-  return 1
+  exit 1
 }
 
 require_command() {

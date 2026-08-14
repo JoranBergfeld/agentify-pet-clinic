@@ -9,22 +9,28 @@ for required_command in az azd curl jq git; do
   require_command "$required_command"
 done
 
-account_json="$(az account show --output json 2>/dev/null)" ||
+account_subscription="$(az account show --query id --output tsv 2>/dev/null)" ||
   fail 'Azure CLI authentication required; run: az login'
-account_subscription="$(jq -er '.id | select(type == "string" and length > 0)' <<<"$account_json" 2>/dev/null)" ||
+[[ -n "$account_subscription" ]] ||
   fail 'Azure CLI account response was invalid; run: az account show'
-principal="$(jq -er '.user.name | select(type == "string" and length > 0)' <<<"$account_json" 2>/dev/null)" ||
+principal="$(az account show --query user.name --output tsv 2>/dev/null)" ||
+  fail 'Azure CLI account response was invalid; run: az account show'
+[[ -n "$principal" ]] ||
   fail 'Azure CLI account has no deployable principal; run: az account show'
 
 azd auth login --check-status >/dev/null 2>&1 ||
   fail 'Azure Developer CLI authentication required; run: azd auth login'
 
-[[ -n "${AZURE_SUBSCRIPTION_ID-}" ]] ||
-  fail 'select a subscription explicitly by setting AZURE_SUBSCRIPTION_ID'
-if [[ "$account_subscription" != "$AZURE_SUBSCRIPTION_ID" ]]; then
-  fail 'Azure CLI selected subscription does not match AZURE_SUBSCRIPTION_ID; run: az account set --subscription "$AZURE_SUBSCRIPTION_ID"'
+explicit_subscription="${AZURE_SUBSCRIPTION_ID-}"
+if [[ -z "$explicit_subscription" ]]; then
+  explicit_subscription="$(azd env get-value AZURE_SUBSCRIPTION_ID 2>/dev/null || true)"
 fi
-subscription_scope="/subscriptions/$AZURE_SUBSCRIPTION_ID"
+[[ -n "$explicit_subscription" ]] ||
+  fail 'select a subscription explicitly by setting AZURE_SUBSCRIPTION_ID or in the azd environment'
+if [[ "$account_subscription" != "$explicit_subscription" ]]; then
+  fail 'Azure CLI selected subscription does not match the explicit AZURE_SUBSCRIPTION_ID; run: az account set --subscription "$AZURE_SUBSCRIPTION_ID"'
+fi
+subscription_scope="/subscriptions/$explicit_subscription"
 
 providers=(
   Microsoft.Resources
@@ -46,7 +52,7 @@ locations_json="$(
 )" || fail 'could not check B1 Linux App Service locations; verify Microsoft.Web access and retry'
 jq -e 'type == "array"' >/dev/null 2>&1 <<<"$locations_json" ||
   fail 'B1 Linux App Service location response was invalid; verify Microsoft.Web access and retry'
-jq -e --arg location "$AZURE_LOCATION" \
+jq -e --arg location "$AZURE_LOCATION_DISPLAY_NAME" \
   'any(.[]; ((.name // "") | ascii_downcase) == ($location | ascii_downcase))' \
   >/dev/null 2>&1 <<<"$locations_json" ||
   fail "B1 Linux App Service is unavailable in $AZURE_LOCATION_DISPLAY_NAME ($AZURE_LOCATION)"
@@ -115,7 +121,7 @@ fi
 
 roles_json="$(
   az role assignment list --assignee "$principal" --scope "$subscription_scope" \
-    --include-inherited --output json 2>/dev/null
+    --include-inherited --all --output json 2>/dev/null
 )" || fail 'could not check deployment authority; verify Microsoft.Authorization access and retry'
 has_owner="$(jq -r 'any(.[]; .roleDefinitionName == "Owner")' <<<"$roles_json" 2>/dev/null)" ||
   fail 'role assignment response was invalid; retry the deployment authority check'
@@ -129,7 +135,7 @@ has_role_admin="$(jq -r 'any(.[];
 
 cat <<EOF
 Azure readiness checks passed
-subscription: $(redact_subscription "$AZURE_SUBSCRIPTION_ID")
+subscription: $(redact_subscription "$explicit_subscription")
 location: $AZURE_LOCATION_DISPLAY_NAME ($AZURE_LOCATION)
 model: $AZURE_OPENAI_MODEL
 model version: $AZURE_OPENAI_MODEL_VERSION
