@@ -114,7 +114,7 @@ roles_json="$(
 jq -e \
   --arg principal "$principal_id" \
   --arg scope "$foundry_scope" \
-  'any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and .scope == $scope)' \
+  'any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and ((.scope | ascii_downcase) == ($scope | ascii_downcase)))' \
   >/dev/null 2>&1 <<<"$roles_json" ||
   fail 'Foundry User assignment is missing at the Foundry resource scope'
 

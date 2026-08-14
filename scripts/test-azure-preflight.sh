@@ -17,7 +17,7 @@ health_filter='.status // empty'
 resources_filter='["microsoft.cognitiveservices/accounts","microsoft.web/serverfarms","microsoft.web/sites"] as $requiredTypes | [.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.provisioningState // empty)}] as $resources | [$resources[] | select(.normalizedType as $type | $requiredTypes | index($type))] as $required | [$resources[] | select(.normalizedType as $type | ($requiredTypes + ["microsoft.insights/diagnosticsettings"]) | index($type) | not)] as $unexpected | ($required | length) == 3 and ($required | map(.normalizedType) | sort) == ($requiredTypes | sort) and all($required[]; .state == "Succeeded") and ($unexpected | length) == 0 | if . then $required | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end'
 deployment_filter='.properties.model.name == $model and .properties.model.version == $version and .sku.name == $sku and .sku.capacity == $capacity'
 identity_filter='select(.type == "SystemAssigned") | .principalId | select(type == "string" and length > 0)'
-role_filter='any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and .scope == $scope)'
+role_filter='any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and ((.scope | ascii_downcase) == ($scope | ascii_downcase)))'
 setting_filter='[.[]? | select(.name == $name and .value == $value)] | length == 1'
 
 cleanup() {
@@ -122,7 +122,8 @@ make_success_fixture() {
   add_call "$fixture_dir" 25 az "$foundry_scope" \
     cognitiveservices account show --name "$foundry" --resource-group "$resource_group" \
     --query id --output tsv
-  roles_json="[{\"roleDefinitionName\":\"Foundry User\",\"scope\":\"$foundry_scope\",\"principalId\":\"$principal_id\"}]"
+  role_scope="${foundry_scope/Microsoft.CognitiveServices/microsoft.cognitiveservices}"
+  roles_json="[{\"roleDefinitionName\":\"Foundry User\",\"scope\":\"$role_scope\",\"principalId\":\"$principal_id\"}]"
   add_call "$fixture_dir" 26 az "$roles_json" \
     role assignment list --assignee-object-id "$principal_id" --scope "$foundry_scope" --output json
   add_jq_call "$fixture_dir" 27 'true' "$roles_json" \
