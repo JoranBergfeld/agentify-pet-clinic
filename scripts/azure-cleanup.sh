@@ -49,12 +49,20 @@ if [[ -z "$resource_group" ]]; then
 fi
 
 if [[ -z "$foundry" ]]; then
-  foundry="$(
+  if ! foundry="$(
     az cognitiveservices account list \
       --resource-group "$resource_group" \
       --subscription "$subscription_id" \
       --query '[0].name' --output tsv 2>/dev/null
-  )" || fail 'could not discover the Foundry account after partial provisioning'
+  )"; then
+    resource_group_exists_before_down="$(
+      az group exists --name "$resource_group" \
+        --subscription "$subscription_id" --output tsv 2>/dev/null
+    )" || fail 'could not inspect the resource group before cleanup'
+    [[ "$resource_group_exists_before_down" == false ]] ||
+      fail 'could not discover the Foundry account after partial provisioning'
+    foundry=''
+  fi
 fi
 
 safe_environment='not recorded (unsafe or unavailable)'

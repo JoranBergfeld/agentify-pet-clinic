@@ -168,6 +168,32 @@ run_case partial-provision 0
 grep -Fq 'Azure cleanup passed' "$scratch/partial-provision/stdout" ||
   fail_test 'partial provision cleanup did not pass'
 
+start_fixture already-absent
+set_status "$scratch/already-absent/fixtures" 1 azd 1
+set_status "$scratch/already-absent/fixtures" 3 azd 1
+printf '%s\n' 'ERROR: environment value was not found' \
+  >"$scratch/already-absent/fixtures/001-azd.stdout"
+printf '%s\n' 'ERROR: environment value was not found' \
+  >"$scratch/already-absent/fixtures/003-azd.stdout"
+printf '%s' 'workshop-secret' \
+  >"$scratch/already-absent/fixtures/004-azd.stdout"
+add_call "$scratch/already-absent/fixtures" 7 az '' \
+  cognitiveservices account list --resource-group "$resource_group" \
+  --subscription "$subscription_id" --query '[0].name' --output tsv
+set_status "$scratch/already-absent/fixtures" 7 az 1
+add_call "$scratch/already-absent/fixtures" 8 az false \
+  group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
+add_call "$scratch/already-absent/fixtures" 9 azd '' down --force --purge
+add_call "$scratch/already-absent/fixtures" 10 az false \
+  group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
+add_call "$scratch/already-absent/fixtures" 11 az '' \
+  resource list --subscription "$subscription_id" --query "$active_query" --output tsv
+for number in 12 13 14 15; do
+  add_call "$scratch/already-absent/fixtures" "$number" sleep '' 0
+done
+add_success_dates "$scratch/already-absent/fixtures" 16
+run_case already-absent 0
+
 start_fixture transient-group-query
 add_call "$scratch/transient-group-query/fixtures" 7 azd '' down --force --purge
 add_call "$scratch/transient-group-query/fixtures" 8 az '' \
