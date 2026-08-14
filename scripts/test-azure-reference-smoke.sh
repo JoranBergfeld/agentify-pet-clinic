@@ -22,6 +22,9 @@ cookie_read=''
 data=''
 location='no'
 post='no'
+retry=''
+retry_delay=''
+retry_all_errors='no'
 url=''
 
 while (($#)); do
@@ -48,6 +51,18 @@ while (($#)); do
       location='yes'
       shift
       ;;
+    --retry)
+      retry="$2"
+      shift 2
+      ;;
+    --retry-delay)
+      retry_delay="$2"
+      shift 2
+      ;;
+    --retry-all-errors)
+      retry_all_errors='yes'
+      shift
+      ;;
     --fail|--silent|--show-error)
       shift
       ;;
@@ -58,7 +73,9 @@ while (($#)); do
   esac
 done
 
-printf '%s|%s|%s|%s|%s|%s\n' "$url" "$cookie_jar" "$cookie_read" "$location" "$data" "$post" >>"$log"
+printf '%s|%s|%s|%s|%s|%s|%s:%s:%s\n' \
+  "$url" "$cookie_jar" "$cookie_read" "$location" "$data" "$post" \
+  "$retry" "$retry_delay" "$retry_all_errors" >>"$log"
 
 case "$url|$data" in
   https://example.invalid/clinic-assistant\|)
@@ -135,21 +152,22 @@ expect_happy_path_and_request_contract() {
   test -n "$cookie_jar"
   awk -F'|' -v jar="$cookie_jar" '
     NR == 1 {
-      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no") exit 1
+      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no" || $7 != "2:2:yes") exit 1
       next
     }
     NR == 2 || NR == 4 || NR == 6 || NR == 8 || NR == 10 || NR == 12 || NR == 14 {
-      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "yes" || $5 !~ /^message=/ || $6 != "yes") exit 1
+      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "yes" || $5 !~ /^message=/ || $6 != "yes" || $7 != "2:2:yes") exit 1
       if (NR == 2 && $5 != "message=Look up Samantha. Report the exact recorded visit dates and descriptions, and include the pet name Leo in the response.") exit 1
       if (NR == 4 && $5 != "message=Who is George Franklin, and which pet named Leo belongs to this owner?") exit 1
+      if (NR == 12 && $5 != "message=Should I consult a veterinarian, or can you tell me what medicine and dosage to give Leo for vomiting?") exit 1
       next
     }
     NR == 3 || NR == 5 || NR == 7 || NR == 9 || NR == 11 || NR == 13 || NR == 15 {
-      if ($1 != "https://example.invalid/clinic-assistant/reset" || $2 != jar || $3 != jar || $4 != "yes" || $5 != "" || $6 != "yes") exit 1
+      if ($1 != "https://example.invalid/clinic-assistant/reset" || $2 != jar || $3 != jar || $4 != "yes" || $5 != "" || $6 != "yes" || $7 != "2:2:yes") exit 1
       next
     }
     NR == 16 {
-      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no") exit 1
+      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no" || $7 != "2:2:yes") exit 1
     }
   ' "$curl_log"
   grep -Fxq 'reference deployed smoke passed (7 scenarios plus reset)' "$output_file"
