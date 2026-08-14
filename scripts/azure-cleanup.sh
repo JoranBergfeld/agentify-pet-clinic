@@ -27,9 +27,13 @@ foundry="$(azd_value AZURE_OPENAI_ACCOUNT_NAME)"
 location="$(azd_value AZURE_LOCATION)"
 resource_group="$(azd_value AZURE_RESOURCE_GROUP_NAME)"
 environment_name="$(azd env get-value AZURE_ENV_NAME 2>/dev/null || true)"
-subscription_id="$(az account show --query id --output tsv 2>/dev/null)" ||
+subscription_id="$(azd_value AZURE_SUBSCRIPTION_ID)"
+account_subscription_id="$(az account show --query id --output tsv 2>/dev/null)" ||
   fail 'could not read the Azure subscription before cleanup'
 require_nonempty 'Azure subscription' "$subscription_id"
+require_nonempty 'active Azure CLI subscription' "$account_subscription_id"
+[[ "$subscription_id" == "$account_subscription_id" ]] ||
+  fail 'azd subscription does not match the active Azure CLI subscription'
 
 safe_environment='not recorded (unsafe or unavailable)'
 if [[ "$environment_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] &&
@@ -42,13 +46,15 @@ azd down --force --purge ||
   fail 'azd down --force --purge failed'
 
 resource_group_exists="$(
-  az group exists --name "$resource_group" --output tsv 2>/dev/null
+  az group exists --name "$resource_group" \
+    --subscription "$subscription_id" --output tsv 2>/dev/null
 )" || fail 'could not verify resource group deletion after azd down'
 [[ "$resource_group_exists" == false ]] ||
   fail 'resource group still exists after azd down: cleanup is incomplete'
 
 active_resources="$(
   az resource list \
+    --subscription "$subscription_id" \
     --query "[?resourceGroup=='$resource_group' && (type=='Microsoft.Web/serverfarms' || type=='Microsoft.Web/sites' || type=='Microsoft.CognitiveServices/accounts' || type=='Microsoft.CognitiveServices/accounts/deployments')].type" \
     --output tsv 2>/dev/null
 )" || fail 'could not inspect active App Service and Foundry resources after azd down'
@@ -57,29 +63,39 @@ active_resources="$(
 
 deleted_account_id() {
   az cognitiveservices account list-deleted \
+    --subscription "$subscription_id" \
     --query "[?name=='${foundry}' && location=='${location}'].id | [0]" \
     --output tsv 2>/dev/null
 }
 
-deleted_id="$(deleted_account_id)" ||
-  fail 'could not inspect deleted Foundry accounts'
 explicit_purge_required='no'
-if [[ -n "$deleted_id" ]]; then
-  explicit_purge_required='yes'
-  az cognitiveservices account purge \
-    --name "$foundry" \
-    --resource-group "$resource_group" \
-    --location "$location" ||
-    fail 'explicit Foundry purge failed'
-
-  soft_delete_absent() {
-    local remaining_id
-    remaining_id="$(deleted_account_id)" || return 1
-    [[ -z "$remaining_id" ]]
-  }
-
-  retry_until 'Foundry soft-delete absence' soft_delete_absent
-fi
+consecutive_absent=0
+for (( check = 1; check <= WORKSHOP_AZURE_RETRY_ATTEMPTS; check++ )); do
+  deleted_id="$(deleted_account_id)" ||
+    fail 'could not inspect deleted Foundry accounts'
+  if [[ -n "$deleted_id" ]]; then
+    consecutive_absent=0
+    if [[ "$explicit_purge_required" == no ]]; then
+      explicit_purge_required='yes'
+      az cognitiveservices account purge \
+        --name "$foundry" \
+        --resource-group "$resource_group" \
+        --location "$location" \
+        --subscription "$subscription_id" ||
+        fail 'explicit Foundry purge failed'
+    fi
+  else
+    consecutive_absent="$((consecutive_absent + 1))"
+    if (( consecutive_absent >= 2 )); then
+      break
+    fi
+  fi
+  if (( check < WORKSHOP_AZURE_RETRY_ATTEMPTS )); then
+    sleep "$WORKSHOP_AZURE_RETRY_SECONDS"
+  fi
+done
+(( consecutive_absent >= 2 )) ||
+  fail "Foundry soft-delete absence did not stabilize after $WORKSHOP_AZURE_RETRY_ATTEMPTS checks"
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 cleanup_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"

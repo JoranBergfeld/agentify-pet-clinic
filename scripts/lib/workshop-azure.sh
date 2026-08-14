@@ -43,6 +43,13 @@ require_positive_integer() {
     fail "$name must be a positive integer"
 }
 
+require_nonnegative_integer() {
+  local name="$1"
+  local value="$2"
+  [[ "$value" =~ ^[0-9]+$ ]] ||
+    fail "$name must be a nonnegative integer"
+}
+
 retry_until() {
   local description="$1"
   shift
@@ -65,5 +72,5 @@ require_nonempty AZURE_OPENAI_MODEL_VERSION "$AZURE_OPENAI_MODEL_VERSION"
 require_nonempty AZURE_OPENAI_DEPLOYMENT "$AZURE_OPENAI_DEPLOYMENT"
 require_nonempty AZURE_OPENAI_DEPLOYMENT_SKU "$AZURE_OPENAI_DEPLOYMENT_SKU"
 require_positive_integer AZURE_OPENAI_DEPLOYMENT_CAPACITY "$AZURE_OPENAI_DEPLOYMENT_CAPACITY"
-require_positive_integer WORKSHOP_AZURE_RETRY_SECONDS "$WORKSHOP_AZURE_RETRY_SECONDS"
+require_nonnegative_integer WORKSHOP_AZURE_RETRY_SECONDS "$WORKSHOP_AZURE_RETRY_SECONDS"
 require_positive_integer WORKSHOP_AZURE_RETRY_ATTEMPTS "$WORKSHOP_AZURE_RETRY_ATTEMPTS"

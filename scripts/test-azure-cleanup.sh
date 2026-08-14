@@ -72,7 +72,8 @@ start_fixture() {
   add_call "$fixture_dir" 2 azd "$location" env get-value AZURE_LOCATION
   add_call "$fixture_dir" 3 azd "$resource_group" env get-value AZURE_RESOURCE_GROUP_NAME
   add_call "$fixture_dir" 4 azd "$environment_name" env get-value AZURE_ENV_NAME
-  add_call "$fixture_dir" 5 az "$subscription_id" \
+  add_call "$fixture_dir" 5 azd "$subscription_id" env get-value AZURE_SUBSCRIPTION_ID
+  add_call "$fixture_dir" 6 az "$subscription_id" \
     account show --query id --output tsv
 }
 
@@ -82,12 +83,12 @@ add_down_and_absence_checks() {
   local active_resources="${3-}"
   local fixture_dir="$scratch/$name/fixtures"
 
-  add_call "$fixture_dir" 6 azd '' down --force --purge
-  add_call "$fixture_dir" 7 az "$group_exists" \
-    group exists --name "$resource_group" --output tsv
+  add_call "$fixture_dir" 7 azd '' down --force --purge
+  add_call "$fixture_dir" 8 az "$group_exists" \
+    group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
   [[ "$group_exists" == false ]] || return 0
-  add_call "$fixture_dir" 8 az "$active_resources" \
-    resource list --query "$active_query" --output tsv
+  add_call "$fixture_dir" 9 az "$active_resources" \
+    resource list --subscription "$subscription_id" --query "$active_query" --output tsv
 }
 
 add_success_dates() {
@@ -108,8 +109,8 @@ run_case() {
   WORKSHOP_AZURE_FIXTURE_DIR="$case_dir/fixtures" \
     WORKSHOP_AZURE_COMMAND_LOG="$case_dir/commands.log" \
     WORKSHOP_AZURE_EVIDENCE_DIR="$case_dir/evidence" \
-    WORKSHOP_AZURE_RETRY_SECONDS=1 \
-    WORKSHOP_AZURE_RETRY_ATTEMPTS=3 \
+    WORKSHOP_AZURE_RETRY_SECONDS=0 \
+    WORKSHOP_AZURE_RETRY_ATTEMPTS=5 \
     PATH="$case_dir/bin" \
     "$case_dir/project/scripts/azure-cleanup.sh" \
     >"$case_dir/stdout" 2>"$case_dir/stderr" || status=$?
@@ -122,16 +123,31 @@ run_case() {
   fi
 }
 
+start_fixture subscription-mismatch
+printf '%s' 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' \
+  >"$scratch/subscription-mismatch/fixtures/006-az.stdout"
+run_case subscription-mismatch 1 \
+  'ERROR: azd subscription does not match the active Azure CLI subscription'
+[[ "$(wc -l <"$scratch/subscription-mismatch/commands.log")" -eq 6 ]] ||
+  fail_test 'subscription mismatch did not fail before azd down'
+
 start_fixture normal-purge
 add_down_and_absence_checks normal-purge
-add_call "$scratch/normal-purge/fixtures" 9 az '' \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_success_dates "$scratch/normal-purge/fixtures" 10
+add_call "$scratch/normal-purge/fixtures" 10 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/normal-purge/fixtures" 11 sleep '' 0
+add_call "$scratch/normal-purge/fixtures" 12 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_success_dates "$scratch/normal-purge/fixtures" 13
 run_case normal-purge 0
-[[ "$(wc -l <"$scratch/normal-purge/commands.log")" -eq 11 ]] ||
+[[ "$(wc -l <"$scratch/normal-purge/commands.log")" -eq 14 ]] ||
   fail_test 'normal purge executed unexpected commands'
 ! grep -Fq 'cognitiveservices account purge' "$scratch/normal-purge/commands.log" ||
   fail_test 'normal purge unexpectedly issued an explicit purge'
+[[ "$(grep -c -- "--subscription $subscription_id" "$scratch/normal-purge/commands.log")" -eq 4 ]] ||
+  fail_test 'Azure verification/list calls did not use the exact azd subscription'
 
 evidence="$scratch/normal-purge/evidence/cleanup-20260814T092537Z.md"
 test -f "$evidence" || fail_test 'timestamped cleanup evidence was not created'
@@ -162,43 +178,58 @@ done
 
 start_fixture explicit-purge
 add_down_and_absence_checks explicit-purge
-add_call "$scratch/explicit-purge/fixtures" 9 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/explicit-purge/fixtures" 10 az '' \
-  cognitiveservices account purge --name "$foundry" \
-  --resource-group "$resource_group" --location "$location"
+add_call "$scratch/explicit-purge/fixtures" 10 az "$deleted_id" \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
 add_call "$scratch/explicit-purge/fixtures" 11 az '' \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_success_dates "$scratch/explicit-purge/fixtures" 12
+  cognitiveservices account purge --name "$foundry" \
+  --resource-group "$resource_group" --location "$location" \
+  --subscription "$subscription_id"
+add_call "$scratch/explicit-purge/fixtures" 12 sleep '' 0
+add_call "$scratch/explicit-purge/fixtures" 13 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/explicit-purge/fixtures" 14 sleep '' 0
+add_call "$scratch/explicit-purge/fixtures" 15 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_success_dates "$scratch/explicit-purge/fixtures" 16
 run_case explicit-purge 0
 grep -Fq 'Explicit Foundry purge required: `yes`' \
   "$scratch/explicit-purge/evidence/cleanup-20260814T092537Z.md"
 
-start_fixture two-retries
-add_down_and_absence_checks two-retries
-add_call "$scratch/two-retries/fixtures" 9 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/two-retries/fixtures" 10 az '' \
+start_fixture delayed-appearance
+add_down_and_absence_checks delayed-appearance
+add_call "$scratch/delayed-appearance/fixtures" 10 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/delayed-appearance/fixtures" 11 sleep '' 0
+add_call "$scratch/delayed-appearance/fixtures" 12 az "$deleted_id" \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/delayed-appearance/fixtures" 13 az '' \
   cognitiveservices account purge --name "$foundry" \
-  --resource-group "$resource_group" --location "$location"
-add_call "$scratch/two-retries/fixtures" 11 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/two-retries/fixtures" 12 sleep '' 1
-add_call "$scratch/two-retries/fixtures" 13 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/two-retries/fixtures" 14 sleep '' 1
-add_call "$scratch/two-retries/fixtures" 15 az '' \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_success_dates "$scratch/two-retries/fixtures" 16
-run_case two-retries 0
-[[ "$(grep -c '^sleep ' "$scratch/two-retries/commands.log")" -eq 2 ]] ||
-  fail_test 'soft-delete propagation did not retry twice'
+  --resource-group "$resource_group" --location "$location" \
+  --subscription "$subscription_id"
+add_call "$scratch/delayed-appearance/fixtures" 14 sleep '' 0
+add_call "$scratch/delayed-appearance/fixtures" 15 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/delayed-appearance/fixtures" 16 sleep '' 0
+add_call "$scratch/delayed-appearance/fixtures" 17 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_success_dates "$scratch/delayed-appearance/fixtures" 18
+run_case delayed-appearance 0
+grep -Fq 'cognitiveservices account purge' \
+  "$scratch/delayed-appearance/commands.log" ||
+  fail_test 'delayed deleted-account appearance was not purged'
 
 start_fixture remaining-rg
 add_down_and_absence_checks remaining-rg true
 run_case remaining-rg 1 \
   'ERROR: resource group still exists after azd down: cleanup is incomplete'
-[[ "$(wc -l <"$scratch/remaining-rg/commands.log")" -eq 7 ]] ||
+[[ "$(wc -l <"$scratch/remaining-rg/commands.log")" -eq 8 ]] ||
   fail_test 'remaining resource group did not stop cleanup'
 
 start_fixture active-resources
@@ -206,54 +237,63 @@ add_down_and_absence_checks active-resources false \
   $'Microsoft.Web/serverfarms\nMicrosoft.Web/sites\nMicrosoft.CognitiveServices/accounts\nMicrosoft.CognitiveServices/accounts/deployments'
 run_case active-resources 1 \
   'ERROR: active App Service or Foundry resources remain after azd down'
-[[ "$(wc -l <"$scratch/active-resources/commands.log")" -eq 8 ]] ||
+[[ "$(wc -l <"$scratch/active-resources/commands.log")" -eq 9 ]] ||
   fail_test 'active resources did not stop before soft-delete inspection'
 
 start_fixture down-failure
 add_down_and_absence_checks down-failure
-set_status "$scratch/down-failure/fixtures" 6 azd 1
+set_status "$scratch/down-failure/fixtures" 7 azd 1
 run_case down-failure 1 'ERROR: azd down --force --purge failed'
-[[ "$(wc -l <"$scratch/down-failure/commands.log")" -eq 6 ]] ||
+[[ "$(wc -l <"$scratch/down-failure/commands.log")" -eq 7 ]] ||
   fail_test 'azd down failure did not stop cleanup'
 
 start_fixture purge-failure
 add_down_and_absence_checks purge-failure
-add_call "$scratch/purge-failure/fixtures" 9 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/purge-failure/fixtures" 10 az '' \
+add_call "$scratch/purge-failure/fixtures" 10 az "$deleted_id" \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/purge-failure/fixtures" 11 az '' \
   cognitiveservices account purge --name "$foundry" \
-  --resource-group "$resource_group" --location "$location"
-set_status "$scratch/purge-failure/fixtures" 10 az 1
+  --resource-group "$resource_group" --location "$location" \
+  --subscription "$subscription_id"
+set_status "$scratch/purge-failure/fixtures" 11 az 1
 run_case purge-failure 1 'ERROR: explicit Foundry purge failed'
-[[ "$(wc -l <"$scratch/purge-failure/commands.log")" -eq 10 ]] ||
+[[ "$(wc -l <"$scratch/purge-failure/commands.log")" -eq 11 ]] ||
   fail_test 'purge failure did not stop propagation checks'
 
 start_fixture timeout
 add_down_and_absence_checks timeout
-add_call "$scratch/timeout/fixtures" 9 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/timeout/fixtures" 10 az '' \
+add_call "$scratch/timeout/fixtures" 10 az "$deleted_id" \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/timeout/fixtures" 11 az '' \
   cognitiveservices account purge --name "$foundry" \
-  --resource-group "$resource_group" --location "$location"
-add_call "$scratch/timeout/fixtures" 11 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/timeout/fixtures" 12 sleep '' 1
-add_call "$scratch/timeout/fixtures" 13 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_call "$scratch/timeout/fixtures" 14 sleep '' 1
-add_call "$scratch/timeout/fixtures" 15 az "$deleted_id" \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
+  --resource-group "$resource_group" --location "$location" \
+  --subscription "$subscription_id"
+for number in 12 14 16 18; do
+  add_call "$scratch/timeout/fixtures" "$number" sleep '' 0
+done
+for number in 13 15 17 19; do
+  add_call "$scratch/timeout/fixtures" "$number" az "$deleted_id" \
+    cognitiveservices account list-deleted --subscription "$subscription_id" \
+    --query "$deleted_query" --output tsv
+done
 run_case timeout 1 \
-  'ERROR: Foundry soft-delete absence did not succeed after 3 attempts'
+  'ERROR: Foundry soft-delete absence did not stabilize after 5 checks'
 test ! -e "$scratch/timeout/evidence/cleanup-20260814T092537Z.md" ||
   fail_test 'timeout wrote passing cleanup evidence'
 
 start_fixture unsafe-environment
 printf '%s' "$resource_group" >"$scratch/unsafe-environment/fixtures/004-azd.stdout"
 add_down_and_absence_checks unsafe-environment
-add_call "$scratch/unsafe-environment/fixtures" 9 az '' \
-  cognitiveservices account list-deleted --query "$deleted_query" --output tsv
-add_success_dates "$scratch/unsafe-environment/fixtures" 10
+add_call "$scratch/unsafe-environment/fixtures" 10 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_call "$scratch/unsafe-environment/fixtures" 11 sleep '' 0
+add_call "$scratch/unsafe-environment/fixtures" 12 az '' \
+  cognitiveservices account list-deleted --subscription "$subscription_id" \
+  --query "$deleted_query" --output tsv
+add_success_dates "$scratch/unsafe-environment/fixtures" 13
 run_case unsafe-environment 0
 grep -Fq 'Environment: `not recorded (unsafe or unavailable)`' \
   "$scratch/unsafe-environment/evidence/cleanup-20260814T092537Z.md"
