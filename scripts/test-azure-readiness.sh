@@ -87,13 +87,14 @@ make_fixture() {
     cognitiveservices model list --location swedencentral --output json
   ((call_number += 1))
   add_call "$fixture_dir" "$call_number" az \
-    '{"value":[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":20,"limit":100}]}' \
+    '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":20,"limit":100}]' \
     cognitiveservices usage list --location swedencentral --output json
   ((call_number += 1))
   add_call "$fixture_dir" "$call_number" az \
     '[{"roleDefinitionName":"Owner","scope":"/subscriptions/11111111-2222-3333-4444-555555555555"}]' \
     role assignment list --assignee user@example.com \
-    --scope "/subscriptions/$subscription_id" --include-inherited --all --output json
+    --scope "/subscriptions/$subscription_id" --include-inherited --include-groups \
+    --all --output json
 }
 
 replace_stdout() {
@@ -253,7 +254,7 @@ run_case missing-sku 1 \
 
 make_fixture insufficient-model-quota
 replace_stdout insufficient-model-quota 11 az \
-  '{"value":[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":95,"limit":100}]}'
+  '[{"name":{"localizedValue":"One Thousand Tokens Per Minute - gpt-5.4-mini - GlobalStandard"},"currentValue":95,"limit":100}]'
 run_case insufficient-model-quota 1 \
   'ERROR: model quota has 5 capacity remaining, but 10 is required'
 
@@ -265,12 +266,34 @@ run_case insufficient-rbac 1 \
 
 make_fixture contributor-user-access-admin
 replace_stdout contributor-user-access-admin 12 az \
-  '[{"roleDefinitionName":"Contributor"},{"roleDefinitionName":"User Access Administrator"}]'
+  '[{"roleDefinitionName":"Contributor"},{"roleDefinitionName":"User Access Administrator","condition":""}]'
 run_case contributor-user-access-admin 0
 
 make_fixture contributor-rbac-admin
 replace_stdout contributor-rbac-admin 12 az \
   '[{"roleDefinitionName":"Contributor"},{"roleDefinitionName":"Role Based Access Control Administrator"}]'
 run_case contributor-rbac-admin 0
+
+make_fixture group-owner
+replace_stdout group-owner 12 az \
+  '[{"roleDefinitionName":"Owner","principalType":"Group"}]'
+run_case group-owner 0
+
+make_fixture group-contributor-user-access-admin
+replace_stdout group-contributor-user-access-admin 12 az \
+  '[{"roleDefinitionName":"Contributor","principalType":"Group"},{"roleDefinitionName":"User Access Administrator","principalType":"Group"}]'
+run_case group-contributor-user-access-admin 0
+
+make_fixture constrained-owner
+replace_stdout constrained-owner 12 az \
+  '[{"roleDefinitionName":"Owner","condition":"@Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] StringEqualsIgnoreCase \u0027constrained\u0027"}]'
+run_case constrained-owner 1 \
+  'ERROR: deployment authority requires Owner, or Contributor plus User Access Administrator or Role Based Access Control Administrator'
+
+make_fixture constrained-role-admin
+replace_stdout constrained-role-admin 12 az \
+  '[{"roleDefinitionName":"Contributor"},{"roleDefinitionName":"Role Based Access Control Administrator","condition":"@Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {00000000-0000-0000-0000-000000000000}"}]'
+run_case constrained-role-admin 1 \
+  'ERROR: deployment authority requires Owner, or Contributor plus User Access Administrator or Role Based Access Control Administrator'
 
 echo "Azure readiness fixture tests passed"

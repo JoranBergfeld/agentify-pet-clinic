@@ -102,7 +102,7 @@ usage_json="$(
 quota_values="$(jq -er \
   --arg model "$AZURE_OPENAI_MODEL" \
   --arg sku "$AZURE_OPENAI_DEPLOYMENT_SKU" '
-  [.value[]?
+  [.[]
     | select(
         (.name.localizedValue // "" | contains($model))
         and (.name.localizedValue // "" | contains($sku))
@@ -121,14 +121,20 @@ fi
 
 roles_json="$(
   az role assignment list --assignee "$principal" --scope "$subscription_scope" \
-    --include-inherited --all --output json 2>/dev/null
+    --include-inherited --include-groups --all --output json 2>/dev/null
 )" || fail 'could not check deployment authority; verify Microsoft.Authorization access and retry'
-has_owner="$(jq -r 'any(.[]; .roleDefinitionName == "Owner")' <<<"$roles_json" 2>/dev/null)" ||
+has_owner="$(jq -r 'any(.[];
+  .roleDefinitionName == "Owner"
+  and (.condition == null or .condition == "")
+)' <<<"$roles_json" 2>/dev/null)" ||
   fail 'role assignment response was invalid; retry the deployment authority check'
 has_contributor="$(jq -r 'any(.[]; .roleDefinitionName == "Contributor")' <<<"$roles_json")"
 has_role_admin="$(jq -r 'any(.[];
-  .roleDefinitionName == "User Access Administrator"
-  or .roleDefinitionName == "Role Based Access Control Administrator"
+  (
+    .roleDefinitionName == "User Access Administrator"
+    or .roleDefinitionName == "Role Based Access Control Administrator"
+  )
+  and (.condition == null or .condition == "")
 )' <<<"$roles_json")"
 [[ "$has_owner" == 'true' || ( "$has_contributor" == 'true' && "$has_role_admin" == 'true' ) ]] ||
   fail 'deployment authority requires Owner, or Contributor plus User Access Administrator or Role Based Access Control Administrator'
