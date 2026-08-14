@@ -55,11 +55,23 @@ resource_group_exists="$(
 active_resources="$(
   az resource list \
     --subscription "$subscription_id" \
-    --query "[?resourceGroup=='$resource_group' && (type=='Microsoft.Web/serverfarms' || type=='Microsoft.Web/sites' || type=='Microsoft.CognitiveServices/accounts' || type=='Microsoft.CognitiveServices/accounts/deployments')].type" \
+    --query "[?resourceGroup=='$resource_group' && (type=='Microsoft.Web/serverfarms' || type=='Microsoft.Web/sites' || type=='Microsoft.CognitiveServices/accounts' || type=='Microsoft.CognitiveServices/accounts/deployments')].[type, properties.provisioningState]" \
     --output tsv 2>/dev/null
 )" || fail 'could not inspect active App Service and Foundry resources after azd down'
-[[ -z "$active_resources" ]] ||
-  fail 'active App Service or Foundry resources remain after azd down'
+if [[ -n "$active_resources" ]]; then
+  printf 'ERROR: active App Service or Foundry resources remain after azd down\n' >&2
+  printf 'Remaining active resource types/states:\n' >&2
+  while IFS=$'\t' read -r resource_type provisioning_state; do
+    printf '  - type=%s state=%s\n' \
+      "$resource_type" "${provisioning_state:-unknown}" >&2
+  done <<<"$active_resources"
+  printf 'Inspect and remove them with:\n' >&2
+  printf "  az resource list --resource-group '%s' --query \"[?type=='Microsoft.Web/serverfarms' || type=='Microsoft.Web/sites' || type=='Microsoft.CognitiveServices/accounts' || type=='Microsoft.CognitiveServices/accounts/deployments'].[type, properties.provisioningState]\" --output table\n" \
+    "$resource_group" >&2
+  printf "  az group delete --name '%s' --yes\n" "$resource_group" >&2
+  printf 'Escalate to the subscription administrator if Azure refuses deletion.\n' >&2
+  exit 1
+fi
 
 deleted_account_id() {
   az cognitiveservices account list-deleted \
@@ -69,33 +81,49 @@ deleted_account_id() {
 }
 
 explicit_purge_required='no'
-consecutive_absent=0
+purge_succeeded='no'
+purge_failures=0
+deleted_account_present='no'
 for (( check = 1; check <= WORKSHOP_AZURE_RETRY_ATTEMPTS; check++ )); do
   deleted_id="$(deleted_account_id)" ||
     fail 'could not inspect deleted Foundry accounts'
   if [[ -n "$deleted_id" ]]; then
-    consecutive_absent=0
-    if [[ "$explicit_purge_required" == no ]]; then
+    deleted_account_present='yes'
+    if [[ "$purge_succeeded" == no ]]; then
       explicit_purge_required='yes'
-      az cognitiveservices account purge \
+      if az cognitiveservices account purge \
         --name "$foundry" \
         --resource-group "$resource_group" \
         --location "$location" \
-        --subscription "$subscription_id" ||
-        fail 'explicit Foundry purge failed'
+        --subscription "$subscription_id" >/dev/null 2>&1; then
+        purge_succeeded='yes'
+      else
+        purge_failures="$((purge_failures + 1))"
+      fi
     fi
   else
-    consecutive_absent="$((consecutive_absent + 1))"
-    if (( consecutive_absent >= 2 )); then
-      break
-    fi
+    deleted_account_present='no'
   fi
   if (( check < WORKSHOP_AZURE_RETRY_ATTEMPTS )); then
     sleep "$WORKSHOP_AZURE_RETRY_SECONDS"
   fi
 done
-(( consecutive_absent >= 2 )) ||
-  fail "Foundry soft-delete absence did not stabilize after $WORKSHOP_AZURE_RETRY_ATTEMPTS checks"
+if [[ "$deleted_account_present" == yes ]]; then
+  printf 'ERROR: Foundry soft-delete record remained after %s checks\n' \
+    "$WORKSHOP_AZURE_RETRY_ATTEMPTS" >&2
+  printf 'Remaining resource: Microsoft.CognitiveServices/accounts state=soft-deleted\n' >&2
+  if (( purge_failures > 0 )); then
+    printf 'Explicit purge failures during observation window: %s\n' \
+      "$purge_failures" >&2
+  fi
+  printf 'Retry cleanup and verify with:\n' >&2
+  printf "  az cognitiveservices account purge --name '%s' --resource-group '%s' --location '%s'\n" \
+    "$foundry" "$resource_group" "$location" >&2
+  printf "  az cognitiveservices account list-deleted --query \"[?name=='%s' && location=='%s'].[type, properties.provisioningState]\" --output table\n" \
+    "$foundry" "$location" >&2
+  printf 'Escalate to the subscription administrator if the record remains.\n' >&2
+  exit 1
+fi
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 cleanup_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
