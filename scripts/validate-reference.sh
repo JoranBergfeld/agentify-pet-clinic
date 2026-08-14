@@ -102,6 +102,11 @@ main() {
   echo "running full Maven test suite"
   ./mvnw -q test
 
+  if [ "${REFERENCE_DEPLOYED_SMOKE:-0}" = "1" ]; then
+    echo "running deployed Clinic Assistant smoke"
+    "$root/scripts/azure-reference-smoke.sh" "$root"
+  fi
+
   echo "reference branch is current and validated"
 }
 

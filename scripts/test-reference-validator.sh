@@ -10,6 +10,7 @@ stub_bin_dir="$stub_fixture/bin"
 stub_git_log="$stub_fixture/git.log"
 stub_gradle_log="$stub_fixture/gradle.log"
 stub_mvn_log="$stub_fixture/mvn.log"
+stub_smoke_log="$stub_fixture/smoke.log"
 stub_output_file="$stub_fixture/output.log"
 single_branch_source="$single_branch_fixture/source"
 single_branch_origin="$single_branch_fixture/origin.git"
@@ -107,10 +108,12 @@ EOF
 
 setup_stub_fixture() {
   rm -rf "$stub_fixture"
-  mkdir -p "$stub_bin_dir" "$stub_fixture/src/main/java/org/springframework/samples/petclinic/assistant"
+  mkdir -p "$stub_bin_dir" "$stub_fixture/scripts" \
+    "$stub_fixture/src/main/java/org/springframework/samples/petclinic/assistant"
   : >"$stub_git_log"
   : >"$stub_gradle_log"
   : >"$stub_mvn_log"
+  : >"$stub_smoke_log"
 
   cat >"$stub_fixture/pom.xml" <<'EOF'
 <project>
@@ -145,12 +148,19 @@ EOF
   chmod +x "$stub_bin_dir/git"
   write_fake_gradle_wrapper "$stub_fixture"
   write_fake_maven_wrapper "$stub_fixture"
+  cat >"$stub_fixture/scripts/azure-reference-smoke.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'CALLED %s\n' "$*" >>"${FAKE_SMOKE_LOG:?}"
+EOF
+  chmod +x "$stub_fixture/scripts/azure-reference-smoke.sh"
 }
 
 reset_fixture_state() {
   : >"$stub_git_log"
   : >"$stub_gradle_log"
   : >"$stub_mvn_log"
+  : >"$stub_smoke_log"
   rm -rf "$stub_fixture/target"
 }
 
@@ -160,6 +170,7 @@ run_stubbed_validator() {
     FAKE_GIT_LOG="$stub_git_log" \
     FAKE_GRADLE_LOG="$stub_gradle_log" \
     FAKE_MVN_LOG="$stub_mvn_log" \
+    FAKE_SMOKE_LOG="$stub_smoke_log" \
     REFERENCE_FOCUSED_TEST_CLASSES="$1" \
     "$validator" "$stub_fixture" \
     >"$stub_output_file" 2>&1
@@ -192,9 +203,28 @@ EOF
   test "$(cat "$stub_git_log")" = "$expected_git_log"
   test "$(cat "$stub_gradle_log")" = "$expected_gradle_log"
   test "$(cat "$stub_mvn_log")" = "$expected_mvn_log"
+  test ! -s "$stub_smoke_log"
   test -f "$stub_fixture/target/surefire-reports/TEST-org.example.ClinicAssistantToolsTests.xml"
   test -f "$stub_fixture/target/surefire-reports/TEST-org.example.I18nPropertiesSyncTest.xml"
   grep -Fxq "reference branch is current and validated" "$stub_output_file"
+}
+
+expect_opt_in_runs_deployed_smoke_exactly_once() {
+  reset_fixture_state
+
+  env \
+    PATH="$stub_bin_dir:$PATH" \
+    FAKE_GIT_LOG="$stub_git_log" \
+    FAKE_GRADLE_LOG="$stub_gradle_log" \
+    FAKE_MVN_LOG="$stub_mvn_log" \
+    FAKE_SMOKE_LOG="$stub_smoke_log" \
+    REFERENCE_DEPLOYED_SMOKE=1 \
+    REFERENCE_FOCUSED_TEST_CLASSES="ClinicAssistantToolsTests" \
+    "$validator" "$stub_fixture" \
+    >"$stub_output_file" 2>&1
+
+  test "$(wc -l <"$stub_smoke_log")" -eq 1
+  grep -Fxq "CALLED $stub_fixture" "$stub_smoke_log"
 }
 
 expect_missing_gradle_dependency_failure() {
@@ -319,6 +349,7 @@ expect_single_branch_clone_fetches_origin_main_and_reaches_test_gate() {
 
 setup_stub_fixture
 expect_explicit_fetch_then_gradle_compile_then_individual_runs_then_full_suite
+expect_opt_in_runs_deployed_smoke_exactly_once
 expect_missing_gradle_dependency_failure
 expect_missing_class_failure
 expect_single_branch_clone_fetches_origin_main_and_reaches_test_gate
