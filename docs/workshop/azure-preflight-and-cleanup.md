@@ -89,9 +89,11 @@ environment_name="workshop-preflight-$(date -u +%Y%m%d%H%M%S)"
 azd env new "$environment_name"
 azd env set AZURE_SUBSCRIPTION_ID "$(az account show --query id -o tsv)"
 azd env set AZURE_LOCATION swedencentral
-export WORKSHOP_AZURE_CLEANUP_DEADLINE="$(date -u -d '+24 hours' +%Y-%m-%dT%H:%M:%SZ)"
+export WORKSHOP_AZURE_CLEANUP_DEADLINE=2026-08-15T17:00:00Z
 ```
 
+The deadline value above is an example. Replace it with the actual UTC date and
+time after your workshop ends, using ISO-8601 format (`YYYY-MM-DDTHH:MM:SSZ`).
 The deadline is required by Preflight and is recorded in evidence; it does not
 automatically delete resources.
 
