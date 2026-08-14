@@ -166,6 +166,27 @@ run_case partial-provision 0
 grep -Fq 'Azure cleanup passed' "$scratch/partial-provision/stdout" ||
   fail_test 'partial provision cleanup did not pass'
 
+start_fixture transient-group-query
+add_call "$scratch/transient-group-query/fixtures" 7 azd '' down --force --purge
+add_call "$scratch/transient-group-query/fixtures" 8 az '' \
+  group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
+set_status "$scratch/transient-group-query/fixtures" 8 az 1
+add_call "$scratch/transient-group-query/fixtures" 9 sleep '' 0
+add_call "$scratch/transient-group-query/fixtures" 10 az false \
+  group exists --name "$resource_group" --subscription "$subscription_id" --output tsv
+add_call "$scratch/transient-group-query/fixtures" 11 az '' \
+  resource list --subscription "$subscription_id" --query "$active_query" --output tsv
+for number in 12 14 16 18 20; do
+  add_call "$scratch/transient-group-query/fixtures" "$number" az '' \
+    cognitiveservices account list-deleted --subscription "$subscription_id" \
+    --query "$deleted_query" --output tsv
+done
+for number in 13 15 17 19; do
+  add_call "$scratch/transient-group-query/fixtures" "$number" sleep '' 0
+done
+add_success_dates "$scratch/transient-group-query/fixtures" 21
+run_case transient-group-query 0
+
 start_fixture normal-purge
 add_down_and_absence_checks normal-purge
 add_call "$scratch/normal-purge/fixtures" 10 az '' \

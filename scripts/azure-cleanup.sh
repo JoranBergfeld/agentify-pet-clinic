@@ -64,10 +64,22 @@ fi
 azd down --force --purge ||
   fail 'azd down --force --purge failed'
 
-resource_group_exists="$(
-  az group exists --name "$resource_group" \
-    --subscription "$subscription_id" --output tsv 2>/dev/null
-)" || fail 'could not verify resource group deletion after azd down'
+resource_group_exists=''
+resource_group_query_succeeded='no'
+for (( check = 1; check <= WORKSHOP_AZURE_RETRY_ATTEMPTS; check++ )); do
+  if resource_group_exists="$(
+    az group exists --name "$resource_group" \
+      --subscription "$subscription_id" --output tsv 2>/dev/null
+  )"; then
+    resource_group_query_succeeded='yes'
+    break
+  fi
+  if (( check < WORKSHOP_AZURE_RETRY_ATTEMPTS )); then
+    sleep "$WORKSHOP_AZURE_RETRY_SECONDS"
+  fi
+done
+[[ "$resource_group_query_succeeded" == yes ]] ||
+  fail 'could not verify resource group deletion after azd down'
 [[ "$resource_group_exists" == false ]] ||
   fail 'resource group still exists after azd down: cleanup is incomplete'
 
