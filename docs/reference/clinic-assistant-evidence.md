@@ -9,6 +9,23 @@ Date: 2026-08-14
 - Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
 - This Java 17 release-floor refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates build configuration, template/reference validation commands, and evidence text, not the assistant feature itself.
 
+## Task 8 deployed reference smoke refresh
+
+- Shared Azure path merge revision: `05ddadffd77d75f7c2f48e522720b353975592de`
+- Deployed application revision: `ace06792add682f132a67f5fd7a1f72a072a1cb6`
+- Exact committed smoke-validator revision: `61239fc2b5db246e8e43069cd6e502124419d40c`
+- Region: `swedencentral`
+- Model: `gpt-5.4-mini`
+- Model version: `2026-03-17`
+- Deployment SKU: `GlobalStandard`
+- Deployment capacity: `10`
+- Azure Preflight: PASS for readiness, provisioning, required resource topology, managed identity, Foundry User assignment, model deployment, app settings, and application health.
+- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS. The deployed HTML UI passed owner/pet, pet/recorded-visit, veterinarian/specialty, Davis ambiguity, attempted-write refusal, medical-advice refusal, and unique-marker reset scenarios. Assertions used semantic patterns rather than exact model prose.
+- The smoke used one cookie jar, fetched `/clinic-assistant` before posting, submitted URL-encoded messages while following redirects, isolated model scenarios through the UI reset endpoint, and failed closed on transport or semantic assertion failures.
+- A first fresh environment encountered a transient Web App provisioning failure. Cleanup passed before a second fresh environment was created; immediate verification found no active or soft-deleted Foundry resources from that attempt.
+- Final cleanup: PASS at `2026-08-14T14:05:21Z`. Immediate verification found both temporary resource groups absent, zero active resources in either group, and zero matching soft-deleted Foundry accounts.
+- Evidence intentionally excludes environment and resource names, URLs, full subscription or tenant identifiers, credentials, and raw model transcripts.
+
 ## Commands
 
 Executed:
@@ -18,6 +35,10 @@ Executed:
 ./gradlew -q test
 scripts/test-reference-validator.sh
 scripts/validate-reference.sh
+scripts/test-azure-reference-smoke.sh
+scripts/azure-preflight.sh
+REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh
+scripts/azure-cleanup.sh
 ./mvnw -q test
 ```
 
@@ -75,9 +96,7 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 
 The focused local suite now carries two layers of deterministic local evidence for unsupported and medical boundaries. `ClinicAssistantBoundaryScenarioTests` drives the `/clinic-assistant` endpoint through MockMvc with the real `ClinicAssistantService` and a mocked `ClinicAssistantModel`, then proves the rendered transcript preserves the staff request and explicit refusal without fabricating activity. `ClinicAssistantBoundaryTests` continues to assert the configured `ClinicAssistantConfiguration.SYSTEM_PROMPT` boundary for unsupported or absent requests, read-only/no-mutation claims, veterinary diagnosis or treatment refusal, and multi-match clarification. This is PASS as mock-model endpoint-flow and configuration-boundary evidence only; it does **not** claim live-model compliance.
 
-Historical prototype smoke evidence currently proves the live medical-advice refusal path at commit [`ee7397dbe3f15846ff7ba98139fee11ac21d4cb2`](https://github.com/JoranBergfeld/agentify-pet-clinic/blob/ee7397dbe3f15846ff7ba98139fee11ac21d4cb2/docs/prototype/azure-deployment-slice-evidence.md). Attempted-write refusal evidence in this refresh remains MockMvc endpoint-flow/configuration evidence only; a live smoke refresh for that path is still pending Task21.
-
-Deployed smoke refresh belongs to `Build the workshop Azure, Preflight, and cleanup path`.
+Historical prototype smoke evidence first proved the live medical-advice refusal path at commit [`ee7397dbe3f15846ff7ba98139fee11ac21d4cb2`](https://github.com/JoranBergfeld/agentify-pet-clinic/blob/ee7397dbe3f15846ff7ba98139fee11ac21d4cb2/docs/prototype/azure-deployment-slice-evidence.md). The Task 8 refresh above now also proves the attempted-write and medical-advice refusal paths through the deployed reference HTML UI.
 
 ## Redaction note
 
