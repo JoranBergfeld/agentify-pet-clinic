@@ -141,8 +141,10 @@ run_case subscription-mismatch 1 \
 start_fixture partial-provision
 set_status "$scratch/partial-provision/fixtures" 1 azd 1
 set_status "$scratch/partial-provision/fixtures" 3 azd 1
-: >"$scratch/partial-provision/fixtures/001-azd.stdout"
-: >"$scratch/partial-provision/fixtures/003-azd.stdout"
+printf '%s\n' 'ERROR: environment value was not found' \
+  >"$scratch/partial-provision/fixtures/001-azd.stdout"
+printf '%s\n' 'ERROR: environment value was not found' \
+  >"$scratch/partial-provision/fixtures/003-azd.stdout"
 printf '%s' 'workshop-secret' \
   >"$scratch/partial-provision/fixtures/004-azd.stdout"
 add_call "$scratch/partial-provision/fixtures" 7 az "$foundry" \

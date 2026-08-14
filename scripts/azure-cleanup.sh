@@ -24,13 +24,16 @@ azd_value() {
 }
 
 azd_value_optional() {
-  azd env get-value "$1" 2>/dev/null || true
+  local value
+  if value="$(azd env get-value "$1" 2>/dev/null)"; then
+    printf '%s\n' "$value"
+  fi
 }
 
 foundry="$(azd_value_optional AZURE_OPENAI_ACCOUNT_NAME)"
 location="$(azd_value AZURE_LOCATION)"
 resource_group="$(azd_value_optional AZURE_RESOURCE_GROUP_NAME)"
-environment_name="$(azd env get-value AZURE_ENV_NAME 2>/dev/null || true)"
+environment_name="$(azd_value_optional AZURE_ENV_NAME)"
 subscription_id="$(azd_value AZURE_SUBSCRIPTION_ID)"
 account_subscription_id="$(az account show --query id --output tsv 2>/dev/null)" ||
   fail 'could not read the Azure subscription before cleanup'
