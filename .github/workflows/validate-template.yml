@@ -23,5 +23,15 @@ jobs:
         run: scripts/test-template-baseline-validator.sh
       - name: Validate template baseline
         run: scripts/validate-template-baseline.sh
+      - name: Test workshop Azure infrastructure and validate Bicep
+        uses: azure/cli@v2
+        with:
+          inlineScript: scripts/test-workshop-azure-infra.sh
+      - name: Test Azure readiness
+        run: scripts/test-azure-readiness.sh
+      - name: Test Azure Preflight
+        run: scripts/test-azure-preflight.sh
+      - name: Test Azure cleanup
+        run: scripts/test-azure-cleanup.sh
       - name: Run Maven tests
         run: ./mvnw -q test

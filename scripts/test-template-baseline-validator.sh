@@ -59,6 +59,15 @@ expect_reference_only_directory_failure() {
   rmdir "$fixture/$relative_dir"
 }
 
+expect_reference_only_file_failure() {
+  local relative_path="$1"
+
+  mkdir -p "$(dirname "$fixture/$relative_path")"
+  touch "$fixture/$relative_path"
+  expect_failure "reference-only file is present: $relative_path"
+  rm "$fixture/$relative_path"
+}
+
 expect_clean() {
   local clean_output
 
@@ -96,6 +105,14 @@ touch \
   "$fixture/workshop/reference-challenge-template.md"
 expect_clean
 
+copy_clean_baseline_file "azure.yaml"
+copy_clean_baseline_file "infra/main.bicep"
+copy_clean_baseline_file "infra/resources.bicep"
+copy_clean_baseline_file "scripts/azure-readiness.sh"
+copy_clean_baseline_file "scripts/azure-preflight.sh"
+copy_clean_baseline_file "scripts/azure-cleanup.sh"
+expect_clean
+
 mkdir -p "$fixture/src/main/java/org/springframework/samples/petclinic/assistant"
 expect_failure "Clinic Assistant solution code is present"
 rm -rf "$fixture/src/main/java/org/springframework/samples/petclinic/assistant"
@@ -111,6 +128,17 @@ write_clean_gradle
 expect_reference_only_directory_failure "docs/reference"
 expect_reference_only_directory_failure "workshop/reference"
 expect_reference_only_directory_failure "workshop/completed"
+
+mkdir -p "$fixture/.workshop-evidence"
+touch "$fixture/.workshop-evidence/preflight-example.md"
+expect_failure "generated evidence directory is present: .workshop-evidence/"
+rm "$fixture/.workshop-evidence/preflight-example.md"
+touch "$fixture/.workshop-evidence/cleanup-example.md"
+expect_failure "generated evidence directory is present: .workshop-evidence/"
+rm -rf "$fixture/.workshop-evidence"
+
+expect_reference_only_file_failure "scripts/azure-reference-smoke.sh"
+expect_reference_only_file_failure "scripts/test-azure-reference-smoke.sh"
 
 mkdir -p "$fixture/src/main/resources/templates/assistant"
 expect_failure "reference-only directory is present: src/main/resources/templates/assistant/"

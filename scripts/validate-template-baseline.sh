@@ -37,6 +37,13 @@ require_absent_reference_only_directory() {
     || fail "reference-only directory is present: $relative_dir/"
 }
 
+require_absent_reference_only_file() {
+  local relative_path="$1"
+
+  test ! -e "$root/$relative_path" \
+    || fail "reference-only file is present: $relative_path"
+}
+
 test -f "$provenance" || fail "missing workshop/baseline.properties"
 grep -Fxq \
   'upstream.repository=https://github.com/spring-projects/spring-petclinic.git' \
@@ -56,6 +63,10 @@ require_absent_reference_only_directory "docs/reference"
 require_absent_reference_only_directory "workshop/reference"
 require_absent_reference_only_directory "workshop/completed"
 require_absent_reference_only_directory "src/main/resources/templates/assistant"
+test ! -e "$root/.workshop-evidence" \
+  || fail "generated evidence directory is present: .workshop-evidence/"
+require_absent_reference_only_file "scripts/azure-reference-smoke.sh"
+require_absent_reference_only_file "scripts/test-azure-reference-smoke.sh"
 ! contains_clinic_assistant_ui_marker \
   "$root/src/main/resources/templates/fragments/layout.html" \
   || fail "Clinic Assistant UI marker is present in src/main/resources/templates/fragments/layout.html"
