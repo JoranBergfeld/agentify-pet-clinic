@@ -14,7 +14,7 @@ app_url="https://workshop-web-secret.azurewebsites.net"
 foundry="workshop-foundry-secret"
 foundry_scope="/subscriptions/$subscription_id/resourceGroups/$resource_group/providers/Microsoft.CognitiveServices/accounts/$foundry"
 health_filter='.status // empty'
-resources_filter='[.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.properties.provisioningState // empty)}] as $resources | ($resources | length) == 4 and ($resources | map(.normalizedType) | sort) == (["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] | sort) and all($resources[]; .state == "Succeeded") | if . then $resources | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end'
+resources_filter='[.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.provisioningState // empty)}] as $resources | ($resources | length) == 4 and ($resources | map(.normalizedType) | sort) == (["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] | sort) and all($resources[]; .state == "Succeeded") | if . then $resources | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end'
 deployment_filter='.properties.model.name == $model and .properties.model.version == $version and .sku.name == $sku and .sku.capacity == $capacity'
 identity_filter='select(.type == "SystemAssigned") | .principalId | select(type == "string" and length > 0)'
 role_filter='any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and .scope == $scope)'
@@ -99,7 +99,7 @@ make_success_fixture() {
     --fail --silent --show-error "$app_url/actuator/health"
   add_jq_call "$fixture_dir" 18 'UP' '{"status":"UP"}' \
     -r "$health_filter"
-  resources_json='[{"type":"Microsoft.Web/serverfarms","name":"plan-secret","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.Web/sites","name":"workshop-web-secret","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts","name":"workshop-foundry-secret","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts/deployments","name":"gpt-5-4-mini","properties":{"provisioningState":"Succeeded"}}]'
+  resources_json='[{"type":"Microsoft.Web/serverfarms","name":"plan-secret","provisioningState":"Succeeded"},{"type":"Microsoft.Web/sites","name":"workshop-web-secret","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts","name":"workshop-foundry-secret","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts/deployments","name":"gpt-5-4-mini","provisioningState":"Succeeded"}]'
   resource_evidence='- Resource: `Microsoft.CognitiveServices/accounts`; provisioningState: `Succeeded`
 - Resource: `Microsoft.CognitiveServices/accounts/deployments`; provisioningState: `Succeeded`
 - Resource: `Microsoft.Web/serverfarms`; provisioningState: `Succeeded`
@@ -254,7 +254,7 @@ run_case health-timeout 1 \
   'ERROR: application health did not succeed after 3 attempts'
 
 make_success_fixture missing-resource
-missing_resources='[{"type":"Microsoft.Web/serverfarms","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.Web/sites","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts","properties":{"provisioningState":"Succeeded"}}]'
+missing_resources='[{"type":"Microsoft.Web/serverfarms","provisioningState":"Succeeded"},{"type":"Microsoft.Web/sites","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts","provisioningState":"Succeeded"}]'
 printf '%s' "$missing_resources" >"$scratch/missing-resource/fixtures/019-az.stdout"
 printf '%s' "$missing_resources" >"$scratch/missing-resource/fixtures/020-jq.stdin"
 printf '%s\n' 1 >"$scratch/missing-resource/fixtures/020-jq.status"
@@ -262,7 +262,7 @@ run_case missing-resource 1 \
   'ERROR: deployed resources are missing, unexpected, or not successfully provisioned'
 
 make_success_fixture failed-provisioning
-failed_resources='[{"type":"Microsoft.Web/serverfarms","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.Web/sites","properties":{"provisioningState":"Failed"}},{"type":"Microsoft.CognitiveServices/accounts","properties":{"provisioningState":"Succeeded"}},{"type":"Microsoft.CognitiveServices/accounts/deployments","properties":{"provisioningState":"Succeeded"}}]'
+failed_resources='[{"type":"Microsoft.Web/serverfarms","provisioningState":"Succeeded"},{"type":"Microsoft.Web/sites","provisioningState":"Failed"},{"type":"Microsoft.CognitiveServices/accounts","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts/deployments","provisioningState":"Succeeded"}]'
 printf '%s' "$failed_resources" >"$scratch/failed-provisioning/fixtures/019-az.stdout"
 printf '%s' "$failed_resources" >"$scratch/failed-provisioning/fixtures/020-jq.stdin"
 printf '%s\n' 1 >"$scratch/failed-provisioning/fixtures/020-jq.status"

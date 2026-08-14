@@ -68,7 +68,7 @@ retry_until 'application health' health_is_up
 resources_json="$(
   az resource list --resource-group "$resource_group" --output json 2>/dev/null
 )" || fail 'could not list deployed resources'
-resource_evidence="$(jq -er '[.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.properties.provisioningState // empty)}] as $resources | ($resources | length) == 4 and ($resources | map(.normalizedType) | sort) == (["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] | sort) and all($resources[]; .state == "Succeeded") | if . then $resources | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end' <<<"$resources_json" 2>/dev/null)" ||
+resource_evidence="$(jq -er '[.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.provisioningState // empty)}] as $resources | ($resources | length) == 4 and ($resources | map(.normalizedType) | sort) == (["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] | sort) and all($resources[]; .state == "Succeeded") | if . then $resources | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end' <<<"$resources_json" 2>/dev/null)" ||
   fail 'deployed resources are missing, unexpected, or not successfully provisioned'
 
 deployment_json="$(
