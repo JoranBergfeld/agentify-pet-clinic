@@ -29,13 +29,14 @@ azd auth login
 
 At subscription scope, the deploying identity needs either:
 
-- **Owner**; or
-- **Contributor** plus **User Access Administrator** or
-  **Role Based Access Control Administrator**.
+- **Owner at subscription scope**; or
+- **Contributor at subscription scope** plus either
+  **User Access Administrator at subscription scope** or
+  **Role Based Access Control Administrator at subscription scope**.
 
 Contributor alone cannot create the managed-identity role assignment. If these
-roles are granted only at resource-group scope, an administrator must create
-the resource group and register providers before Preflight.
+qualifying roles are unavailable at subscription scope, this workshop path
+cannot pass readiness or deploy its subscription-scoped Bicep.
 
 These providers must be registered:
 
@@ -44,8 +45,8 @@ These providers must be registered:
 - `Microsoft.CognitiveServices`
 - `Microsoft.Authorization`
 
-Provider registration and role grants are administrator-owned when your
-identity lacks subscription-level authority.
+An administrator must complete provider registration and qualifying
+subscription-scope role grants before the attendee runs readiness.
 
 ## Tested deployment envelope
 
