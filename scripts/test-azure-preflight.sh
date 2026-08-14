@@ -14,7 +14,7 @@ app_url="https://workshop-web-secret.azurewebsites.net"
 foundry="workshop-foundry-secret"
 foundry_scope="/subscriptions/$subscription_id/resourceGroups/$resource_group/providers/Microsoft.CognitiveServices/accounts/$foundry"
 health_filter='.status // empty'
-resources_filter='[.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.provisioningState // empty)}] as $resources | ($resources | length) == 4 and ($resources | map(.normalizedType) | sort) == (["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] | sort) and all($resources[]; .state == "Succeeded") | if . then $resources | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end'
+resources_filter='["microsoft.cognitiveservices/accounts","microsoft.cognitiveservices/accounts/deployments","microsoft.web/serverfarms","microsoft.web/sites"] as $requiredTypes | [.[]? | {type, normalizedType: (.type | ascii_downcase), state: (.provisioningState // empty)}] as $resources | [$resources[] | select(.normalizedType as $type | $requiredTypes | index($type))] as $required | [$resources[] | select(.normalizedType as $type | ($requiredTypes + ["microsoft.insights/diagnosticsettings"]) | index($type) | not)] as $unexpected | ($required | length) == 4 and ($required | map(.normalizedType) | sort) == ($requiredTypes | sort) and all($required[]; .state == "Succeeded") and ($unexpected | length) == 0 | if . then $required | sort_by(.normalizedType) | map("- Resource: `\(.type)`; provisioningState: `\(.state)`") | join("\n") else error("invalid resource provisioning evidence") end'
 deployment_filter='.properties.model.name == $model and .properties.model.version == $version and .sku.name == $sku and .sku.capacity == $capacity'
 identity_filter='select(.type == "SystemAssigned") | .principalId | select(type == "string" and length > 0)'
 role_filter='any(.[]; .roleDefinitionName == "Foundry User" and .principalId == $principal and .scope == $scope)'
@@ -99,7 +99,7 @@ make_success_fixture() {
     --fail --silent --show-error "$app_url/actuator/health"
   add_jq_call "$fixture_dir" 18 'UP' '{"status":"UP"}' \
     -r "$health_filter"
-  resources_json='[{"type":"Microsoft.Web/serverfarms","name":"plan-secret","provisioningState":"Succeeded"},{"type":"Microsoft.Web/sites","name":"workshop-web-secret","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts","name":"workshop-foundry-secret","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts/deployments","name":"gpt-5-4-mini","provisioningState":"Succeeded"}]'
+  resources_json='[{"type":"Microsoft.Web/serverfarms","name":"plan-secret","provisioningState":"Succeeded"},{"type":"Microsoft.Web/sites","name":"workshop-web-secret","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts","name":"workshop-foundry-secret","provisioningState":"Succeeded"},{"type":"Microsoft.CognitiveServices/accounts/deployments","name":"gpt-5-4-mini","provisioningState":"Succeeded"},{"type":"Microsoft.Insights/diagnosticSettings","name":"policy-managed","provisioningState":"Succeeded"}]'
   resource_evidence='- Resource: `Microsoft.CognitiveServices/accounts`; provisioningState: `Succeeded`
 - Resource: `Microsoft.CognitiveServices/accounts/deployments`; provisioningState: `Succeeded`
 - Resource: `Microsoft.Web/serverfarms`; provisioningState: `Succeeded`
