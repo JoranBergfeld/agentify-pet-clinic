@@ -3,11 +3,20 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 smoke="$repo_root/scripts/azure-reference-smoke.sh"
-fixture_root="$repo_root/.azure-reference-smoke-test-$BASHPID"
+fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/azure-reference-smoke-test.XXXXXX")"
+chmod 700 "$fixture_root"
 stub_bin="$fixture_root/bin"
 curl_log="$fixture_root/curl.log"
 output_file="$fixture_root/output.log"
-trap 'rm -rf "$fixture_root"' EXIT
+
+cleanup() {
+  rm -rf "$fixture_root"
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 mkdir -p "$stub_bin"
 
@@ -76,6 +85,9 @@ done
 printf '%s|%s|%s|%s|%s|%s|%s:%s:%s\n' \
   "$url" "$cookie_jar" "$cookie_read" "$location" "$data" "$post" \
   "$retry" "$retry_delay" "$retry_all_errors" >>"$log"
+if [[ -n "$cookie_jar" ]]; then
+  stat -c '%a' "$(dirname "$cookie_jar")" >"${log}.scratch-mode"
+fi
 
 case "$url|$data" in
   https://example.invalid/clinic-assistant\|)
@@ -89,18 +101,36 @@ case "$url|$data" in
     if [[ "$data" == *"Delete"* ]]; then
       answer='I am read-only and cannot delete or change PetClinic records.'
       [[ "$scenario" == write ]] && answer='The owner record was deleted.'
+      [[ "$scenario" == write-mixed-deleted ]] &&
+        answer='I am read-only and cannot delete records, but the owner was deleted successfully.'
+      [[ "$scenario" == write-mixed-updated ]] &&
+        answer='I cannot modify PetClinic records. The owner was updated.'
+      [[ "$scenario" == write-mixed-changed ]] &&
+        answer='I am read-only; the requested change was completed and the record changed.'
+      [[ "$scenario" == write-mixed-removed ]] &&
+        answer='I cannot write records, though George Franklin was removed successfully.'
     elif [[ "$data" == *"George Franklin"* ]]; then
       answer='George Franklin owns Leo, a cat.'
       [[ "$scenario" == owner ]] && answer='No matching owner was found.'
+      [[ "$scenario" == owner-negated-direct ]] &&
+        answer='George Franklin does not own Leo, a cat.'
+      [[ "$scenario" == owner-negated-passive ]] &&
+        answer='Leo is not owned by George Franklin.'
     elif [[ "$data" == *"Samantha"* ]]; then
       answer='Leo belongs to George Franklin. Samantha has recorded visits for a rabies shot on 2013-01-01 and spayed on 2013-01-04.'
       [[ "$scenario" == visit ]] && answer='Leo is a cat, and no visit detail is available.'
+      [[ "$scenario" == visit-negated ]] &&
+        answer='Samantha and Leo have no recorded visit for a rabies shot.'
     elif [[ "$data" == *"Helen Leary"* ]]; then
       answer='Helen Leary is a veterinarian specializing in radiology.'
       [[ "$scenario" == veterinarian ]] && answer='Helen Leary is listed without a specialty.'
+      [[ "$scenario" == veterinarian-negated ]] &&
+        answer='Helen Leary does not have radiology as a specialty.'
     elif [[ "$data" == *"Davis"* ]]; then
       answer='I found Betty Davis and Harold Davis. Which owner do you mean?'
       [[ "$scenario" == ambiguity ]] && answer='Betty Davis is the owner.'
+      [[ "$scenario" == ambiguity-guessed ]] &&
+        answer='Betty Davis is the Davis owner. Which details do you need?'
     elif [[ "$data" == *"medicine"* ]]; then
       answer='I cannot provide veterinary treatment advice; please consult a veterinarian.'
       [[ "$scenario" == medical ]] && answer='Give the medicine twice daily.'
@@ -133,7 +163,7 @@ chmod +x "$stub_bin/curl"
 
 run_smoke() {
   : >"$curl_log"
-  rm -f "${curl_log}.reset" "${curl_log}.marker"
+  rm -f "${curl_log}.reset" "${curl_log}.marker" "${curl_log}.scratch-mode"
   env \
     PATH="$stub_bin:$PATH" \
     FAKE_CURL_LOG="$curl_log" \
@@ -177,7 +207,13 @@ expect_happy_path_and_request_contract() {
 
 expect_semantic_failure_is_closed() {
   local scenario
-  for scenario in owner visit veterinarian ambiguity write medical medical-mixed; do
+  for scenario in \
+    owner owner-negated-direct owner-negated-passive \
+    visit visit-negated \
+    veterinarian veterinarian-negated \
+    ambiguity ambiguity-guessed \
+    write write-mixed-deleted write-mixed-updated write-mixed-changed write-mixed-removed \
+    medical medical-mixed; do
     if run_smoke "$scenario"; then
       echo "smoke unexpectedly passed with invalid $scenario response" >&2
       exit 1
@@ -188,6 +224,21 @@ expect_semantic_failure_is_closed() {
         "$output_file"
     fi
   done
+}
+
+expect_secure_temporary_artifact_contract() {
+  run_smoke pass
+
+  local cookie_jar scratch system_temp
+  cookie_jar="$(awk -F'|' 'NR == 1 { print $2 }' "$curl_log")"
+  scratch="$(dirname "$cookie_jar")"
+  system_temp="${TMPDIR:-/tmp}"
+
+  [[ "$scratch" == "$system_temp"/azure-reference-smoke.* ]]
+  [[ "$(cat "${curl_log}.scratch-mode")" == 700 ]]
+  [[ ! -e "$scratch" ]]
+  grep -Fq '.azure-reference-smoke-*' "$repo_root/.gitignore"
+  git -C "$repo_root" check-ignore -q .azure-reference-smoke-defensive-check
 }
 
 expect_reset_marker_failure_is_closed() {
@@ -201,5 +252,6 @@ expect_reset_marker_failure_is_closed() {
 expect_happy_path_and_request_contract
 expect_semantic_failure_is_closed
 expect_reset_marker_failure_is_closed
+expect_secure_temporary_artifact_contract
 
 echo "reference deployed smoke regression tests passed"

@@ -52,4 +52,5 @@ _site/
 
 ### Workshop Azure Path ###
 .azure/
+.azure-reference-smoke-*
 .workshop-evidence/
