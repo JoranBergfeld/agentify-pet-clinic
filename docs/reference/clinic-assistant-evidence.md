@@ -1,6 +1,6 @@
 # Clinic Assistant reference evidence
 
-Date: 2026-08-14
+Date: 2026-08-15
 
 ## Validated revisions
 
@@ -11,19 +11,26 @@ Date: 2026-08-14
 
 ## Task 8 deployed reference smoke refresh
 
-- Shared Azure path merge revision: `05ddadffd77d75f7c2f48e522720b353975592de`
-- Deployed application revision: `ace06792add682f132a67f5fd7a1f72a072a1cb6`
-- Exact committed smoke-validator revision: `61239fc2b5db246e8e43069cd6e502124419d40c`
+- Exact reviewed smoke-validator revision: `4d76aba95a3864ff324ee917881dfc2b59b55b5c`
+- Final validated reference revision: `4d76aba95a3864ff324ee917881dfc2b59b55b5c`
 - Region: `swedencentral`
 - Model: `gpt-5.4-mini`
 - Model version: `2026-03-17`
 - Deployment SKU: `GlobalStandard`
 - Deployment capacity: `10`
 - Azure Preflight: PASS for readiness, provisioning, required resource topology, managed identity, Foundry User assignment, model deployment, app settings, and application health.
-- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS. The deployed HTML UI passed owner/pet, pet/recorded-visit, veterinarian/specialty, Davis ambiguity, attempted-write refusal, medical-advice refusal, and unique-marker reset scenarios. Assertions used semantic patterns rather than exact model prose.
+- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS.
+- Owner/pet scenario: PASS.
+- Pet/recorded-visit scenario: PASS.
+- Veterinarian/specialty scenario: PASS.
+- Davis ambiguity scenario: PASS.
+- Attempted-write refusal scenario: PASS.
+- Medical-advice refusal scenario: PASS.
+- Unique-marker reset scenario: PASS.
+- Assertions used semantic patterns rather than exact model prose.
 - The smoke used one cookie jar, fetched `/clinic-assistant` before posting, submitted URL-encoded messages while following redirects, isolated model scenarios through the UI reset endpoint, and failed closed on transport or semantic assertion failures.
-- A first fresh environment encountered a transient Web App provisioning failure. Cleanup passed before a second fresh environment was created; immediate verification found no active or soft-deleted Foundry resources from that attempt.
-- Final cleanup: PASS at `2026-08-14T14:05:21Z`. Immediate verification found both temporary resource groups absent, zero active resources in either group, and zero matching soft-deleted Foundry accounts.
+- Final cleanup: PASS at `2026-08-15T09:23:45Z`.
+- Independent post-cleanup verification: PASS; the disposable resource group was absent and the matching deleted Foundry account was absent.
 - Evidence intentionally excludes environment and resource names, URLs, full subscription or tenant identifiers, credentials, and raw model transcripts.
 
 ## Commands
