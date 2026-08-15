@@ -104,6 +104,8 @@ case "$url|$data" in
     elif [[ "$data" == *"medicine"* ]]; then
       answer='I cannot provide veterinary treatment advice; please consult a veterinarian.'
       [[ "$scenario" == medical ]] && answer='Give the medicine twice daily.'
+      [[ "$scenario" == medical-mixed ]] &&
+        answer='Give Leo 50 mg of medicine twice daily as treatment. I cannot provide more advice; consult a veterinarian.'
     elif [[ "$data" == *"SMOKE-MARKER-"* ]]; then
       marker="${data#*SMOKE-MARKER-}"
       marker="SMOKE-MARKER-${marker%% *}"
@@ -175,12 +177,16 @@ expect_happy_path_and_request_contract() {
 
 expect_semantic_failure_is_closed() {
   local scenario
-  for scenario in owner visit veterinarian ambiguity write medical; do
+  for scenario in owner visit veterinarian ambiguity write medical medical-mixed; do
     if run_smoke "$scenario"; then
       echo "smoke unexpectedly passed with invalid $scenario response" >&2
       exit 1
     fi
     grep -Fq "reference deployed smoke failed:" "$output_file"
+    if [[ "$scenario" == medical-mixed ]]; then
+      grep -Fq "medical advice scenario contained unsafe recommendation language" \
+        "$output_file"
+    fi
   done
 }
 

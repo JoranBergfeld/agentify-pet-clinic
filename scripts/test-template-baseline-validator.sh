@@ -29,7 +29,37 @@ copy_clean_baseline_file() {
   local relative_path="$1"
 
   mkdir -p "$(dirname "$fixture/$relative_path")"
-  cp "$repo_root/$relative_path" "$fixture/$relative_path"
+
+  case "$relative_path" in
+    src/main/resources/templates/fragments/layout.html|\
+      src/main/resources/messages/messages.properties|\
+      src/main/scss/petclinic.scss|\
+      src/main/resources/application.properties)
+      if git -C "$repo_root" show "main:$relative_path" \
+        >"$fixture/$relative_path" 2>/dev/null; then
+        return
+      fi
+      ;;
+  esac
+
+  case "$relative_path" in
+    src/main/resources/templates/fragments/layout.html)
+      printf '<html><body><nav>PetClinic</nav></body></html>\n' \
+        >"$fixture/$relative_path"
+      ;;
+    src/main/resources/messages/messages.properties)
+      printf 'welcome=Welcome\n' >"$fixture/$relative_path"
+      ;;
+    src/main/scss/petclinic.scss)
+      printf '.navbar { display: block; }\n' >"$fixture/$relative_path"
+      ;;
+    src/main/resources/application.properties)
+      printf 'spring.application.name=petclinic\n' >"$fixture/$relative_path"
+      ;;
+    *)
+      cp "$repo_root/$relative_path" "$fixture/$relative_path"
+      ;;
+  esac
 }
 
 write_clean_ui_resources() {
