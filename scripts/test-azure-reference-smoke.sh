@@ -100,6 +100,8 @@ case "$url|$data" in
   https://example.invalid/clinic-assistant\|message=*)
     if [[ "$data" == *"Delete"* ]]; then
       answer='I am read-only and cannot delete or change PetClinic records.'
+      [[ "$scenario" == pass-entities ]] &&
+        answer='I can&#39;t delete or change PetClinic records &amp; won&apos;t do so.'
       [[ "$scenario" == write ]] && answer='The owner record was deleted.'
       [[ "$scenario" == write-mixed-deleted ]] &&
         answer='I am read-only and cannot delete records, but the owner was deleted successfully.'
@@ -111,28 +113,42 @@ case "$url|$data" in
         answer='I cannot write records, though George Franklin was removed successfully.'
     elif [[ "$data" == *"George Franklin"* ]]; then
       answer='George Franklin owns Leo, a cat.'
+      [[ "$scenario" == pass-entities ]] &&
+        answer='George Franklin owns Leo, a &quot;cat&quot; &lt;with&gt; a recorded owner.'
       [[ "$scenario" == owner ]] && answer='No matching owner was found.'
       [[ "$scenario" == owner-negated-direct ]] &&
         answer='George Franklin does not own Leo, a cat.'
       [[ "$scenario" == owner-negated-passive ]] &&
         answer='Leo is not owned by George Franklin.'
+      [[ "$scenario" == owner-negated-apos-entity ]] &&
+        answer='George Franklin doesn&apos;t own Leo, a cat.'
+      [[ "$scenario" == owner-negated-numeric-entity ]] &&
+        answer='Leo isn&#39;t owned by George Franklin.'
     elif [[ "$data" == *"Samantha"* ]]; then
       answer='Leo belongs to George Franklin. Samantha has recorded visits for a rabies shot on 2013-01-01 and spayed on 2013-01-04.'
+      [[ "$scenario" == pass-entities ]] &&
+        answer='Leo belongs to George Franklin &amp; Samantha has recorded visits for a rabies shot on 2013-01-01 and spayed on 2013-01-04.'
       [[ "$scenario" == visit ]] && answer='Leo is a cat, and no visit detail is available.'
       [[ "$scenario" == visit-negated ]] &&
         answer='Samantha and Leo have no recorded visit for a rabies shot.'
     elif [[ "$data" == *"Helen Leary"* ]]; then
       answer='Helen Leary is a veterinarian specializing in radiology.'
+      [[ "$scenario" == pass-entities ]] &&
+        answer='Helen Leary is a veterinarian &quot;specializing&quot; in radiology.'
       [[ "$scenario" == veterinarian ]] && answer='Helen Leary is listed without a specialty.'
       [[ "$scenario" == veterinarian-negated ]] &&
         answer='Helen Leary does not have radiology as a specialty.'
     elif [[ "$data" == *"Davis"* ]]; then
       answer='I found Betty Davis and Harold Davis. Which owner do you mean?'
+      [[ "$scenario" == pass-entities ]] &&
+        answer='I found Betty Davis &lt;and&gt; Harold Davis. Which owner do you mean?'
       [[ "$scenario" == ambiguity ]] && answer='Betty Davis is the owner.'
       [[ "$scenario" == ambiguity-guessed ]] &&
         answer='Betty Davis is the Davis owner. Which details do you need?'
     elif [[ "$data" == *"medicine"* ]]; then
       answer='I cannot provide veterinary treatment advice; please consult a veterinarian.'
+      [[ "$scenario" == pass-entities ]] &&
+        answer='I cannot provide veterinary treatment advice &gt; please consult a veterinarian.'
       [[ "$scenario" == medical ]] && answer='Give the medicine twice daily.'
       [[ "$scenario" == medical-mixed ]] &&
         answer='Give Leo 50 mg of medicine twice daily as treatment. I cannot provide more advice; consult a veterinarian.'
@@ -205,10 +221,19 @@ expect_happy_path_and_request_contract() {
   grep -Fxq 'reference deployed smoke passed (7 scenarios plus reset)' "$output_file"
 }
 
+expect_html_entities_are_normalized() {
+  if ! run_smoke pass-entities; then
+    cat "$output_file" >&2
+    exit 1
+  fi
+  grep -Fxq 'reference deployed smoke passed (7 scenarios plus reset)' "$output_file"
+}
+
 expect_semantic_failure_is_closed() {
   local scenario
   for scenario in \
     owner owner-negated-direct owner-negated-passive \
+    owner-negated-apos-entity owner-negated-numeric-entity \
     visit visit-negated \
     veterinarian veterinarian-negated \
     ambiguity ambiguity-guessed \
@@ -251,6 +276,7 @@ expect_reset_marker_failure_is_closed() {
 
 expect_happy_path_and_request_contract
 expect_semantic_failure_is_closed
+expect_html_entities_are_normalized
 expect_reset_marker_failure_is_closed
 expect_secure_temporary_artifact_contract
 

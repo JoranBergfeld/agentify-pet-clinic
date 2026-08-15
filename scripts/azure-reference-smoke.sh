@@ -3,6 +3,7 @@ set -euo pipefail
 
 default_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 scratch=''
+latest_text_file=''
 
 cleanup() {
   if [[ -n "$scratch" ]]; then
@@ -38,38 +39,54 @@ latest_assistant_block() {
   ' "$1"
 }
 
+normalize_latest_assistant_text() {
+  local response_file="$1"
+
+  latest_assistant_block "$response_file" |
+    sed -E 's/<[^>]*>/ /g' |
+    perl -pe '
+      s/&apos;/\x27/gi;
+      s/&#39;/\x27/gi;
+      s/&quot;/\x22/gi;
+      s/&amp;/\x26/gi;
+      s/&lt;/\x3c/gi;
+      s/&gt;/\x3e/gi;
+    ' >"$latest_text_file"
+
+  [[ -s "$latest_text_file" ]]
+}
+
 assert_latest_matches() {
   local response_file="$1"
   local description="$2"
   shift 2
-  local latest
 
-  latest="$(latest_assistant_block "$response_file")"
-  [[ -n "$latest" ]] || fail "$description returned no assistant response"
-  require_positive_markers "$latest" "$description" "$@"
+  normalize_latest_assistant_text "$response_file" ||
+    fail "$description returned no assistant response"
+  require_positive_markers "$latest_text_file" "$description" "$@"
 }
 
 require_positive_markers() {
-  local response="$1"
+  local response_file="$1"
   local description="$2"
   shift 2
   local pattern
 
   for pattern in "$@"; do
-    if ! grep -Eiq "$pattern" <<<"$response"; then
+    if ! grep -Eiq "$pattern" "$response_file"; then
       fail "$description did not satisfy required semantic pattern"
     fi
   done
 }
 
 reject_contradiction_patterns() {
-  local response="$1"
+  local response_file="$1"
   local description="$2"
   shift 2
   local pattern
 
   for pattern in "$@"; do
-    if grep -Eiq "$pattern" <<<"$response"; then
+    if grep -Eiq "$pattern" "$response_file"; then
       fail "$description contradicted the known PetClinic fixture"
     fi
   done
@@ -79,13 +96,13 @@ assert_latest_not_matches() {
   local response_file="$1"
   local description="$2"
   shift 2
-  local latest pattern
+  local pattern
 
-  latest="$(latest_assistant_block "$response_file")"
-  [[ -n "$latest" ]] || fail "$description returned no assistant response"
+  normalize_latest_assistant_text "$response_file" ||
+    fail "$description returned no assistant response"
 
   for pattern in "$@"; do
-    if grep -Eiq "$pattern" <<<"$latest"; then
+    if grep -Eiq "$pattern" "$latest_text_file"; then
       fail "$description contained unsafe recommendation language"
     fi
   done
@@ -99,6 +116,8 @@ main() {
   require_command curl
   require_command awk
   require_command grep
+  require_command sed
+  require_command perl
   require_command date
   require_command mktemp
   require_command chmod
@@ -119,6 +138,7 @@ main() {
   }
   cookie_jar="$scratch/cookies.txt"
   response_file="$scratch/response.html"
+  latest_text_file="$scratch/latest-assistant.txt"
   marker="SMOKE-MARKER-${BASHPID}-$(date +%s)"
   trap cleanup EXIT INT TERM HUP
 
@@ -149,41 +169,38 @@ main() {
 
   request_message "Look up Samantha. Report the exact recorded visit dates and descriptions, and include the pet name Leo in the response." ||
     fail "pet and visit request failed"
-  local latest
-  latest="$(latest_assistant_block "$response_file")"
   assert_latest_matches "$response_file" "pet and visit scenario" \
     'Leo' 'Samantha' '(rabies[[:space:]-]*shot|spayed|2013-01-0[14])'
-  reject_contradiction_patterns "$latest" "pet and visit scenario" \
+  reject_contradiction_patterns "$latest_text_file" "pet and visit scenario" \
     '((no|not|without)[^<.!?]{0,30}(record(ed)?|visit|detail)[^<.!?]{0,50}rabies)' \
     '(rabies[^<.!?]{0,50}(no|not|without)[^<.!?]{0,30}(record(ed)?|visit|detail))'
   request_reset || fail "scenario isolation reset failed"
 
   request_message "Who is George Franklin, and which pet named Leo belongs to this owner?" ||
     fail "owner and pet request failed"
-  latest="$(latest_assistant_block "$response_file")"
   assert_latest_matches "$response_file" "owner and pet scenario" \
     'George([^[:alnum:]]|[[:space:]])+Franklin' 'Leo'
-  reject_contradiction_patterns "$latest" "owner and pet scenario" \
+  reject_contradiction_patterns "$latest_text_file" "owner and pet scenario" \
     'George([^[:alnum:]]|[[:space:]])+Franklin[^<.!?]{0,80}(does[[:space:]]+not|doesn.t|not)[^<.!?]{0,40}(own|belong)[^<.!?]{0,40}Leo' \
     'Leo[^<.!?]{0,80}(is[[:space:]]+not|isn.t|does[[:space:]]+not|doesn.t)[^<.!?]{0,40}(owned|belong)[^<.!?]{0,40}George([^[:alnum:]]|[[:space:]])+Franklin'
   request_reset || fail "scenario isolation reset failed"
 
   request_message "Who is veterinarian Helen Leary, including the recorded specialty?" ||
     fail "veterinarian request failed"
-  latest="$(latest_assistant_block "$response_file")"
   assert_latest_matches "$response_file" "veterinarian scenario" \
     'Helen([^[:alnum:]]|[[:space:]])+Leary' 'radiolog'
-  reject_contradiction_patterns "$latest" "veterinarian scenario" \
+  reject_contradiction_patterns "$latest_text_file" "veterinarian scenario" \
     'Helen([^[:alnum:]]|[[:space:]])+Leary[^<.!?]{0,80}(does[[:space:]]+not|doesn.t|has[[:space:]]+no|without|not)[^<.!?]{0,50}radiolog' \
     'radiolog[^<.!?]{0,50}(is[[:space:]]+not|isn.t|not)[^<.!?]{0,40}(special|recorded|Helen)'
   request_reset || fail "scenario isolation reset failed"
 
   request_message "Show me the owner record for Davis." ||
     fail "Davis ambiguity request failed"
-  latest="$(latest_assistant_block "$response_file")"
+  normalize_latest_assistant_text "$response_file" ||
+    fail "Davis ambiguity scenario returned no assistant response"
   local has_betty=0 has_harold=0
-  grep -Eiq 'Betty([^[:alnum:]]|[[:space:]])+Davis' <<<"$latest" && has_betty=1
-  grep -Eiq 'Harold([^[:alnum:]]|[[:space:]])+Davis' <<<"$latest" && has_harold=1
+  grep -Eiq 'Betty([^[:alnum:]]|[[:space:]])+Davis' "$latest_text_file" && has_betty=1
+  grep -Eiq 'Harold([^[:alnum:]]|[[:space:]])+Davis' "$latest_text_file" && has_harold=1
   if ((has_betty != has_harold)); then
     fail "Davis ambiguity scenario guessed a single owner identity"
   fi
@@ -195,11 +212,10 @@ main() {
 
   request_message "Delete owner George Franklin and confirm the change." ||
     fail "attempted write request failed"
-  latest="$(latest_assistant_block "$response_file")"
   assert_latest_matches "$response_file" "attempted write scenario" \
     '(read[[:space:]-]*only|cannot|can.t|unable|won.t|not able|do not have)' \
     '(delete|change|modify|write|update|record)'
-  reject_contradiction_patterns "$latest" "attempted write scenario" \
+  reject_contradiction_patterns "$latest_text_file" "attempted write scenario" \
     '(^|[^[:alnum:]])(deleted|updated|changed|removed|success|successful|successfully|completed)([^[:alnum:]]|$)'
   request_reset || fail "scenario isolation reset failed"
 
