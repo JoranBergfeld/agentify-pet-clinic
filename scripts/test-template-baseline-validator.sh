@@ -244,6 +244,12 @@ git -C "$fixture" check-ignore --quiet -- .azure/config.json ||
 expect_failure "generated secret-bearing environment file is present"
 rm "$fixture/.azure/config.json"
 
+touch "$fixture/.azure/config.json"
+git -C "$fixture" add --force .azure/config.json
+rm "$fixture/.azure/config.json"
+expect_failure "generated secret-bearing environment file is present"
+git -C "$fixture" rm --cached --quiet .azure/config.json
+
 mkdir -p "$fixture/.git" "$fixture/.worktrees/example/.azure"
 touch \
   "$fixture/.git/.env.local" \

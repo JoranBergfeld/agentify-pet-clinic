@@ -70,6 +70,52 @@ require_safe_generated_evidence() {
   fi
 }
 
+is_secret_bearing_path() {
+  local relative_path="$1"
+  local filename="${relative_path##*/}"
+
+  case "$relative_path" in
+    .azure/.gitignore)
+      return 1
+      ;;
+    .azure/*)
+      return 0
+      ;;
+  esac
+
+  case "$filename" in
+    .env* | *.tfstate* | azureProfile.json)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+require_absent_secret_bearing_files() {
+  local relative_path
+
+  if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    while IFS= read -r -d '' relative_path; do
+      ! is_secret_bearing_path "$relative_path" ||
+        fail "generated secret-bearing environment file is present"
+    done < <(git -C "$root" ls-files -z)
+  fi
+
+  while IFS= read -r -d '' _; do
+    fail "generated secret-bearing environment file is present"
+  done < <(
+    find "$root" \
+      \( -type d \( -name .git -o -name .worktrees \) -prune \) -o \
+      \( -type f \( \
+          -name '.env*' -o \
+          -name '*.tfstate*' -o \
+          -name 'azureProfile.json' -o \
+          \( -path "$root/.azure/*" -a ! -path "$root/.azure/.gitignore" \) \
+        \) -print0 \)
+  )
+}
+
 test -f "$provenance" || fail "missing workshop/baseline.properties"
 grep -Fxq \
   'upstream.repository=https://github.com/spring-projects/spring-petclinic.git' \
@@ -104,19 +150,6 @@ require_absent_reference_only_file "scripts/test-azure-reference-smoke.sh"
   "$root/src/main/resources/application.properties" \
   || fail "Spring AI application property is present in src/main/resources/application.properties"
 
-while IFS= read -r -d '' _; do
-  fail "generated secret-bearing environment file is present"
-done < <(
-  find "$root" \
-    \( -type d \( -name .git -o -name .worktrees \) -prune \) -o \
-    \( -type f \( \
-        -name '.env' -o \
-        -name '.env.*' -o \
-        -name '*.tfstate' -o \
-        -name '*.tfstate.backup' -o \
-        -name 'azureProfile.json' -o \
-        \( -path "$root/.azure/*" -a ! -path "$root/.azure/.gitignore" \) \
-      \) -print0 \)
-)
+require_absent_secret_bearing_files
 
 echo "template baseline is structurally clean"
