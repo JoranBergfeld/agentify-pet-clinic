@@ -6,6 +6,11 @@ validator="$repo_root/scripts/validate-template-baseline.sh"
 fixture="$(mktemp -d "$repo_root/.template-baseline-validator-fixture.XXXXXX")"
 trap 'rm -rf "$fixture"' EXIT
 
+fail_test() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
+
 write_clean_provenance() {
   cat >"$fixture/workshop/baseline.properties" <<'EOF'
 upstream.repository=https://github.com/spring-projects/spring-petclinic.git
@@ -96,6 +101,7 @@ chmod +x "$fixture/mvnw"
 touch "$fixture/.azure/.gitignore"
 cat >"$fixture/.gitignore" <<'EOF'
 .workshop-evidence/
+.azure/
 EOF
 git -C "$fixture" init --quiet
 
@@ -135,6 +141,8 @@ expect_reference_only_directory_failure "workshop/completed"
 
 mkdir -p "$fixture/.workshop-evidence"
 touch "$fixture/.workshop-evidence/preflight-example.md"
+git -C "$fixture" check-ignore --quiet -- .workshop-evidence/preflight-example.md ||
+  fail_test 'evidence fixture is not ignored by git'
 expect_clean
 git -C "$fixture" add --force .workshop-evidence/preflight-example.md
 expect_failure "tracked generated evidence is present: .workshop-evidence/"
@@ -142,6 +150,16 @@ git -C "$fixture" rm --cached --quiet .workshop-evidence/preflight-example.md
 rm "$fixture/.workshop-evidence/preflight-example.md"
 touch "$fixture/.workshop-evidence/cleanup-example.md"
 expect_clean
+cat >"$fixture/.gitignore" <<'EOF'
+.azure/
+EOF
+git -C "$fixture" check-ignore --quiet -- .workshop-evidence/cleanup-example.md &&
+  fail_test 'unignored evidence fixture is unexpectedly ignored by git'
+expect_failure "unignored generated evidence is present: .workshop-evidence/"
+cat >"$fixture/.gitignore" <<'EOF'
+.workshop-evidence/
+.azure/
+EOF
 rm -rf "$fixture/.workshop-evidence"
 
 expect_reference_only_file_failure "scripts/azure-reference-smoke.sh"
@@ -221,6 +239,8 @@ expect_failure "generated secret-bearing environment file is present"
 rm "$fixture/azureProfile.json"
 
 touch "$fixture/.azure/config.json"
+git -C "$fixture" check-ignore --quiet -- .azure/config.json ||
+  fail_test 'Azure config fixture is not ignored by git'
 expect_failure "generated secret-bearing environment file is present"
 rm "$fixture/.azure/config.json"
 
