@@ -4,15 +4,24 @@ Date: 2026-08-16
 
 ## Current validation status
 
+- Current tested offline reference implementation revision:
+  `0fa00b3982bdb1aa6a7c20715341e0e31ad22eeb`.
 - Local shared/template branch merged into this reference branch through
-  `main` at `f26e53b`.
-- The deployed smoke now requires both exact Samantha visit records and a
-  one-shot reset-success marker emitted only after model-memory reset and
-  visible-transcript clearing complete.
-- Offline fixture and local application validation are current for these
-  assertions.
+  `main` at `9375f1124d97dee3a965637206e498e036dc5994`.
+- Last historical live reference revision:
+  `97fcda79bd04b8960239ecb0ca419ae172326c79`.
+- The deployed smoke now requires an ordered one-line `Samantha:` response
+  linking the exact `2013-01-01 - rabies shot` and
+  `2013-01-04 - spayed` fixture facts to Samantha.
+- Reset validation now proves deployed model-memory behavior in one session:
+  the assistant returns and recalls an opaque marker before reset, reset emits
+  its structured success marker with no visible transcript, and the same
+  recall prompt does not return the marker after reset.
+- Offline fixture and local application validation are current at the tested
+  offline implementation revision above.
 - A fresh live Azure refresh is pending. No earlier exact-revision live run is
-  current evidence for the strengthened visit and reset assertions.
+  current evidence for these strengthened visit-attribution and reset-memory
+  assertions. No live Azure validation was run for this revision.
 - The implementation classifies workshop attempted-write and medical-advice
   requests before model invocation, returns deterministic fixed refusals, and
   renders typed assistant outcomes.
@@ -63,10 +72,13 @@ Executed:
 ./gradlew -q test
 scripts/test-reference-validator.sh
 scripts/validate-reference.sh
-REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh
 scripts/test-azure-reference-smoke.sh
-scripts/azure-preflight.sh
-scripts/azure-cleanup.sh
+scripts/test-azure-cleanup.sh
+scripts/test-azure-preflight.sh
+scripts/test-azure-readiness.sh
+scripts/test-workshop-azure-infra.sh
+scripts/test-template-baseline-validator.sh
+scripts/test-template-generation-validator.sh
 ./mvnw -q test
 ```
 
@@ -100,6 +112,15 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 - `./gradlew -q test`: PASS — 30 suite reports, 199 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
+- `scripts/test-azure-reference-smoke.sh`: PASS — the stateful curl fixture
+  proves the marker is returned from assistant content, recalled before reset,
+  forgotten after reset, and fails when reset clears the UI and emits its
+  success marker but retained model memory still returns the marker.
+- Shared Azure and template contract tests: PASS —
+  `scripts/test-azure-cleanup.sh`, `scripts/test-azure-preflight.sh`,
+  `scripts/test-azure-readiness.sh`, `scripts/test-workshop-azure-infra.sh`,
+  `scripts/test-template-baseline-validator.sh`, and
+  `scripts/test-template-generation-validator.sh`.
 - `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: NOT RUN for the
   strengthened assertions; fresh live refresh pending.
 - Focused assistant suite: PASS — 10 suite reports, 87 tests, 0 failures, 0 errors, 0 skipped
