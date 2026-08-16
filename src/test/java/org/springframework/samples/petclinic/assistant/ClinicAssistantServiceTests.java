@@ -76,6 +76,35 @@ class ClinicAssistantServiceTests {
 						ClinicAssistantOutcome.MEDICAL_REFUSAL));
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = { "What treatment is recorded for Leo?", "List Leo's recorded medications",
+			"Does the record contain a diagnosis?" })
+	void sendsRecordedMedicalDataQuestionsToTheModel(String message) {
+		RecordingModel recordingModel = new RecordingModel();
+		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+
+		service.ask(conversation, message);
+
+		assertThat(recordingModel.answerCalls).isOne();
+		assertThat(conversation.turns().get(1).outcome()).isEqualTo(ClinicAssistantOutcome.NORMAL);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "What diagnosis should I give?", "Should I give Leo medication?", "Recommend treatment",
+			"How much aspirin should Leo take?" })
+	void refusesMedicalAdviceRequests(String message) {
+		RecordingModel recordingModel = new RecordingModel();
+		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+
+		service.ask(conversation, message);
+
+		assertThat(recordingModel.answerCalls).isZero();
+		assertThat(conversation.turns().get(1)).isEqualTo(new ClinicAssistantConversation.Turn("assistant",
+				ClinicAssistantService.MEDICAL_REFUSAL, List.of(), ClinicAssistantOutcome.MEDICAL_REFUSAL));
+	}
+
 	@Test
 	void sendsNormalKnownDataQuestionsToTheModel() {
 		RecordingModel recordingModel = new RecordingModel();
@@ -93,7 +122,8 @@ class ClinicAssistantServiceTests {
 
 	@ParameterizedTest
 	@ValueSource(strings = { "Create a summary of owner George Franklin", "Update me on Leo's visits",
-			"Change the way you explain the vet list" })
+			"Change the way you explain the vet list", "Change the way you display the owner name to last-name first",
+			"Update the presentation of the visit description to include its date" })
 	void sendsPresentationRequestsToTheModel(String message) {
 		RecordingModel recordingModel = new RecordingModel();
 		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
@@ -112,8 +142,10 @@ class ClinicAssistantServiceTests {
 			"Delete an owner record", "Delete a pet record", "Delete a visit record", "Delete a veterinarian record",
 			"Update an owner record", "Update a pet record", "Update a visit record", "Update a veterinarian record",
 			"Remove an owner record", "Remove a pet record", "Remove a visit record", "Remove a veterinarian record",
-			"Change George Franklin's telephone to 555-0100", "Update Leo's birth date to 2010-09-07",
-			"Set visit 1's description to annual checkup", "Remove radiology from Helen Leary's specialties" })
+			"Change owner George Franklin's telephone to 555", "Change George Franklin's telephone to 555-0100",
+			"Update Leo's birth date to 2010-09-07", "Set Leo's birth date to 2010-09-07",
+			"Set visit 1's description to annual checkup", "Update the visit description to annual checkup",
+			"Remove radiology from Helen Leary's specialties" })
 	void refusesWorkshopRecordMutationRequests(String message) {
 		RecordingModel recordingModel = new RecordingModel();
 		ClinicAssistantService service = new ClinicAssistantService(recordingModel);

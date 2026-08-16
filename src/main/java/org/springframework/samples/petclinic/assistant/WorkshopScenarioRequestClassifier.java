@@ -33,17 +33,21 @@ final class WorkshopScenarioRequestClassifier {
 		.compile("\\b(?:book|cancel|schedule)\\s+(?:(?:an?|the)\\s+)?visit\\b");
 
 	private static final Pattern DIRECT_FIELD_ASSIGNMENT = Pattern.compile(
-			"\\b(?:change|edit|modify|set|update)\\s+[^.!?]{0,60}\\b(?:address|birth\\s+date|birthdate|city|date|description|first\\s+name|last\\s+name|name|owner|specialt(?:y|ies)|telephone|type)\\s+to\\b");
+			"\\b(?:change|edit|modify|set|update)\\s+(?:(?:the\\s+)?(?:owner|pet|visit|vet|veterinarian)(?:\\s+[\\p{L}\\d][\\p{L}\\d-]*){0,4}(?:'s)?\\s+|(?:[\\p{L}\\d][\\p{L}\\d-]*\\s+){0,3}[\\p{L}\\d][\\p{L}\\d-]*'s\\s+)(?:address|birth\\s+date|birthdate|city|date|description|first\\s+name|last\\s+name|name|owner|specialt(?:y|ies)|telephone|type)\\s+to\\b");
 
 	private static final Pattern DIRECT_COLLECTION_FIELD_MUTATION = Pattern.compile(
 			"\\b(?:add|remove)\\s+[^.!?]{1,60}\\s+(?:from|to)\\s+[^.!?]{0,60}\\b(?:pets?|visits?|specialt(?:y|ies))\\b");
 
-	private static final Pattern MEDICAL_REQUEST = Pattern
-		.compile("\\b(diagnose|diagnosis|dosage|dose|medicine|medication|treat|treatment)\\b");
+	private static final Pattern MEDICAL_ADVICE_REQUEST = Pattern.compile(
+			"\\b(?:recommend|suggest|prescribe)\\s+(?:(?:a|the)\\s+)?(?:diagnosis|medicine|medication|treatment)\\b"
+					+ "|\\b(?:diagnosis|medicine|medication|treatment)(?:\\s+and\\s+(?:diagnosis|medicine|medication|treatment))?\\s+should\\b"
+					+ "|\\bshould\\s+i\\s+(?:give|administer|prescribe|use)\\s+[^.!?]{0,40}\\b(?:medicine|medication|treatment)\\b"
+					+ "|\\bhow\\s+much\\s+[^.!?]{1,60}\\bshould\\s+[^.!?]{1,40}\\btake\\b"
+					+ "|\\b(?:what|which)\\s+(?:dosage|dose)\\b");
 
 	ClinicAssistantOutcome classify(String message) {
 		String normalized = message.toLowerCase(Locale.ROOT);
-		if (MEDICAL_REQUEST.matcher(normalized).find()) {
+		if (MEDICAL_ADVICE_REQUEST.matcher(normalized).find()) {
 			return ClinicAssistantOutcome.MEDICAL_REFUSAL;
 		}
 		if (RECORD_MUTATION_REQUEST.matcher(normalized).find() || VISIT_SCHEDULING_REQUEST.matcher(normalized).find()
