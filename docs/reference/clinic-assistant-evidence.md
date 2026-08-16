@@ -4,36 +4,48 @@ Date: 2026-08-16
 
 ## Validated revisions
 
-- `main`: `9d52d5c47aa7cf68f58899b72a14feb27d80b7ec`
-- `origin/main`: `9d52d5c47aa7cf68f58899b72a14feb27d80b7ec`
-- Structured-boundary implementation revision: `8e39a16d8f5658c8528830ffea2b0968ded384ef`
-- That revision classifies workshop attempted-write and medical-advice requests
-  before model invocation, returns deterministic fixed refusals, records typed
-  assistant outcomes, and covers the behavior in service and endpoint tests.
-- The current safety-spec correction tightens deployed HTML extraction and
-  exact-refusal regression coverage. Live deployed evidence remains pending
-  until the structured-boundary smoke is rerun.
+- `main`: `9d52d5c`
+- `origin/main`: `9d52d5c`
+- Structured-boundary implementation revision: `97fcda7`
+- Deployed smoke validator revision: `97fcda7`
+- The implementation classifies workshop attempted-write and medical-advice
+  requests before model invocation, returns deterministic fixed refusals, and
+  renders typed assistant outcomes.
 
-## Historical Task 8 deployed reference smoke and current status
+## Fresh deployed reference smoke
 
-- Historical live smoke revision: `4d76aba95a3864ff324ee917881dfc2b59b55b5c`
+- Live validation date: `2026-08-16`
 - Region: `swedencentral`
 - Model: `gpt-5.4-mini`
 - Model version: `2026-03-17`
 - Deployment SKU: `GlobalStandard`
 - Deployment capacity: `10`
-- The historical revision passed Azure Preflight, seven deployed scenarios,
-  reset, cleanup, and independent post-cleanup verification on 2026-08-15.
-- That live result is not current evidence for the new deterministic
-  application-boundary refusals and structured assistant outcomes.
-- A new live refresh is pending at the revision that adds
-  `read-only-refusal` and `medical-refusal`; live Azure has intentionally not
-  been run for this revision yet.
-- The pending smoke asserts the structured outcome plus exact fixed safe text
-  for attempted-write and medical requests. Known-data and ambiguity scenarios
-  retain semantic positive markers and contradiction guards.
+- Azure Preflight: PASS
+- Pet and recorded-visit scenario: PASS
+- Owner and pet scenario: PASS
+- Veterinarian and specialty scenario: PASS
+- Ambiguous owner scenario: PASS
+- Attempted-write scenario: PASS — structured outcome
+  `read-only-refusal`; rendered response exactly matched the deterministic
+  fixed read-only refusal.
+- Medical-advice scenario: PASS — structured outcome `medical-refusal`;
+  rendered response exactly matched the deterministic fixed medical refusal.
+- Conversation marker scenario: PASS
+- Reset: PASS — the marker was absent after reset.
+- Overall deployed smoke: PASS — seven scenarios plus reset.
 - The smoke used one cookie jar, fetched `/clinic-assistant` before posting, submitted URL-encoded messages while following redirects, isolated model scenarios through the UI reset endpoint, and failed closed on transport or semantic assertion failures.
 - Evidence intentionally excludes environment and resource names, URLs, full subscription or tenant identifiers, credentials, and raw model transcripts.
+
+## Cleanup proof
+
+- Implemented cleanup command: PASS
+- Resource group absent: PASS
+- App Service plan and web app absent: PASS
+- Active Foundry account and model deployment absent: PASS
+- Deleted Foundry account absent: PASS
+- Independent post-cleanup resource-group query: PASS
+- Independent active-account query: PASS
+- Independent deleted-account query: PASS
 
 ## Commands
 
@@ -44,6 +56,7 @@ Executed:
 ./gradlew -q test
 scripts/test-reference-validator.sh
 scripts/validate-reference.sh
+REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh
 scripts/test-azure-reference-smoke.sh
 scripts/azure-preflight.sh
 scripts/azure-cleanup.sh
@@ -80,6 +93,7 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 - `./gradlew -q test`: PASS — 29 suite reports, 113 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
+- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS — final deployed run reported `reference deployed smoke passed (7 scenarios plus reset)` and `reference branch is current and validated`
 - Focused assistant suite: PASS — 10 suite reports, 72 tests, 0 failures, 0 errors, 0 skipped
 - Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 141 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
@@ -115,7 +129,9 @@ remain model-driven.
 `ClinicAssistantBoundaryTests` retains the system-prompt defense in depth, but
 the fixed refusal contract no longer depends on free-text model compliance.
 
-Historical prototype smoke evidence first proved the live medical-advice refusal path at commit [`ee7397dbe3f15846ff7ba98139fee11ac21d4cb2`](https://github.com/JoranBergfeld/agentify-pet-clinic/blob/ee7397dbe3f15846ff7ba98139fee11ac21d4cb2/docs/prototype/azure-deployment-slice-evidence.md). The 2026-08-15 Task 8 live refresh is retained only as historical evidence; a new live refresh for the structured-outcome revision is pending.
+Historical prototype smoke evidence first proved the live medical-advice
+refusal path at revision `ee7397d`. The fresh 2026-08-16 validation above is
+the current evidence for the structured-outcome revision.
 
 ## Redaction note
 
