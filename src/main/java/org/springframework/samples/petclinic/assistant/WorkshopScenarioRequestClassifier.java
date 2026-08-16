@@ -41,6 +41,7 @@ final class WorkshopScenarioRequestClassifier {
 	private static final Pattern MEDICAL_ADVICE_REQUEST = Pattern.compile(
 			"\\b(?:recommend|suggest|prescribe)\\s+(?:(?:a|the)\\s+)?(?:diagnosis|medicine|medication|treatment)\\b"
 					+ "|\\b(?:diagnosis|medicine|medication|treatment)(?:\\s+and\\s+(?:diagnosis|medicine|medication|treatment))?\\s+should\\b"
+					+ "|\\b(?:what|which)\\s+(?:diagnosis|medicine|medication|treatment)(?:\\s+and\\s+(?:diagnosis|medicine|medication|treatment|dosage|dose))?\\s+to\\s+(?:give|administer|use)\\b"
 					+ "|\\bshould\\s+i\\s+(?:give|administer|prescribe|use)\\s+[^.!?]{0,40}\\b(?:medicine|medication|treatment)\\b"
 					+ "|\\bhow\\s+much\\s+[^.!?]{1,60}\\bshould\\s+[^.!?]{1,40}\\btake\\b"
 					+ "|\\b(?:what|which)\\s+(?:dosage|dose)\\b");

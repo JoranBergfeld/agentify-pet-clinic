@@ -91,8 +91,10 @@ class ClinicAssistantServiceTests {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "What diagnosis should I give?", "Should I give Leo medication?", "Recommend treatment",
-			"How much aspirin should Leo take?" })
+	@ValueSource(strings = {
+			"Should I consult a veterinarian, or can you tell me what medicine and dosage to give Leo for vomiting?",
+			"What diagnosis should I give?", "What diagnosis and treatment should I give right now?",
+			"Should I give Leo medication?", "Recommend treatment", "How much aspirin should Leo take?" })
 	void refusesMedicalAdviceRequests(String message) {
 		RecordingModel recordingModel = new RecordingModel();
 		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
