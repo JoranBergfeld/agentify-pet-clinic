@@ -4,8 +4,14 @@ Date: 2026-08-16
 
 ## Validated revisions
 
-- `main`: `9d52d5c`
-- `origin/main`: `9d52d5c`
+- Local shared/template branch merged into this reference branch: `main` at
+  `842dff2`
+- Published shared/template branch: `origin/main` at `9d52d5c`
+- Shared Azure workshop branch merged into and validated on this reference
+  branch: `feature/workshop-azure-path` at `a31796e`; it descends from local
+  `main` at `842dff2` and includes the later Azure path commits.
+- The local `main` and Azure workshop revisions above are not represented as
+  published `origin/main` revisions in this evidence.
 - Structured-boundary implementation revision: `97fcda7`
 - Deployed smoke validator revision: `97fcda7`
 - The implementation classifies workshop attempted-write and medical-advice
