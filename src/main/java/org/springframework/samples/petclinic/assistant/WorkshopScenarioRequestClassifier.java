@@ -20,14 +20,18 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Recognizes only the explicit PetClinic mutation and medical-advice phrases used by the
- * workshop safety scenarios. This is intentionally a conservative deterministic boundary,
- * not a general natural-language intent classifier; other requests remain model-driven.
+ * Implements the limited grammar used by the PetClinic workshop safety scenarios. This is
+ * not a universal natural-language classifier; requests outside the explicit workshop
+ * grammar remain model-driven.
  */
 final class WorkshopScenarioRequestClassifier {
 
-	private static final Pattern RECORD_MUTATION_REQUEST = Pattern.compile(
-			"\\b(?:add|change|create|delete|edit|modify|remove|set|update)\\s+(?:(?:an?|the)\\s+)?(?:owner|pet|visit|vet|veterinarian)(?:\\s+record)?\\b");
+	private static final Pattern CREATE_OR_ADD_RECORD = Pattern
+		.compile("\\b(?:add|create)\\s+(?:(?:an?|the)\\s+)?(?:owner|pet|visit|vet|veterinarian|record)\\b"
+				+ "(?!\\s+(?:column|description|list|overview|report|summary|table|view)\\b)");
+
+	private static final Pattern OTHER_RECORD_MUTATION = Pattern.compile(
+			"\\b(?:change|delete|edit|modify|remove|set|update)\\s+(?:(?:an?|the)\\s+)?(?:owner|pet|visit|vet|veterinarian|record)(?:\\s+record)?\\b");
 
 	private static final Pattern VISIT_SCHEDULING_REQUEST = Pattern
 		.compile("\\b(?:book|cancel|schedule)\\s+(?:(?:an?|the)\\s+)?visit\\b");
@@ -37,6 +41,10 @@ final class WorkshopScenarioRequestClassifier {
 
 	private static final Pattern DIRECT_COLLECTION_FIELD_MUTATION = Pattern.compile(
 			"\\b(?:add|remove)\\s+[^.!?]{1,60}\\s+(?:from|to)\\s+[^.!?]{0,60}\\b(?:pets?|visits?|specialt(?:y|ies))\\b");
+
+	private static final Pattern DIRECT_MEDICAL_ACTION = Pattern
+		.compile("\\b(?:diagnose|treat)\\s+(?:(?:an?|the)\\s+)?[\\p{L}\\d][\\p{L}\\d'-]*"
+				+ "|\\bhow\\s+(?:can|should)\\s+i\\s+treat\\b");
 
 	private static final Pattern MEDICAL_ADVICE_REQUEST = Pattern.compile(
 			"\\b(?:recommend|suggest|prescribe)\\s+(?:(?:a|the)\\s+)?(?:diagnosis|medicine|medication|treatment)\\b"
@@ -48,15 +56,23 @@ final class WorkshopScenarioRequestClassifier {
 
 	ClinicAssistantOutcome classify(String message) {
 		String normalized = message.toLowerCase(Locale.ROOT);
-		if (MEDICAL_ADVICE_REQUEST.matcher(normalized).find()) {
+		if (isMedicalAdviceRequest(normalized)) {
 			return ClinicAssistantOutcome.MEDICAL_REFUSAL;
 		}
-		if (RECORD_MUTATION_REQUEST.matcher(normalized).find() || VISIT_SCHEDULING_REQUEST.matcher(normalized).find()
-				|| DIRECT_FIELD_ASSIGNMENT.matcher(normalized).find()
-				|| DIRECT_COLLECTION_FIELD_MUTATION.matcher(normalized).find()) {
+		if (isWriteRequest(normalized)) {
 			return ClinicAssistantOutcome.READ_ONLY_REFUSAL;
 		}
 		return ClinicAssistantOutcome.NORMAL;
+	}
+
+	private boolean isMedicalAdviceRequest(String message) {
+		return DIRECT_MEDICAL_ACTION.matcher(message).find() || MEDICAL_ADVICE_REQUEST.matcher(message).find();
+	}
+
+	private boolean isWriteRequest(String message) {
+		return CREATE_OR_ADD_RECORD.matcher(message).find() || OTHER_RECORD_MUTATION.matcher(message).find()
+				|| VISIT_SCHEDULING_REQUEST.matcher(message).find() || DIRECT_FIELD_ASSIGNMENT.matcher(message).find()
+				|| DIRECT_COLLECTION_FIELD_MUTATION.matcher(message).find();
 	}
 
 }
