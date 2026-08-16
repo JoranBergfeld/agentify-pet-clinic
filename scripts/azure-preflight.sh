@@ -166,9 +166,9 @@ begin_gate 'Readiness' 'Azure readiness failed'
 "$root/scripts/azure-readiness.sh"
 pass_gate 'Readiness'
 begin_gate 'Provisioning' 'azd up failed'
-azd up --no-prompt || fail 'azd up failed'
-deployment_started=1
 trap on_exit EXIT
+deployment_started=1
+azd up --no-prompt || fail 'azd up failed'
 pass_gate 'Provisioning'
 
 azd_value() {

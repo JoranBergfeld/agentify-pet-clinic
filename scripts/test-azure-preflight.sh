@@ -308,15 +308,23 @@ done
 
 make_success_fixture azd-failure
 printf '%s\n' 1 >"$scratch/azd-failure/fixtures/002-azd.status"
+add_failure_metadata azd-failure 3
+add_call "$scratch/azd-failure/fixtures" 6 az "$subscription_id" \
+  account show --query id --output tsv
 run_case azd-failure 1 'ERROR: azd up failed'
-[[ "$(wc -l <"$scratch/azd-failure/commands.log")" -eq 2 ]] ||
+[[ "$(wc -l <"$scratch/azd-failure/commands.log")" -eq 6 ]] ||
   fail_test 'azd up failure did not stop verification'
+assert_failure_evidence azd-failure 'Provisioning' Readiness
 
 make_success_fixture readiness-failure
 printf '%s\n' 1 >"$scratch/readiness-failure/fixtures/001-azure-readiness.sh.status"
 run_case readiness-failure 1
 [[ "$(wc -l <"$scratch/readiness-failure/commands.log")" -eq 1 ]] ||
   fail_test 'readiness failure did not stop before azd up'
+if find "$scratch/readiness-failure/evidence" -maxdepth 1 -type f \
+  -name 'preflight-*.md' | grep -q .; then
+  fail_test 'readiness failure wrote deployment failure evidence'
+fi
 
 make_success_fixture health-timeout
 printf '%s' '{"status":"STARTING"}' \
