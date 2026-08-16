@@ -6,10 +6,12 @@ Date: 2026-08-16
 
 - Current tested offline reference implementation revision: this document's
   commit.
+- Final live implementation and validator revision:
+  `af3da483c11ca31889b66ac65c3b14f5f1f638d5`.
 - Local shared/template branch merged into this reference branch through
   `main` at `9375f1124d97dee3a965637206e498e036dc5994`.
-- Last historical live reference revision:
-  `97fcda79bd04b8960239ecb0ca419ae172326c79`.
+- Final live Azure validation: PASS at the exact implementation and validator
+  revision above.
 - The deployed smoke now requires an ordered one-line `Samantha:` response
   linking the exact `2013-01-01 - rabies shot` and
   `2013-01-04 - spayed` fixture facts to Samantha.
@@ -22,18 +24,16 @@ Date: 2026-08-16
   recall behavior.
 - Offline fixture and local application validation are current at the tested
   offline implementation revision above.
-- A fresh live Azure refresh is pending. No earlier exact-revision live run is
-  current evidence for these strengthened visit-attribution and reset-memory
-  assertions. No live Azure validation was run for this revision.
+- The final live run proved the strengthened visit-attribution and
+  reset-memory assertions.
 - The implementation classifies workshop attempted-write and medical-advice
   requests before model invocation, returns deterministic fixed refusals, and
   renders typed assistant outcomes.
 
-## Previous deployed reference smoke (superseded)
+## Final deployed reference smoke
 
-- Historical live validation date: `2026-08-16`
-- Status: superseded by the strengthened visit-set and model-memory reset
-  assertions; retained only as historical context pending a fresh live refresh.
+- Live validation date: `2026-08-16`
+- Status: PASS at implementation and validator revision `af3da48`.
 - Region: `swedencentral`
 - Model: `gpt-5.4-mini`
 - Model version: `2026-03-17`
@@ -49,8 +49,10 @@ Date: 2026-08-16
   fixed read-only refusal.
 - Medical-advice scenario: PASS — structured outcome `medical-refusal`;
   rendered response exactly matched the deterministic fixed medical refusal.
-- Historical reset probe scenario: PASS
-- Reset: PASS — the historical probe was absent after reset.
+- Reset setup scenario: PASS — an ordinary in-scope transcript was present.
+- Reset: PASS — the structured reset-success marker attested that
+  `ChatMemory.clear` was followed by an empty readback; the visible transcript
+  and setup prompt were absent afterward.
 - Overall deployed smoke: PASS — seven scenarios plus reset.
 - The smoke used one cookie jar, fetched `/clinic-assistant` before posting, submitted URL-encoded messages while following redirects, isolated model scenarios through the UI reset endpoint, and failed closed on transport or semantic assertion failures.
 - Evidence intentionally excludes environment and resource names, URLs, full subscription or tenant identifiers, credentials, and raw model transcripts.
@@ -65,6 +67,10 @@ Date: 2026-08-16
 - Independent post-cleanup resource-group query: PASS
 - Independent active-account query: PASS
 - Independent deleted-account query: PASS
+- Cleanup completed: `2026-08-16T20:49:42Z`
+- Independent absence verification: `2026-08-16T20:49:56Z` — resource group
+  absent, active App Service/Foundry resource count `0`, and deleted Foundry
+  account count `0`.
 
 ## Commands
 
@@ -126,8 +132,10 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
   `scripts/test-azure-readiness.sh`, `scripts/test-workshop-azure-infra.sh`,
   `scripts/test-template-baseline-validator.sh`, and
   `scripts/test-template-generation-validator.sh`.
-- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: NOT RUN for the
-  strengthened assertions; fresh live refresh pending.
+- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS — exact
+  Samantha visit facts and attribution, owner/pet, veterinarian/specialty,
+  ambiguous owner handling, deterministic structured write and medical
+  refusals, and verified reset with transcript absence all passed.
 - Focused assistant suite: PASS — 10 suite reports, 90 tests, 0 failures, 0 errors, 0 skipped
 - Full Maven suite (`./mvnw -q test`): PASS — 27 suite reports, 200 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
@@ -163,10 +171,8 @@ remain model-driven.
 `ClinicAssistantBoundaryTests` retains the system-prompt defense in depth, but
 the fixed refusal contract no longer depends on free-text model compliance.
 
-Historical prototype smoke evidence first proved the live medical-advice
-refusal path at revision `ee7397d`. The 2026-08-16 run above is historical
-only; a fresh live refresh is pending for the strengthened visit-set and reset
-contracts.
+The final 2026-08-16 live run proved the strengthened visit-set, attribution,
+structured refusal, and reset-memory contracts at revision `af3da48`.
 
 ## Redaction note
 
