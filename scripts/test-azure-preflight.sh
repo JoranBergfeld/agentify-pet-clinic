@@ -149,6 +149,29 @@ make_success_fixture() {
   add_call "$fixture_dir" 37 date '2026-08-14T09:05:48Z' -u +%Y-%m-%dT%H:%M:%SZ
 }
 
+add_failure_metadata() {
+  local name="$1"
+  local next_call="$2"
+  local fixture_dir="$scratch/$name/fixtures"
+
+  find "$fixture_dir" -maxdepth 1 -type f \
+    -regextype posix-extended \
+    -regex ".*/([0-9]{3})-.*" \
+    -printf '%f\n' |
+    while read -r fixture; do
+      if (( 10#${fixture:0:3} >= next_call )); then
+        rm -f "$fixture_dir/$fixture"
+      fi
+    done
+  add_call "$fixture_dir" "$next_call" git \
+    '0123456789abcdef0123456789abcdef01234567' \
+    -C "$scratch/$name/project" rev-parse HEAD
+  add_call "$fixture_dir" "$((next_call + 1))" date \
+    '20260814T090548Z' -u +%Y%m%dT%H%M%SZ
+  add_call "$fixture_dir" "$((next_call + 2))" date \
+    '2026-08-14T09:05:48Z' -u +%Y-%m-%dT%H:%M:%SZ
+}
+
 run_case() {
   local name="$1"
   local expected_status="$2"
@@ -170,6 +193,64 @@ run_case() {
     grep -Fqx "$expected_message" "$case_dir/stderr" ||
       fail_test "$name did not emit exact failure: $expected_message; got: $(cat "$case_dir/stderr")"
   fi
+}
+
+assert_failure_evidence() {
+  local name="$1"
+  local failed_gate="$2"
+  shift 2
+  local evidence_dir="$scratch/$name/evidence"
+  local evidence_files=()
+  local evidence
+  local expected
+
+  mapfile -t evidence_files < <(find "$evidence_dir" -maxdepth 1 -type f -name 'preflight-*.md')
+  [[ "${#evidence_files[@]}" -eq 1 ]] ||
+    fail_test "$name created ${#evidence_files[@]} evidence files, expected exactly one"
+  evidence="${evidence_files[0]}"
+
+  for expected in \
+    '# Azure Preflight Evidence' \
+    'Outcome: `FAILED`' \
+    'Command version: `1.0.0`' \
+    'Evidence schema version: `1.0`' \
+    'UTC: `2026-08-14T09:05:48Z`' \
+    'Git revision: `0123456789abcdef0123456789abcdef01234567`' \
+    'Subscription: `11111111...5555`' \
+    'Region: `swedencentral`' \
+    'Model: `gpt-5.4-mini`' \
+    'Model version: `2026-03-17`' \
+    'Deployment: `gpt-5-4-mini`' \
+    'SKU: `GlobalStandard`' \
+    'Capacity: `10`' \
+    'Cleanup deadline: `2026-08-14T16:00:00Z`' \
+    "Failed gate: \`$failed_gate\`" \
+    'Observed safe error: `' \
+    "| $failed_gate | FAIL |" \
+    'This environment may remain billable.' \
+    'Cleanup is required: `scripts/azure-cleanup.sh`'; do
+    grep -Fq "$expected" "$evidence" ||
+      fail_test "$name evidence omitted expected field: $expected"
+  done
+
+  ! grep -Fq "| $failed_gate | PASS |" "$evidence" ||
+    fail_test "$name evidence falsely marked $failed_gate PASS"
+  grep -Fq \
+    'WARNING: Azure Preflight failed after deployment; this environment may remain billable.' \
+    "$scratch/$name/stderr" ||
+    fail_test "$name did not warn that the deployment may remain billable"
+  grep -Fq 'Cleanup is required: scripts/azure-cleanup.sh' "$scratch/$name/stderr" ||
+    fail_test "$name did not require cleanup on stderr"
+  for expected in "$@"; do
+    grep -Fq "| $expected | PASS |" "$evidence" ||
+      fail_test "$name evidence did not truthfully preserve prior gate: $expected"
+  done
+  for secret in "$subscription_id" "$principal_id" "$foundry" "$web_app" "$app_url" \
+    "$resource_group" "$foundry_scope" 'plan-secret' \
+    'ffffffff-1111-2222-3333-444444444444' 'token'; do
+    ! grep -Fq "$secret" "$evidence" ||
+      fail_test "$name evidence disclosed forbidden value: $secret"
+  done
 }
 
 make_success_fixture success
@@ -249,47 +330,66 @@ add_call "$scratch/health-timeout/fixtures" 20 curl '{"status":"STARTING"}' \
   --fail --silent --show-error "$app_url/actuator/health"
 add_jq_call "$scratch/health-timeout/fixtures" 21 'STARTING' '{"status":"STARTING"}' \
   -r "$health_filter"
+add_failure_metadata health-timeout 22
 run_case health-timeout 1 \
   'ERROR: application health did not succeed after 3 attempts'
+assert_failure_evidence health-timeout 'Application health' \
+  Readiness Provisioning
 
 make_success_fixture missing-resource
 missing_resources='[{"type":"Microsoft.Web/serverfarms","provisioningState":"Succeeded"},{"type":"Microsoft.Web/sites","provisioningState":"Succeeded"}]'
 printf '%s' "$missing_resources" >"$scratch/missing-resource/fixtures/019-az.stdout"
 printf '%s' "$missing_resources" >"$scratch/missing-resource/fixtures/020-jq.stdin"
 printf '%s\n' 1 >"$scratch/missing-resource/fixtures/020-jq.status"
+add_failure_metadata missing-resource 21
 run_case missing-resource 1 \
   'ERROR: deployed resources are missing, unexpected, or not successfully provisioned'
+assert_failure_evidence missing-resource 'Resource topology' \
+  Readiness Provisioning 'Application health'
 
 make_success_fixture failed-provisioning
 failed_resources='[{"type":"Microsoft.Web/serverfarms","provisioningState":"Succeeded"},{"type":"Microsoft.Web/sites","provisioningState":"Failed"},{"type":"Microsoft.CognitiveServices/accounts","provisioningState":"Succeeded"}]'
 printf '%s' "$failed_resources" >"$scratch/failed-provisioning/fixtures/019-az.stdout"
 printf '%s' "$failed_resources" >"$scratch/failed-provisioning/fixtures/020-jq.stdin"
 printf '%s\n' 1 >"$scratch/failed-provisioning/fixtures/020-jq.status"
+add_failure_metadata failed-provisioning 21
 run_case failed-provisioning 1 \
   'ERROR: deployed resources are missing, unexpected, or not successfully provisioned'
+assert_failure_evidence failed-provisioning 'Resource topology' \
+  Readiness Provisioning 'Application health'
 
-make_success_fixture wrong-model-capacity
-wrong_deployment='{"properties":{"model":{"name":"gpt-5.4-mini","version":"2026-03-17"}},"sku":{"name":"GlobalStandard","capacity":9}}'
-printf '%s' "$wrong_deployment" >"$scratch/wrong-model-capacity/fixtures/021-az.stdout"
-printf '%s' "$wrong_deployment" >"$scratch/wrong-model-capacity/fixtures/022-jq.stdin"
-printf '%s\n' 1 >"$scratch/wrong-model-capacity/fixtures/022-jq.status"
-run_case wrong-model-capacity 1 \
+make_success_fixture missing-model
+missing_model_deployment='{"properties":{"model":{"version":"2026-03-17"}},"sku":{"name":"GlobalStandard","capacity":10}}'
+printf '%s' "$missing_model_deployment" >"$scratch/missing-model/fixtures/021-az.stdout"
+printf '%s' "$missing_model_deployment" >"$scratch/missing-model/fixtures/022-jq.stdin"
+printf '%s\n' 1 >"$scratch/missing-model/fixtures/022-jq.status"
+add_failure_metadata missing-model 23
+run_case missing-model 1 \
   'ERROR: model deployment values do not exactly match the azd outputs'
+assert_failure_evidence missing-model 'Model deployment' \
+  Readiness Provisioning 'Application health' 'Resource topology'
 
 make_success_fixture missing-identity
 missing_identity='{"type":"None","principalId":null}'
 printf '%s' "$missing_identity" >"$scratch/missing-identity/fixtures/023-az.stdout"
 printf '%s' "$missing_identity" >"$scratch/missing-identity/fixtures/024-jq.stdin"
 printf '%s\n' 1 >"$scratch/missing-identity/fixtures/024-jq.status"
+add_failure_metadata missing-identity 25
 run_case missing-identity 1 \
   'ERROR: web app system-assigned managed identity is missing'
+assert_failure_evidence missing-identity 'Managed identity' \
+  Readiness Provisioning 'Application health' 'Resource topology' 'Model deployment'
 
 make_success_fixture missing-role
 printf '%s' '[]' >"$scratch/missing-role/fixtures/026-az.stdout"
 printf '%s' '[]' >"$scratch/missing-role/fixtures/027-jq.stdin"
 printf '%s\n' 1 >"$scratch/missing-role/fixtures/027-jq.status"
+add_failure_metadata missing-role 28
 run_case missing-role 1 \
   'ERROR: Foundry User assignment is missing at the Foundry resource scope'
+assert_failure_evidence missing-role 'Foundry User assignment' \
+  Readiness Provisioning 'Application health' 'Resource topology' 'Model deployment' \
+  'Managed identity'
 
 make_success_fixture missing-app-setting
 missing_settings="[{\"name\":\"AZURE_OPENAI_ENDPOINT\",\"value\":\"https://$foundry.openai.azure.com\"},{\"name\":\"AZURE_OPENAI_MICROSOFT_FOUNDRY\",\"value\":\"true\"},{\"name\":\"AZURE_OPENAI_DEPLOYMENT\",\"value\":\"gpt-5-4-mini\"},{\"name\":\"AZURE_OPENAI_MODEL\",\"value\":\"gpt-5.4-mini\"},{\"name\":\"JAVA_OPTS\",\"value\":\"-Xms256m -Xmx1024m\"}]"
@@ -299,8 +399,12 @@ for number in 29 30 31 32 33 34; do
     >"$scratch/missing-app-setting/fixtures/$(printf '%03d' "$number")-jq.stdin"
 done
 printf '%s\n' 1 >"$scratch/missing-app-setting/fixtures/034-jq.status"
+add_failure_metadata missing-app-setting 35
 run_case missing-app-setting 1 \
   'ERROR: required app setting WEBSITES_PORT is missing or has an unexpected value'
+assert_failure_evidence missing-app-setting 'Required app settings' \
+  Readiness Provisioning 'Application health' 'Resource topology' 'Model deployment' \
+  'Managed identity' 'Foundry User assignment'
 
 make_success_fixture missing-deadline
 status=0
