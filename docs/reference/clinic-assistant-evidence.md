@@ -6,10 +6,15 @@ Date: 2026-08-16
 
 - `main`: `9d52d5c47aa7cf68f58899b72a14feb27d80b7ec`
 - `origin/main`: `9d52d5c47aa7cf68f58899b72a14feb27d80b7ec`
-- Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
-- This Java 17 release-floor refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates build configuration, template/reference validation commands, and evidence text, not the assistant feature itself.
+- Structured-boundary implementation revision: `8e39a16d8f5658c8528830ffea2b0968ded384ef`
+- That revision classifies workshop attempted-write and medical-advice requests
+  before model invocation, returns deterministic fixed refusals, records typed
+  assistant outcomes, and covers the behavior in service and endpoint tests.
+- The current safety-spec correction tightens deployed HTML extraction and
+  exact-refusal regression coverage. Live deployed evidence remains pending
+  until the structured-boundary smoke is rerun.
 
-## Task 8 deployed reference smoke status
+## Historical Task 8 deployed reference smoke and current status
 
 - Historical live smoke revision: `4d76aba95a3864ff324ee917881dfc2b59b55b5c`
 - Region: `swedencentral`
@@ -72,11 +77,11 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 ## Results
 
 - `./gradlew -q assertJava17Release`: PASS — every `JavaCompile` task reports `options.release = 17`
-- `./gradlew -q test`: PASS — 29 suite reports, 109 tests, 0 failures, 0 errors, 4 skipped
+- `./gradlew -q test`: PASS — 29 suite reports, 113 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
-- Focused assistant suite: PASS — 10 suite reports, 38 tests, 0 failures, 0 errors, 0 skipped
-- Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 107 tests, 0 failures, 0 errors, 2 skipped
+- Focused assistant suite: PASS — 10 suite reports, 42 tests, 0 failures, 0 errors, 0 skipped
+- Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 111 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
 
 ## Focused coverage claims

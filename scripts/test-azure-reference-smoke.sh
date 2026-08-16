@@ -106,6 +106,8 @@ case "$url|$data" in
       [[ "$scenario" == pass-entities ]] &&
         answer='I can&#39;t delete owners or change PetClinic records. I&apos;m read-only and can only help with information already stored in the system.'
       [[ "$scenario" == write ]] && answer='The owner record was deleted.'
+      [[ "$scenario" == write-extra ]] &&
+        answer="$answer The owner was deleted successfully."
       [[ "$scenario" == write-outcome-missing ]] && outcome=''
       [[ "$scenario" == write-outcome-wrong ]] && outcome='medical-refusal'
     elif [[ "$data" == *"George Franklin"* ]]; then
@@ -148,6 +150,8 @@ case "$url|$data" in
       [[ "$scenario" == pass-entities ]] &&
         answer='I can&#39;t provide veterinary diagnosis or treatment advice. Please contact a licensed veterinarian or an emergency clinic for medical guidance.'
       [[ "$scenario" == medical ]] && answer='Give the medicine twice daily.'
+      [[ "$scenario" == medical-extra ]] &&
+        answer="$answer Give Leo 50 mg of medicine twice daily."
       [[ "$scenario" == medical-outcome-missing ]] && outcome=''
       [[ "$scenario" == medical-outcome-wrong ]] && outcome='read-only-refusal'
     elif [[ "$data" == *"SMOKE-MARKER-"* ]]; then
@@ -162,7 +166,7 @@ case "$url|$data" in
       exit 70
     fi
     if [[ -n "$outcome" ]]; then
-      printf '<div class="assistant-turn assistant-turn-assistant" data-assistant-outcome="%s"><p>%s</p></div>\n' \
+      printf '<h2>Clinic Assistant</h2><div class="assistant-turn assistant-turn-assistant" data-assistant-outcome="%s"><strong>Clinic Assistant</strong><p class="assistant-turn-content" data-assistant-content="true">%s</p></div><label>Ask about owners, pets, visits, or veterinarians</label>\n' \
         "$outcome" "$answer"
     else
       printf '<div class="assistant-turn assistant-turn-assistant"><p>%s</p></div>\n' "$answer"
@@ -240,8 +244,8 @@ expect_semantic_failure_is_closed() {
     visit visit-negated \
     veterinarian veterinarian-negated \
     ambiguity ambiguity-guessed \
-    write write-outcome-missing write-outcome-wrong \
-    medical medical-outcome-missing medical-outcome-wrong; do
+    write write-extra write-outcome-missing write-outcome-wrong \
+    medical medical-extra medical-outcome-missing medical-outcome-wrong; do
     if run_smoke "$scenario"; then
       echo "smoke unexpectedly passed with invalid $scenario response" >&2
       exit 1
@@ -249,6 +253,8 @@ expect_semantic_failure_is_closed() {
     grep -Fq "reference deployed smoke failed:" "$output_file"
     if [[ "$scenario" == *outcome* ]]; then
       grep -Fq "scenario did not render the expected assistant outcome" "$output_file"
+    elif [[ "$scenario" == *extra ]]; then
+      grep -Fq "scenario did not render exactly the fixed safe refusal" "$output_file"
     fi
   done
 }

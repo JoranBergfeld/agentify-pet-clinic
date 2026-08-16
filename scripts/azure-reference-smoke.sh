@@ -20,40 +20,82 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
 }
 
-latest_assistant_block() {
-  awk '
-    /assistant-turn-assistant/ {
-      capture = 1
-      block = ""
-    }
-    capture {
-      block = block $0 "\n"
-    }
-    capture && /<\/div>/ {
-      latest = block
-      capture = 0
-    }
-    END {
-      printf "%s", latest
-    }
-  ' "$1"
+extract_latest_assistant_text() {
+  local response_file="$1"
+  local outcome="${2:-}"
+
+  python3 - "$response_file" "$outcome" >"$latest_text_file" <<'PY'
+import sys
+from html.parser import HTMLParser
+
+
+class AssistantTurnParser(HTMLParser):
+    def __init__(self, expected_outcome):
+        super().__init__(convert_charrefs=True)
+        self.expected_outcome = expected_outcome
+        self.turn = None
+        self.div_depth = 0
+        self.capture_depth = 0
+        self.selected = None
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        classes = attributes.get("class", "").split()
+        if tag == "div":
+            if self.turn is not None:
+                self.div_depth += 1
+            elif "assistant-turn-assistant" in classes:
+                self.turn = {
+                    "outcome": attributes.get("data-assistant-outcome"),
+                    "content": [],
+                    "has_content": False,
+                }
+                self.div_depth = 1
+        if self.turn is not None and attributes.get("data-assistant-content") == "true":
+            self.turn["has_content"] = True
+            self.capture_depth = 1
+        elif self.capture_depth:
+            self.capture_depth += 1
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        if self.capture_depth:
+            self.capture_depth -= 1
+        if tag == "div" and self.turn is not None:
+            self.div_depth -= 1
+            if self.div_depth == 0:
+                if self.turn["has_content"]:
+                    self.selected = (
+                        self.turn["outcome"],
+                        " ".join("".join(self.turn["content"]).split()),
+                    )
+                self.turn = None
+
+    def handle_data(self, data):
+        if self.capture_depth and self.turn is not None:
+            self.turn["content"].append(data)
+
+
+response_file, expected_outcome = sys.argv[1:]
+parser = AssistantTurnParser(expected_outcome)
+with open(response_file, encoding="utf-8") as response:
+    parser.feed(response.read())
+parser.close()
+if parser.selected is None or (
+    expected_outcome and parser.selected[0] != expected_outcome
+):
+    raise SystemExit(1)
+print(parser.selected[1])
+PY
 }
 
 normalize_latest_assistant_text() {
   local response_file="$1"
 
-  latest_assistant_block "$response_file" |
-    sed -E 's/<[^>]*>/ /g' |
-    perl -pe '
-      s/&apos;/\x27/gi;
-      s/&#39;/\x27/gi;
-      s/&quot;/\x22/gi;
-      s/&amp;/\x26/gi;
-      s/&lt;/\x3c/gi;
-      s/&gt;/\x3e/gi;
-    ' >"$latest_text_file"
-
-  [[ -s "$latest_text_file" ]]
+  extract_latest_assistant_text "$response_file" && [[ -s "$latest_text_file" ]]
 }
 
 assert_latest_matches() {
@@ -98,14 +140,13 @@ assert_latest_refusal() {
   local outcome="$3"
   local fixed_text="$4"
 
-  if ! latest_assistant_block "$response_file" |
-    grep -Fq "data-assistant-outcome=\"$outcome\""; then
+  if ! extract_latest_assistant_text "$response_file" "$outcome"; then
     fail "$description did not render the expected assistant outcome"
   fi
-  normalize_latest_assistant_text "$response_file" ||
+  [[ -s "$latest_text_file" ]] ||
     fail "$description returned no assistant response"
-  grep -Fq "$fixed_text" "$latest_text_file" ||
-    fail "$description did not render the fixed safe refusal"
+  [[ "$(cat "$latest_text_file")" == "$fixed_text" ]] ||
+    fail "$description did not render exactly the fixed safe refusal"
 }
 
 main() {
@@ -114,10 +155,9 @@ main() {
   local cookie_jar response_file marker
 
   require_command curl
-  require_command awk
+  require_command cat
   require_command grep
-  require_command sed
-  require_command perl
+  require_command python3
   require_command date
   require_command mktemp
   require_command chmod

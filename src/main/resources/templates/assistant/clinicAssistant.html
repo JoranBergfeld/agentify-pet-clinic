@@ -13,7 +13,7 @@
     th:attr="data-assistant-outcome=${turn.role == 'assistant' ? turn.outcome.htmlValue() : null}">
     <strong th:if="${turn.role == 'user'}" th:text="#{clinicAssistantYou}">You</strong>
     <strong th:unless="${turn.role == 'user'}" th:text="#{clinicAssistant}">Clinic Assistant</strong>
-    <p th:text="${turn.content}"></p>
+    <p class="assistant-turn-content" data-assistant-content="true" th:text="${turn.content}"></p>
     <ul th:if="${!turn.activities.empty}" class="assistant-activity">
       <li th:each="activity : ${turn.activities}">
         <code th:text="${activity.tool}"></code>

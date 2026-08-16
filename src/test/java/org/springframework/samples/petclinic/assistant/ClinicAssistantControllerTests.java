@@ -123,6 +123,8 @@ class ClinicAssistantControllerTests {
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("Who owns Leo?")))
 			.andExpect(content().string(containsString("George Franklin owns Leo.")))
+			.andExpect(content().string(containsString(
+					"<p class=\"assistant-turn-content\" data-assistant-content=\"true\">George Franklin owns Leo.</p>")))
 			.andExpect(content().string(containsString("findPetsByName")))
 			.andExpect(content().string(containsString("1 pet matches")));
 	}
