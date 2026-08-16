@@ -9,6 +9,7 @@ resources_bicep="$root/infra/resources.bicep"
 guide="$root/docs/workshop/azure-preflight-and-cleanup.md"
 research="$root/docs/research/azure-permission-and-cost-envelope.md"
 readme="$root/README.md"
+workflow="$root/.github/workflows/validate-template.yml"
 
 test -f "$azure_yaml"
 test -f "$main_bicep"
@@ -16,6 +17,7 @@ test -f "$main_parameters"
 test -f "$resources_bicep"
 test -f "$guide"
 test -f "$research"
+test -f "$workflow"
 
 grep -Fq 'docs/workshop/azure-preflight-and-cleanup.md' "$readme"
 grep -Fq 'scripts/azure-readiness.sh' "$guide"
@@ -54,6 +56,17 @@ grep -Fq '2026-08-12' "$guide"
 grep -Fq '$0.75 per 1 million input tokens' "$guide"
 grep -Fq '$4.50 per 1 million output tokens' "$guide"
 grep -Fq 'Cost Management' "$guide"
+
+python3 - "$workflow" <<'PY'
+import re
+import sys
+
+workflow = open(sys.argv[1], encoding="utf-8").read()
+assert re.search(
+    r"(?m)^on:\n  pull_request:\n    branches: \[main\]\n  push:\n    branches: \[main\]$",
+    workflow,
+), "validate-template must run only for pull requests targeting main and pushes to main"
+PY
 
 python3 - "$azure_yaml" <<'PY'
 import sys
@@ -147,6 +160,7 @@ grep -Fq 'name: modelName' "$resources_bicep"
 grep -Fq 'version: modelVersion' "$resources_bicep"
 grep -Fq 'name: modelDeploymentSku' "$resources_bicep"
 grep -Fq 'capacity: modelDeploymentCapacity' "$resources_bicep"
+grep -Fq "versionUpgradeOption: 'NoAutoUpgrade'" "$resources_bicep"
 grep -Fq "resource web 'Microsoft.Web/sites@" "$resources_bicep"
 grep -Fq "type: 'SystemAssigned'" "$resources_bicep"
 grep -Fq "linuxFxVersion: 'JAVA|21-java21'" "$resources_bicep"
