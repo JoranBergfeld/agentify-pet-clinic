@@ -80,8 +80,8 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 - `./gradlew -q test`: PASS — 29 suite reports, 113 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
-- Focused assistant suite: PASS — 10 suite reports, 42 tests, 0 failures, 0 errors, 0 skipped
-- Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 111 tests, 0 failures, 0 errors, 2 skipped
+- Focused assistant suite: PASS — 10 suite reports, 72 tests, 0 failures, 0 errors, 0 skipped
+- Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 141 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
 
 ## Focused coverage claims
@@ -90,7 +90,7 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 - Pet coverage: PASS via `ClinicQueryServiceTests.findsPetsByExactCaseInsensitiveNameAcrossOwnersWithOwnerIdentity`
 - Veterinarian coverage: PASS via `ClinicQueryServiceTests.listsVeterinariansWithExactRecordContractAndSortedSpecialtyNames`
 - Ambiguity-preserving multi-results: PASS for preserving multiple exact pet matches with owner identity via `ClinicQueryServiceTests.findsPetsByExactCaseInsensitiveNameAcrossOwnersWithOwnerIdentity`; the configured clarification boundary is PASS via `ClinicAssistantBoundaryTests.configuresClarificationForMultipleMatches`.
-- Deterministic refusal boundary: PASS locally via `ClinicAssistantServiceTests.refusesAttemptedWritesWithoutInvokingTheModel`, `ClinicAssistantServiceTests.refusesVeterinaryDiagnosisAndTreatmentWithoutInvokingTheModel`, and `ClinicAssistantServiceTests.sendsNormalKnownDataQuestionsToTheModel`
+- Deterministic refusal boundary: PASS locally via `ClinicAssistantServiceTests.refusesAttemptedWritesWithoutInvokingTheModel`, `ClinicAssistantServiceTests.refusesWorkshopRecordMutationRequests`, `ClinicAssistantServiceTests.refusesVeterinaryDiagnosisAndTreatmentWithoutInvokingTheModel`, `ClinicAssistantServiceTests.sendsNormalKnownDataQuestionsToTheModel`, and `ClinicAssistantServiceTests.sendsPresentationRequestsToTheModel`
 - Endpoint refusal transcript flow and structured outcomes: PASS locally via `ClinicAssistantBoundaryScenarioTests.rendersReadOnlyRefusalForAttemptedWriteRequestsWithoutFabricatedActivity`, `ClinicAssistantBoundaryScenarioTests.rendersMedicalAdviceRefusalWithoutFabricatedActivity`, and `ClinicAssistantBoundaryScenarioTests.rendersNormalOutcomeForModelAnswers`
 - Conversation transcript model: PASS via `ClinicAssistantConversationTests.createsAStringConversationWithPackagePrivateTypesAndImmutableTurns` and `ClinicAssistantConversationTests.recordsUserAndAssistantTurnsAndCanClearThem`
 - Activity visibility: PASS via `ClinicAssistantToolsTests.returnsPurposeBuiltRecordsAndVisibleActivity`, `ClinicAssistantServiceTests.recordsTheUserAnswerAndVisibleActivity`, and `ClinicAssistantControllerTests.preservesTranscriptAndVisibleActivityInTheSession`
@@ -107,6 +107,11 @@ The focused local suite now proves obvious workshop attempted-write and
 veterinary diagnosis/treatment requests are classified before
 `ClinicAssistantModel.answer`, receive fixed responses with no activity, and
 render typed outcomes. A normal known-data prompt still invokes the model.
+The deterministic classifier is intentionally limited to explicit workshop
+phrases for PetClinic record mutations, visit scheduling, known record-field
+changes, and medical advice. It is not presented as general natural-language
+intent recognition; presentation-oriented reads and other unmatched requests
+remain model-driven.
 `ClinicAssistantBoundaryTests` retains the system-prompt defense in depth, but
 the fixed refusal contract no longer depends on free-text model compliance.
 

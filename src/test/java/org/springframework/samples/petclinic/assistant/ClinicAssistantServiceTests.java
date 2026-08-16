@@ -25,6 +25,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -87,6 +89,41 @@ class ClinicAssistantServiceTests {
 				new ClinicAssistantConversation.Turn("user", "Who owns Leo?", List.of(), ClinicAssistantOutcome.NORMAL),
 				new ClinicAssistantConversation.Turn("assistant", "George Franklin owns Leo.", List.of(),
 						ClinicAssistantOutcome.NORMAL));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "Create a summary of owner George Franklin", "Update me on Leo's visits",
+			"Change the way you explain the vet list" })
+	void sendsPresentationRequestsToTheModel(String message) {
+		RecordingModel recordingModel = new RecordingModel();
+		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+
+		service.ask(conversation, message);
+
+		assertThat(recordingModel.answerCalls).isOne();
+		assertThat(conversation.turns().get(1).outcome()).isEqualTo(ClinicAssistantOutcome.NORMAL);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "Schedule a visit for Leo", "Book a visit for Leo", "Cancel a visit for Leo",
+			"Create an owner record", "Create a pet record", "Create a visit record", "Create a veterinarian record",
+			"Add an owner record", "Add a pet record", "Add a visit record", "Add a veterinarian record",
+			"Delete an owner record", "Delete a pet record", "Delete a visit record", "Delete a veterinarian record",
+			"Update an owner record", "Update a pet record", "Update a visit record", "Update a veterinarian record",
+			"Remove an owner record", "Remove a pet record", "Remove a visit record", "Remove a veterinarian record",
+			"Change George Franklin's telephone to 555-0100", "Update Leo's birth date to 2010-09-07",
+			"Set visit 1's description to annual checkup", "Remove radiology from Helen Leary's specialties" })
+	void refusesWorkshopRecordMutationRequests(String message) {
+		RecordingModel recordingModel = new RecordingModel();
+		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+
+		service.ask(conversation, message);
+
+		assertThat(recordingModel.answerCalls).isZero();
+		assertThat(conversation.turns().get(1)).isEqualTo(new ClinicAssistantConversation.Turn("assistant",
+				ClinicAssistantService.READ_ONLY_REFUSAL, List.of(), ClinicAssistantOutcome.READ_ONLY_REFUSAL));
 	}
 
 	@Test
