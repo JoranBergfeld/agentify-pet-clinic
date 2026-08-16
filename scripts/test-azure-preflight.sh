@@ -73,7 +73,7 @@ make_success_fixture() {
   for command in az azd curl git date sleep jq; do
     ln -s "$fake_command" "$bin_dir/$command"
   done
-  for command in bash basename cat dirname mkdir rm wc; do
+  for command in bash basename cat dirname mkdir mv rm wc; do
     ln -s "$(command -v "$command")" "$bin_dir/$command"
   done
 
@@ -315,6 +315,22 @@ run_case azd-failure 1 'ERROR: azd up failed'
 [[ "$(wc -l <"$scratch/azd-failure/commands.log")" -eq 6 ]] ||
   fail_test 'azd up failure did not stop verification'
 assert_failure_evidence azd-failure 'Provisioning' Readiness
+
+make_success_fixture evidence-write-failure
+printf '%s\n' 1 >"$scratch/evidence-write-failure/fixtures/002-azd.status"
+add_failure_metadata evidence-write-failure 3
+add_call "$scratch/evidence-write-failure/fixtures" 6 az "$subscription_id" \
+  account show --query id --output tsv
+rm -rf "$scratch/evidence-write-failure/evidence"
+printf '%s\n' 'not a directory' >"$scratch/evidence-write-failure/evidence"
+run_case evidence-write-failure 1 'ERROR: azd up failed'
+grep -Fq 'WARNING: could not write Azure Preflight failure evidence' \
+  "$scratch/evidence-write-failure/stderr" ||
+  fail_test 'evidence write failure did not emit a secondary warning'
+! grep -Fq 'Failure evidence:' "$scratch/evidence-write-failure/stderr" ||
+  fail_test 'evidence write failure falsely reported an evidence path'
+[[ "$(cat "$scratch/evidence-write-failure/evidence")" == 'not a directory' ]] ||
+  fail_test 'evidence write failure changed the blocking evidence path'
 
 make_success_fixture readiness-failure
 printf '%s\n' 1 >"$scratch/readiness-failure/fixtures/001-azure-readiness.sh.status"

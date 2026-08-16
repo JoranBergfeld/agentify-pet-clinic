@@ -84,8 +84,11 @@ write_evidence() {
   local sku="$AZURE_OPENAI_DEPLOYMENT_SKU"
   local capacity="$AZURE_OPENAI_DEPLOYMENT_CAPACITY"
   local gate
+  local pending_evidence_file
+  local write_failed=0
 
   evidence_file="$evidence_dir/preflight-$timestamp.md"
+  pending_evidence_file="$evidence_file.tmp.$$"
   if [[ "$outcome" == 'PASSED' ]]; then
     region="$location"
     model_name="$model"
@@ -95,9 +98,15 @@ write_evidence() {
     capacity="$deployment_capacity"
   fi
 
-  mkdir -p "$evidence_dir"
-  {
-    cat <<EOF
+  if ! mkdir -p "$evidence_dir" || [[ ! -d "$evidence_dir" ]]; then
+    evidence_file=''
+    return 1
+  fi
+  if ! exec 3>"$pending_evidence_file"; then
+    evidence_file=''
+    return 1
+  fi
+  cat >&3 <<EOF || write_failed=1
 # Azure Preflight Evidence
 
 - Outcome: \`$outcome\`
@@ -114,9 +123,9 @@ write_evidence() {
 - Capacity: \`$capacity\`
 - Cleanup deadline: \`$cleanup_deadline\`
 EOF
-    if [[ "$outcome" == 'PASSED' ]]; then
-      printf '%s\n' "$resource_evidence"
-      cat <<EOF
+  if [[ "$outcome" == 'PASSED' ]]; then
+    printf '%s\n' "$resource_evidence" >&3 || write_failed=1
+    cat >&3 <<EOF || write_failed=1
 - Managed identity: \`present (SystemAssigned)\`
 - Role: \`Foundry User\`
 - Role scope category: \`Foundry resource\`
@@ -124,24 +133,40 @@ EOF
 - Application health: \`UP\`
 - Deployed time: \`$deployed_time\`
 EOF
-    else
-      cat <<EOF
+  else
+    cat >&3 <<EOF || write_failed=1
 - Failed gate: \`$current_gate\`
 - Observed safe error: \`$observed_error\`
 
 > **WARNING:** This environment may remain billable.
 > Cleanup is required: \`scripts/azure-cleanup.sh\`
 EOF
-    fi
-    cat <<'EOF'
+  fi
+  cat >&3 <<'EOF' || write_failed=1
 
 | Gate | Result |
 | --- | --- |
 EOF
-    for gate in "${gates[@]}"; do
-      printf '| %s | %s |\n' "$gate" "${gate_status[$gate]}"
-    done
-  } >"$evidence_file"
+  for gate in "${gates[@]}"; do
+    printf '| %s | %s |\n' "$gate" "${gate_status[$gate]}" >&3 ||
+      write_failed=1
+  done
+  exec 3>&- || write_failed=1
+  if (( write_failed != 0 )); then
+    rm -f "$pending_evidence_file"
+    evidence_file=''
+    return 1
+  fi
+  if ! mv -f -- "$pending_evidence_file" "$evidence_file"; then
+    rm -f "$pending_evidence_file"
+    evidence_file=''
+    return 1
+  fi
+  if [[ ! -r "$evidence_file" || ! -s "$evidence_file" ]]; then
+    rm -f "$evidence_file"
+    evidence_file=''
+    return 1
+  fi
   evidence_written=1
 }
 
@@ -151,10 +176,13 @@ on_exit() {
   trap - EXIT
   set +e
   collect_evidence_metadata
-  write_evidence FAILED
+  if write_evidence FAILED; then
+    printf 'Failure evidence: %s\n' "$evidence_file" >&2
+  else
+    printf 'WARNING: could not write Azure Preflight failure evidence; no evidence path is available.\n' >&2
+  fi
   printf 'WARNING: Azure Preflight failed after deployment; this environment may remain billable.\n' >&2
   printf 'Cleanup is required: scripts/azure-cleanup.sh\n' >&2
-  printf 'Failure evidence: %s\n' "$evidence_file" >&2
   exit "$status"
 }
 
