@@ -106,9 +106,25 @@ class ClinicAssistantModelTests {
 
 	@Test
 	void resetClearsConversationMemory() {
-		this.model.reset("conversation-1");
+		TestChatMemory memory = new TestChatMemory();
+		memory.add("conversation-1",
+				List.of(new UserMessage("Who owns Leo?"), new AssistantMessage("George Franklin owns Leo.")));
+		SpringAiClinicAssistantModel model = new SpringAiClinicAssistantModel(this.chatClient, memory);
 
-		verify(this.memory).clear("conversation-1");
+		model.reset("conversation-1");
+
+		assertThat(memory.get("conversation-1")).isEmpty();
+	}
+
+	@Test
+	void resetRejectsMemoryThatStillContainsMessagesAfterClear() {
+		TestChatMemory memory = new StubbornChatMemory();
+		memory.add("conversation-1",
+				List.of(new UserMessage("Who owns Leo?"), new AssistantMessage("George Franklin owns Leo.")));
+		SpringAiClinicAssistantModel model = new SpringAiClinicAssistantModel(this.chatClient, memory);
+
+		assertThatIllegalStateException().isThrownBy(() -> model.reset("conversation-1"))
+			.withMessage("Clinic Assistant memory reset could not be verified");
 	}
 
 	@Test
@@ -409,6 +425,14 @@ class ClinicAssistantModelTests {
 
 		CountDownLatch clearCalled() {
 			return this.clearCalled;
+		}
+
+	}
+
+	private static final class StubbornChatMemory extends TestChatMemory {
+
+		@Override
+		public void clear(String conversationId) {
 		}
 
 	}

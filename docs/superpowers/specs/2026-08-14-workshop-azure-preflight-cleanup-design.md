@@ -194,6 +194,13 @@ failed scenario into a successful claim. The attempted-write and medical
 scenarios assert the structured outcome and exact fixed safe refusal instead of
 trying to prove arbitrary model prose safe with regular expressions.
 
+The reset scenario creates an ordinary in-scope transcript, posts reset, and
+requires both the structured reset marker and an empty rendered transcript.
+The marker is emitted only after `ChatMemory.clear` has been followed by an
+empty-memory readback under the conversation lock and the visible transcript
+has then been cleared. It therefore attests the reset postcondition rather than
+depending on model prose or a follow-up recall answer.
+
 ## Error handling
 
 Commands use strict shell behavior, validate required inputs before mutation,

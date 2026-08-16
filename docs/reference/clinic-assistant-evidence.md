@@ -13,13 +13,13 @@ Date: 2026-08-16
 - The deployed smoke now requires an ordered one-line `Samantha:` response
   linking the exact `2013-01-01 - rabies shot` and
   `2013-01-04 - spayed` fixture facts to Samantha.
-- Reset validation now proves deployed model-memory behavior in one session:
-  the assistant lists the canonical Davis owners in deterministic order as
-  `FIRST: Betty Davis` and `SECOND: Harold Davis`, resolves a context-dependent
-  follow-up to Betty before reset, emits its structured reset success marker
-  with no visible transcript, and answers the same follow-up after reset
-  without either Davis name while requesting clarification or reporting no
-  prior context.
+- Reset validation now creates an ordinary in-scope transcript, posts reset,
+  and requires the structured reset-success marker with no visible transcript.
+  The application emits that marker only after `ChatMemory.clear` has been
+  followed by an empty readback under the conversation lock and the visible
+  transcript has then been cleared. The marker therefore attests the verified
+  reset postcondition; reset proof does not depend on model prose or follow-up
+  recall behavior.
 - Offline fixture and local application validation are current at the tested
   offline implementation revision above.
 - A fresh live Azure refresh is pending. No earlier exact-revision live run is
@@ -112,14 +112,15 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 ## Results
 
 - `./gradlew -q assertJava17Release`: PASS — every `JavaCompile` task reports `options.release = 17`
-- `./gradlew -q test`: PASS — 30 suite reports, 200 tests, 0 failures, 0 errors, 4 skipped
+- `./gradlew -q test`: PASS — 30 suite reports, 202 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
 - `scripts/test-azure-reference-smoke.sh`: PASS — the stateful curl fixture
-  proves the sorted Davis owner list labels Betty first and Harold second,
-  resolves the first-owner follow-up before reset, requires clarification or
-  no-prior-context semantics after reset, and fails when reset clears the UI
-  and emits its success marker but retained model memory still returns Betty.
+  proves an ordinary in-scope transcript exists before reset, requires the
+  structured reset-success marker and transcript absence afterward, and fails
+  closed when the reset request fails, the marker is absent, or the transcript
+  remains. The HTTP fixture cannot inject retained internal `ChatMemory`; that
+  failure is covered by the real model test.
 - Shared Azure and template contract tests: PASS —
   `scripts/test-azure-cleanup.sh`, `scripts/test-azure-preflight.sh`,
   `scripts/test-azure-readiness.sh`, `scripts/test-workshop-azure-infra.sh`,
@@ -127,8 +128,8 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
   `scripts/test-template-generation-validator.sh`.
 - `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: NOT RUN for the
   strengthened assertions; fresh live refresh pending.
-- Focused assistant suite: PASS — 10 suite reports, 88 tests, 0 failures, 0 errors, 0 skipped
-- Full Maven suite (`./mvnw -q test`): PASS — 27 suite reports, 198 tests, 0 failures, 0 errors, 2 skipped
+- Focused assistant suite: PASS — 10 suite reports, 90 tests, 0 failures, 0 errors, 0 skipped
+- Full Maven suite (`./mvnw -q test`): PASS — 27 suite reports, 200 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
 
 ## Focused coverage claims
@@ -142,7 +143,7 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 - Conversation transcript model: PASS via `ClinicAssistantConversationTests.createsAStringConversationWithPackagePrivateTypesAndImmutableTurns` and `ClinicAssistantConversationTests.recordsUserAndAssistantTurnsAndCanClearThem`
 - Activity visibility: PASS via `ClinicAssistantToolsTests.returnsPurposeBuiltRecordsAndVisibleActivity`, `ClinicAssistantServiceTests.recordsTheUserAnswerAndVisibleActivity`, and `ClinicAssistantControllerTests.preservesTranscriptAndVisibleActivityInTheSession`
 - Memory behavior: PASS via `ClinicAssistantModelTests.passesConversationIdAndActivityLogToTheChatClient`, `ClinicAssistantModelTests.restoresPriorConversationMemoryWhenPromptFails`, `ClinicAssistantModelTests.restoresPriorConversationMemoryWhenTheModelReturnsNull`, `ClinicAssistantModelTests.serializesConcurrentAnswersForTheSameConversation`, and `ClinicAssistantModelTests.allowsDifferentConversationStripesToPromptConcurrently`
-- Reset behavior: PASS via `ClinicAssistantModelTests.resetClearsConversationMemory`, `ClinicAssistantModelTests.serializesResetWithAnswerForTheSameConversation`, `ClinicAssistantServiceTests.resetsModelMemoryAndTheVisibleTranscript`, `ClinicAssistantServiceTests.serializesResetAgainstAnInFlightQuestion`, and `ClinicAssistantControllerTests.resetsTheConversation`
+- Reset behavior: PASS via `ClinicAssistantModelTests.resetClearsConversationMemory`, `ClinicAssistantModelTests.resetRejectsMemoryThatStillContainsMessagesAfterClear`, `ClinicAssistantModelTests.serializesResetWithAnswerForTheSameConversation`, `ClinicAssistantServiceTests.resetsModelMemoryAndTheVisibleTranscript`, `ClinicAssistantServiceTests.preservesTheVisibleTranscriptWhenModelResetFails`, `ClinicAssistantServiceTests.serializesResetAgainstAnInFlightQuestion`, `ClinicAssistantControllerTests.resetsTheConversation`, and `ClinicAssistantControllerTests.doesNotRenderResetMarkerOrClearTranscriptWhenModelResetFails`
 - UI behavior: PASS via `ClinicAssistantControllerTests.showsTheAssistantPage`, `ClinicAssistantControllerTests.rejectsBlankInput`, `ClinicAssistantControllerTests.ignoresForgedConversationFields`, and `ClinicAssistantControllerTests.preservesTranscriptAndVisibleActivityInTheSession`
 - Session cleanup: PASS via `ClinicAssistantSessionListenerTests.expiresTheConversationWhenTheSessionEnds`, `ClinicAssistantSessionListenerTests.ignoresSessionsWithoutTheAssistantConversation`, and `ClinicAssistantSessionListenerTests.ignoresInvalidatedSessionsDuringShutdown`
 - I18n coverage: PASS via `ClinicAssistantControllerTests.rendersGermanMessages`, `ClinicAssistantControllerTests.rendersSpanishMessages`, `I18nPropertiesSyncTest.checkNonInternationalizedStrings`, and `I18nPropertiesSyncTest.checkI18nPropertyFilesAreInSync`

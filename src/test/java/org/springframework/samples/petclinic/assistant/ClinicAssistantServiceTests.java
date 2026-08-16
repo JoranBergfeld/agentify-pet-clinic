@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -183,6 +184,20 @@ class ClinicAssistantServiceTests {
 
 		verify(this.model).reset(conversation.id());
 		assertThat(conversation.turns()).isEmpty();
+	}
+
+	@Test
+	void preservesTheVisibleTranscriptWhenModelResetFails() {
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+		conversation.addUser("Who owns Leo?");
+		IllegalStateException failure = new IllegalStateException("memory reset failed");
+		willThrow(failure).given(this.model).reset(conversation.id());
+
+		Throwable thrown = catchThrowable(() -> this.service.reset(conversation));
+
+		assertThat(thrown).isSameAs(failure);
+		assertThat(conversation.turns())
+			.containsExactly(new ClinicAssistantConversation.Turn("user", "Who owns Leo?", List.of()));
 	}
 
 	@Test

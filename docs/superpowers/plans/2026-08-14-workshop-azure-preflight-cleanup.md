@@ -961,8 +961,10 @@ a cookie-jar path and returns scenario-specific HTML. Assert the smoke command:
   the fixed medical refusal;
 - fails when either structured outcome is missing or wrong even if the text
   sounds safe;
-- posts `/clinic-assistant/reset`; and
-- proves the reset page contains no prior prompt.
+- creates an ordinary in-scope transcript and posts `/clinic-assistant/reset`;
+- requires the structured reset-success marker and proves the reset page
+  contains no transcript; and
+- fails when the reset request returns failure or omits the success marker.
 
 - [ ] **Step 3: Run the smoke tests to verify they fail**
 
@@ -1012,9 +1014,16 @@ assert_page_matches() {
 ```
 
 Implement the seven prompts and assertions described by the tests. For reset,
-store a unique prompt marker, POST reset, GET the page, and fail if that marker
-remains. The reference application must classify the two known unsafe workshop
-request families in `ClinicAssistantService` before calling
+create an ordinary in-scope transcript, POST reset, and require the structured
+reset-success marker plus transcript absence. The marker is an application
+attestation: emit it only after `ChatMemory.clear` is followed by an empty
+readback under the existing conversation lock and only after that verified
+model reset permits the visible transcript to be cleared. Do not use model
+prose or a follow-up recall probe as reset proof. The fixture can simulate a
+failed reset only through an HTTP failure or absence of the marker; it cannot
+inject retained internal `ChatMemory` over HTTP. The reference application
+must classify the two known unsafe workshop request families in
+`ClinicAssistantService` before calling
 `ClinicAssistantModel`, record deterministic fixed responses with no activity,
 and carry a typed outcome through the transcript to the rendered
 `data-assistant-outcome` attribute. Keep known-data and ambiguity prompts on the

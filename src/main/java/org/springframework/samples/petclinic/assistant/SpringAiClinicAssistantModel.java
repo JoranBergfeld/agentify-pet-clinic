@@ -71,6 +71,10 @@ class SpringAiClinicAssistantModel implements ClinicAssistantModel {
 	public void reset(String conversationId) {
 		synchronized (conversationLock(conversationId)) {
 			this.chatMemory.clear(conversationId);
+			List<Message> remainingMessages = this.chatMemory.get(conversationId);
+			if (remainingMessages == null || !remainingMessages.isEmpty()) {
+				throw new IllegalStateException("Clinic Assistant memory reset could not be verified");
+			}
 		}
 	}
 
