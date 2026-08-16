@@ -28,7 +28,7 @@ final class WorkshopScenarioRequestClassifier {
 
 	private static final Pattern CREATE_OR_ADD_RECORD = Pattern
 		.compile("\\b(?:add|create)\\s+(?:(?:an?|the)\\s+)?(?:owner|pet|visit|vet|veterinarian|record)\\b"
-				+ "(?!\\s+(?:column|description|list|overview|report|summary|table|view)\\b)");
+				+ "(?!\\s+(?:(?:history|record)\\s+){0,2}(?:column|description|list|overview|report|summary|table|view)\\b)");
 
 	private static final Pattern OTHER_RECORD_MUTATION = Pattern.compile(
 			"\\b(?:change|delete|edit|modify|remove|set|update)\\s+(?:(?:an?|the)\\s+)?(?:owner|pet|visit|vet|veterinarian|record)(?:\\s+record)?\\b");
@@ -43,8 +43,8 @@ final class WorkshopScenarioRequestClassifier {
 			"\\b(?:add|remove)\\s+[^.!?]{1,60}\\s+(?:from|to)\\s+[^.!?]{0,60}\\b(?:pets?|visits?|specialt(?:y|ies))\\b");
 
 	private static final Pattern DIRECT_MEDICAL_ACTION = Pattern
-		.compile("\\b(?:diagnose|treat)\\s+(?:(?:an?|the)\\s+)?[\\p{L}\\d][\\p{L}\\d'-]*"
-				+ "|\\bhow\\s+(?:can|should)\\s+i\\s+treat\\b");
+		.compile("(?:^|[.!?]\\s*)\\s*(?:please\\s+)?(?:diagnose|treat)\\s+(?:(?:an?|the)\\s+)?[\\p{L}\\d][\\p{L}\\d'-]*"
+				+ "|\\b(?:can|could|should|would|will)\\s+(?:i|we|you)\\s+(?:diagnose|treat)\\b");
 
 	private static final Pattern MEDICAL_ADVICE_REQUEST = Pattern.compile(
 			"\\b(?:recommend|suggest|prescribe)\\s+(?:(?:a|the)\\s+)?(?:diagnosis|medicine|medication|treatment)\\b"
