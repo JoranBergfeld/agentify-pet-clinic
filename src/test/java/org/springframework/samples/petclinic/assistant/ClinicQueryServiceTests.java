@@ -92,6 +92,17 @@ class ClinicQueryServiceTests {
 	}
 
 	@Test
+	void sortsOwnerMatchesByFullNameForDeterministicToolOutput() {
+		Owner harold = owner(4, "Harold", "Davis").build();
+		Owner betty = owner(2, "Betty", "Davis").build();
+		given(this.owners.findByLastNameStartingWith(eq("Davis"), any(Pageable.class)))
+			.willReturn(new PageImpl<>(List.of(harold, betty)));
+
+		assertThat(this.service.findOwners("Davis")).extracting(ClinicQueryService.OwnerSummary::fullName)
+			.containsExactly("Betty Davis", "Harold Davis");
+	}
+
+	@Test
 	void findsPetsByExactCaseInsensitiveNameAcrossOwnersWithOwnerIdentity() {
 		Owner betty = owner(2, "Betty", "Davis").inCity("Madison")
 			.withPet(2, pet("Basil", "hamster").withVisit("checkup").build())

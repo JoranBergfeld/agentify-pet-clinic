@@ -4,8 +4,8 @@ Date: 2026-08-16
 
 ## Current validation status
 
-- Current tested offline reference implementation revision:
-  `0fa00b3982bdb1aa6a7c20715341e0e31ad22eeb`.
+- Current tested offline reference implementation revision: this document's
+  commit.
 - Local shared/template branch merged into this reference branch through
   `main` at `9375f1124d97dee3a965637206e498e036dc5994`.
 - Last historical live reference revision:
@@ -14,9 +14,12 @@ Date: 2026-08-16
   linking the exact `2013-01-01 - rabies shot` and
   `2013-01-04 - spayed` fixture facts to Samantha.
 - Reset validation now proves deployed model-memory behavior in one session:
-  the assistant returns and recalls an opaque marker before reset, reset emits
-  its structured success marker with no visible transcript, and the same
-  recall prompt does not return the marker after reset.
+  the assistant lists the canonical Davis owners in deterministic order as
+  `FIRST: Betty Davis` and `SECOND: Harold Davis`, resolves a context-dependent
+  follow-up to Betty before reset, emits its structured reset success marker
+  with no visible transcript, and answers the same follow-up after reset
+  without either Davis name while requesting clarification or reporting no
+  prior context.
 - Offline fixture and local application validation are current at the tested
   offline implementation revision above.
 - A fresh live Azure refresh is pending. No earlier exact-revision live run is
@@ -46,8 +49,8 @@ Date: 2026-08-16
   fixed read-only refusal.
 - Medical-advice scenario: PASS — structured outcome `medical-refusal`;
   rendered response exactly matched the deterministic fixed medical refusal.
-- Conversation marker scenario: PASS
-- Reset: PASS — the marker was absent after reset.
+- Historical reset probe scenario: PASS
+- Reset: PASS — the historical probe was absent after reset.
 - Overall deployed smoke: PASS — seven scenarios plus reset.
 - The smoke used one cookie jar, fetched `/clinic-assistant` before posting, submitted URL-encoded messages while following redirects, isolated model scenarios through the UI reset endpoint, and failed closed on transport or semantic assertion failures.
 - Evidence intentionally excludes environment and resource names, URLs, full subscription or tenant identifiers, credentials, and raw model transcripts.
@@ -109,13 +112,14 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 ## Results
 
 - `./gradlew -q assertJava17Release`: PASS — every `JavaCompile` task reports `options.release = 17`
-- `./gradlew -q test`: PASS — 30 suite reports, 199 tests, 0 failures, 0 errors, 4 skipped
+- `./gradlew -q test`: PASS — 30 suite reports, 200 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
 - `scripts/test-azure-reference-smoke.sh`: PASS — the stateful curl fixture
-  proves the marker is returned from assistant content, recalled before reset,
-  forgotten after reset, and fails when reset clears the UI and emits its
-  success marker but retained model memory still returns the marker.
+  proves the sorted Davis owner list labels Betty first and Harold second,
+  resolves the first-owner follow-up before reset, requires clarification or
+  no-prior-context semantics after reset, and fails when reset clears the UI
+  and emits its success marker but retained model memory still returns Betty.
 - Shared Azure and template contract tests: PASS —
   `scripts/test-azure-cleanup.sh`, `scripts/test-azure-preflight.sh`,
   `scripts/test-azure-readiness.sh`, `scripts/test-workshop-azure-infra.sh`,
@@ -123,8 +127,8 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
   `scripts/test-template-generation-validator.sh`.
 - `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: NOT RUN for the
   strengthened assertions; fresh live refresh pending.
-- Focused assistant suite: PASS — 10 suite reports, 87 tests, 0 failures, 0 errors, 0 skipped
-- Full Maven suite (`./mvnw -q test`): PASS — 27 suite reports, 197 tests, 0 failures, 0 errors, 2 skipped
+- Focused assistant suite: PASS — 10 suite reports, 88 tests, 0 failures, 0 errors, 0 skipped
+- Full Maven suite (`./mvnw -q test`): PASS — 27 suite reports, 198 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
 
 ## Focused coverage claims

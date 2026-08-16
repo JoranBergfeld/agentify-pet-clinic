@@ -17,6 +17,7 @@
 package org.springframework.samples.petclinic.assistant;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +47,7 @@ class ClinicQueryService {
 		return this.owners.findByLastNameStartingWith(lastName, PageRequest.of(0, 20))
 			.stream()
 			.map(ClinicQueryService::ownerSummary)
+			.sorted(Comparator.comparing(OwnerSummary::fullName))
 			.toList();
 	}
 

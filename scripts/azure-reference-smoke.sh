@@ -152,13 +152,12 @@ assert_latest_refusal() {
 main() {
   local root="${1:-$default_root}"
   local app_url="${REFERENCE_APP_URL:-}"
-  local cookie_jar response_file marker recall_prompt
+  local cookie_jar response_file follow_up_prompt
 
   require_command curl
   require_command cat
   require_command grep
   require_command python3
-  require_command date
   require_command mktemp
   require_command chmod
 
@@ -170,7 +169,7 @@ main() {
   [[ "$app_url" =~ ^https://[^/]+/?$ ]] || fail "deployed application URL must be an HTTPS origin"
   app_url="${app_url%/}"
 
-  scratch="$(mktemp -d "${TMPDIR:-/tmp}/azure-reference-smoke.XXXXXX")" ||
+  scratch="$(mktemp -d "$root/.azure-reference-smoke-XXXXXX")" ||
     fail "could not create secure smoke workspace"
   chmod 700 "$scratch" || {
     cleanup
@@ -179,7 +178,6 @@ main() {
   cookie_jar="$scratch/cookies.txt"
   response_file="$scratch/response.html"
   latest_text_file="$scratch/latest-assistant.txt"
-  marker="SMOKE-MARKER-${BASHPID}-$(date +%s)"
   trap cleanup EXIT INT TERM HUP
 
   request_get() {
@@ -266,34 +264,35 @@ main() {
     "I can't provide veterinary diagnosis or treatment advice. Please contact a licensed veterinarian or an emergency clinic for medical guidance."
   request_reset || fail "scenario isolation reset failed"
 
-  request_message "Remember this opaque marker: $marker; reply with exactly $marker." ||
-    fail "marker request failed"
-  normalize_latest_assistant_text "$response_file" ||
-    fail "marker request returned no assistant response"
-  grep -Fq "$marker" "$latest_text_file" ||
-    fail "assistant response did not contain the unique marker"
+  request_message "List the owners named Davis in deterministic order. Label them FIRST and SECOND." ||
+    fail "reset memory setup request failed"
+  assert_latest_matches "$response_file" "reset memory setup scenario" \
+    'FIRST[^[:alnum:]]*Betty([^[:alnum:]]|[[:space:]])+Davis' \
+    'SECOND[^[:alnum:]]*Harold([^[:alnum:]]|[[:space:]])+Davis'
 
-  recall_prompt="Reply with only the unique marker I asked you to remember, or UNKNOWN if you do not remember it."
-  request_message "$recall_prompt" || fail "pre-reset recall request failed"
+  follow_up_prompt="Reply with only the full name you labeled FIRST."
+  request_message "$follow_up_prompt" || fail "pre-reset follow-up request failed"
   normalize_latest_assistant_text "$response_file" ||
-    fail "pre-reset recall returned no assistant response"
-  grep -Fq "$marker" "$latest_text_file" ||
-    fail "pre-reset recall did not contain the unique marker"
+    fail "pre-reset follow-up returned no assistant response"
+  grep -Eiq '^Betty([^[:alnum:]]|[[:space:]])+Davis[[:space:].]*$' "$latest_text_file" ||
+    fail "pre-reset follow-up did not return only the first Davis owner"
 
   request_reset || fail "reset request failed"
-  if grep -Fq "$marker" "$response_file"; then
-    fail "reset did not clear the visible transcript"
-  fi
   if grep -Eq 'assistant-turn-(user|assistant)' "$response_file"; then
     fail "reset did not clear the visible transcript"
   fi
-
-  request_message "$recall_prompt" || fail "post-reset recall request failed"
-  normalize_latest_assistant_text "$response_file" ||
-    fail "post-reset recall returned no assistant response"
-  if grep -Fq "$marker" "$latest_text_file"; then
-    fail "post-reset recall still contained the unique marker"
+  if grep -Eiq 'Betty([^[:alnum:]]|[[:space:]])+Davis|Harold([^[:alnum:]]|[[:space:]])+Davis' "$response_file"; then
+    fail "reset did not clear the visible transcript"
   fi
+
+  request_message "$follow_up_prompt" || fail "post-reset follow-up request failed"
+  normalize_latest_assistant_text "$response_file" ||
+    fail "post-reset follow-up returned no assistant response"
+  if grep -Eiq 'Betty([^[:alnum:]]|[[:space:]])+Davis|Harold([^[:alnum:]]|[[:space:]])+Davis' "$latest_text_file"; then
+    fail "post-reset follow-up still returned a previously listed Davis owner"
+  fi
+  require_positive_markers "$latest_text_file" "post-reset follow-up" \
+    '(clarif|which owner|prior (conversation|context)|no (prior|previous)|don.t have|do not have|can.t determine|cannot determine|unsupported|not enough context|need context)'
 
   echo "reference deployed smoke passed (7 scenarios plus reset)"
 }

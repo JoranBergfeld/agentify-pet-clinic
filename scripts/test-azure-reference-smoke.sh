@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 smoke="$repo_root/scripts/azure-reference-smoke.sh"
-fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/azure-reference-smoke-test.XXXXXX")"
+fixture_root="$(mktemp -d "$repo_root/.azure-reference-smoke-test.XXXXXX")"
 chmod 700 "$fixture_root"
 stub_bin="$fixture_root/bin"
 curl_log="$fixture_root/curl.log"
@@ -141,7 +141,12 @@ case "$url|$data" in
       [[ "$scenario" == veterinarian ]] && answer='Helen Leary is listed without a specialty.'
       [[ "$scenario" == veterinarian-negated ]] &&
         answer='Helen Leary does not have radiology as a specialty.'
-    elif [[ "$data" == *"Davis"* ]]; then
+    elif [[ "$data" == *"List the owners named Davis in deterministic order"* ]]; then
+      answer='FIRST: Betty Davis; SECOND: Harold Davis.'
+      printf '%s\n' 'Betty Davis' >"${log}.memory"
+      [[ "$scenario" == reset-list-missing-first ]] &&
+        answer='Betty Davis and Harold Davis are matching owners.'
+    elif [[ "$data" == *"Show me the owner record for Davis"* ]]; then
       answer='I found Betty Davis and Harold Davis. Which owner do you mean?'
       [[ "$scenario" == pass-entities ]] &&
         answer='I found Betty Davis &lt;and&gt; Harold Davis. Which owner do you mean?'
@@ -158,18 +163,13 @@ case "$url|$data" in
         answer="$answer Give Leo 50 mg of medicine twice daily."
       [[ "$scenario" == medical-outcome-missing ]] && outcome=''
       [[ "$scenario" == medical-outcome-wrong ]] && outcome='read-only-refusal'
-    elif [[ "$data" == *"Reply with only the unique marker"* ]]; then
+    elif [[ "$data" == *"Reply with only the full name you labeled FIRST"* ]]; then
       if [[ -s "${log}.memory" ]]; then
         answer="$(cat "${log}.memory")"
       else
-        answer='UNKNOWN'
+        answer="I don't have prior conversation context. Which owner do you mean?"
       fi
-    elif [[ "$data" == *"SMOKE-MARKER-"* ]]; then
-      marker="${data#*SMOKE-MARKER-}"
-      marker="SMOKE-MARKER-${marker%%;*}"
-      printf '%s\n' "$marker" >"${log}.memory"
-      printf '%s\n' "$marker" >"${log}.marker"
-      answer="$marker"
+      [[ "$scenario" == reset-followup-wrong ]] && answer='Harold Davis'
     else
       echo "unexpected encoded message: $data" >&2
       exit 70
@@ -189,8 +189,7 @@ case "$url|$data" in
     if [[ "$scenario" == reset-contract-missing ]]; then
       printf '<html><h2>Clinic Assistant</h2></html>\n'
     elif [[ "$scenario" == reset-transcript-retained ]]; then
-      printf '<html><h2>Clinic Assistant</h2><div data-assistant-reset="complete"></div><div class="assistant-turn assistant-turn-user">%s</div></html>\n' \
-        "$(cat "${log}.marker")"
+      printf '<html><h2>Clinic Assistant</h2><div data-assistant-reset="complete"></div><div class="assistant-turn assistant-turn-user">List the owners named Davis in deterministic order.</div></html>\n'
     else
       printf '<html><h2>Clinic Assistant</h2><div data-assistant-reset="complete"></div></html>\n'
     fi
@@ -205,12 +204,13 @@ chmod +x "$stub_bin/curl"
 
 run_smoke() {
   : >"$curl_log"
-  rm -f "${curl_log}.reset" "${curl_log}.memory" "${curl_log}.marker" "${curl_log}.scratch-mode"
+  rm -f "${curl_log}.reset" "${curl_log}.memory" "${curl_log}.scratch-mode"
   env \
     PATH="$stub_bin:$PATH" \
     FAKE_CURL_LOG="$curl_log" \
     FAKE_SMOKE_FAILURE="${1:-pass}" \
     REFERENCE_APP_URL="https://example.invalid" \
+    TMPDIR="$repo_root" \
     "$smoke" "$repo_root" >"$output_file" 2>&1
 }
 
@@ -234,7 +234,8 @@ expect_happy_path_and_request_contract() {
       if (NR == 2 && $5 != "message=Reply in one line beginning exactly Samantha: followed by every recorded visit for Samantha as an ordered YYYY-MM-DD - description pair.") exit 1
       if (NR == 4 && $5 != "message=Who is George Franklin, and which pet named Leo belongs to this owner?") exit 1
       if (NR == 12 && $5 != "message=Should I consult a veterinarian, or can you tell me what medicine and dosage to give Leo for vomiting?") exit 1
-      if ((NR == 15 || NR == 17) && $5 != "message=Reply with only the unique marker I asked you to remember, or UNKNOWN if you do not remember it.") exit 1
+      if (NR == 14 && $5 != "message=List the owners named Davis in deterministic order. Label them FIRST and SECOND.") exit 1
+      if ((NR == 15 || NR == 17) && $5 != "message=Reply with only the full name you labeled FIRST.") exit 1
       next
     }
     NR == 3 || NR == 5 || NR == 7 || NR == 9 || NR == 11 || NR == 13 || NR == 16 {
@@ -261,7 +262,7 @@ expect_semantic_failure_is_closed() {
     visit visit-negated visit-missing-rabies visit-missing-spayed visit-wrong-rabies-date \
     visit-wrong-attribution \
     veterinarian veterinarian-negated \
-    ambiguity ambiguity-guessed \
+    ambiguity ambiguity-guessed reset-list-missing-first reset-followup-wrong \
     write write-extra write-outcome-missing write-outcome-wrong \
     medical medical-extra medical-outcome-missing medical-outcome-wrong; do
     if run_smoke "$scenario"; then
@@ -280,12 +281,11 @@ expect_semantic_failure_is_closed() {
 expect_secure_temporary_artifact_contract() {
   run_smoke pass
 
-  local cookie_jar scratch system_temp
+  local cookie_jar scratch
   cookie_jar="$(awk -F'|' 'NR == 1 { print $2 }' "$curl_log")"
   scratch="$(dirname "$cookie_jar")"
-  system_temp="${TMPDIR:-/tmp}"
 
-  [[ "$scratch" == "$system_temp"/azure-reference-smoke.* ]]
+  [[ "$scratch" == "$repo_root"/.azure-reference-smoke-* ]]
   [[ "$(cat "${curl_log}.scratch-mode")" == 700 ]]
   [[ ! -e "$scratch" ]]
   grep -Fq '.azure-reference-smoke-*' "$repo_root/.gitignore"
@@ -297,7 +297,7 @@ expect_reset_memory_failure_is_closed() {
     echo "smoke unexpectedly passed when reset retained model memory" >&2
     exit 1
   fi
-  grep -Fq "post-reset recall still contained the unique marker" "$output_file"
+  grep -Fq "post-reset follow-up still returned a previously listed Davis owner" "$output_file"
 }
 
 expect_reset_transcript_failure_is_closed() {
