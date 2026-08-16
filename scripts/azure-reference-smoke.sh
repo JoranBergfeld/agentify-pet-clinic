@@ -200,7 +200,9 @@ main() {
     curl --fail --silent --show-error --retry 3 --retry-delay 20 --retry-all-errors --location \
       --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
       --data '' \
-      "$app_url/clinic-assistant/reset" >"$response_file"
+      "$app_url/clinic-assistant/reset" >"$response_file" &&
+      grep -Fq 'data-assistant-reset="complete"' "$response_file" ||
+      fail "reset did not render the successful model-memory reset marker"
   }
 
   request_get || fail "initial Clinic Assistant page request failed"
@@ -210,7 +212,9 @@ main() {
   request_message "Look up Samantha. Report the exact recorded visit dates and descriptions, and include the pet name Leo in the response." ||
     fail "pet and visit request failed"
   assert_latest_matches "$response_file" "pet and visit scenario" \
-    'Leo' 'Samantha' '(rabies[[:space:]-]*shot|spayed|2013-01-0[14])'
+    'Leo' 'Samantha' \
+    '(2013-01-01[^.!?]{0,80}rabies[[:space:]]+shot|rabies[[:space:]]+shot[^.!?]{0,80}2013-01-01)' \
+    '(2013-01-04[^.!?]{0,80}spayed|spayed[^.!?]{0,80}2013-01-04)'
   reject_contradiction_patterns "$latest_text_file" "pet and visit scenario" \
     '((no|not|without)[^<.!?]{0,30}(record(ed)?|visit|detail)[^<.!?]{0,50}rabies)' \
     '(rabies[^<.!?]{0,50}(no|not|without)[^<.!?]{0,30}(record(ed)?|visit|detail))'

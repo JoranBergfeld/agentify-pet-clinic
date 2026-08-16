@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/clinic-assistant")
@@ -74,8 +75,10 @@ class ClinicAssistantController {
 	}
 
 	@PostMapping("/reset")
-	public String reset(@ModelAttribute(CONVERSATION_ATTRIBUTE) ClinicAssistantConversation conversation) {
+	public String reset(@ModelAttribute(CONVERSATION_ATTRIBUTE) ClinicAssistantConversation conversation,
+			RedirectAttributes redirectAttributes) {
 		this.assistant.reset(conversation);
+		redirectAttributes.addFlashAttribute("assistantReset", "complete");
 		return "redirect:/clinic-assistant";
 	}
 

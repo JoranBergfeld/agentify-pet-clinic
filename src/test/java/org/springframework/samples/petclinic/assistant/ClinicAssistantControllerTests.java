@@ -17,6 +17,8 @@ package org.springframework.samples.petclinic.assistant;
 
 import java.util.List;
 
+import jakarta.servlet.ServletException;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,10 +32,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -143,6 +148,33 @@ class ClinicAssistantControllerTests {
 
 		verify(this.model).reset(conversation.id());
 		assertThat(conversation.turns()).isEmpty();
+
+		this.mockMvc.perform(get("/clinic-assistant").session(session))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("data-assistant-reset=\"complete\"")))
+			.andExpect(content().string(not(containsString("Who owns Leo?"))));
+
+		this.mockMvc.perform(get("/clinic-assistant").session(session))
+			.andExpect(status().isOk())
+			.andExpect(content().string(not(containsString("data-assistant-reset=\"complete\""))));
+	}
+
+	@Test
+	void doesNotRenderResetMarkerOrClearTranscriptWhenModelResetFails() throws Exception {
+		MvcResult page = this.mockMvc.perform(get("/clinic-assistant")).andReturn();
+		MockHttpSession session = (MockHttpSession) page.getRequest().getSession(false);
+		ClinicAssistantConversation conversation = (ClinicAssistantConversation) session
+			.getAttribute("clinicAssistantConversation");
+		conversation.addUser("Who owns Leo?");
+		willThrow(new IllegalStateException("memory reset failed")).given(this.model).reset(conversation.id());
+
+		assertThatExceptionOfType(ServletException.class)
+			.isThrownBy(() -> this.mockMvc.perform(post("/clinic-assistant/reset").session(session)));
+
+		this.mockMvc.perform(get("/clinic-assistant").session(session))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Who owns Leo?")))
+			.andExpect(content().string(not(containsString("data-assistant-reset=\"complete\""))));
 	}
 
 }

@@ -130,6 +130,12 @@ case "$url|$data" in
       [[ "$scenario" == visit ]] && answer='Leo is a cat, and no visit detail is available.'
       [[ "$scenario" == visit-negated ]] &&
         answer='Samantha and Leo have no recorded visit for a rabies shot.'
+      [[ "$scenario" == visit-missing-rabies ]] &&
+        answer='Leo belongs to George Franklin. Samantha was spayed on 2013-01-04.'
+      [[ "$scenario" == visit-missing-spayed ]] &&
+        answer='Leo belongs to George Franklin. Samantha had a rabies shot on 2013-01-01.'
+      [[ "$scenario" == visit-wrong-rabies-date ]] &&
+        answer='Leo belongs to George Franklin. Samantha had a rabies shot on 2013-01-02 and was spayed on 2013-01-04.'
     elif [[ "$data" == *"Helen Leary"* ]]; then
       answer='Helen Leary is a veterinarian specializing in radiology.'
       [[ "$scenario" == pass-entities ]] &&
@@ -174,7 +180,11 @@ case "$url|$data" in
     ;;
   https://example.invalid/clinic-assistant/reset\|)
     touch "${log}.reset"
-    printf '<html><h2>Clinic Assistant</h2></html>\n'
+    if [[ "$scenario" == reset-contract-missing ]]; then
+      printf '<html><h2>Clinic Assistant</h2></html>\n'
+    else
+      printf '<html><h2>Clinic Assistant</h2><div data-assistant-reset="complete"></div></html>\n'
+    fi
     ;;
   *)
     echo "unexpected curl request: $url data=$data" >&2
@@ -241,7 +251,7 @@ expect_semantic_failure_is_closed() {
   for scenario in \
     owner owner-negated-direct owner-negated-passive \
     owner-negated-apos-entity owner-negated-numeric-entity \
-    visit visit-negated \
+    visit visit-negated visit-missing-rabies visit-missing-spayed visit-wrong-rabies-date \
     veterinarian veterinarian-negated \
     ambiguity ambiguity-guessed \
     write write-extra write-outcome-missing write-outcome-wrong \
@@ -282,10 +292,19 @@ expect_reset_marker_failure_is_closed() {
   grep -Fq "reset did not remove the unique marker" "$output_file"
 }
 
+expect_reset_success_contract_is_required() {
+  if run_smoke reset-contract-missing; then
+    echo "smoke unexpectedly passed without the reset success marker" >&2
+    exit 1
+  fi
+  grep -Fq "reset did not render the successful model-memory reset marker" "$output_file"
+}
+
 expect_happy_path_and_request_contract
 expect_semantic_failure_is_closed
 expect_html_entities_are_normalized
 expect_reset_marker_failure_is_closed
+expect_reset_success_contract_is_required
 expect_secure_temporary_artifact_contract
 
 echo "reference deployed smoke regression tests passed"

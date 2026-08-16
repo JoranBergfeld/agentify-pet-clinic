@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 validator="$repo_root/scripts/validate-reference.sh"
+workflow="$repo_root/.github/workflows/validate-reference.yml"
 fixture_root="$repo_root/.reference-validator-fixture-$BASHPID"
 stub_fixture="$fixture_root/stub"
 single_branch_fixture="$fixture_root/single-branch"
@@ -19,6 +20,14 @@ single_branch_gradle_log="$single_branch_fixture/gradle.log"
 single_branch_mvn_log="$single_branch_fixture/mvn.log"
 single_branch_output_file="$single_branch_fixture/output.log"
 trap 'rm -rf "$fixture_root"' EXIT
+
+expect_workflow_runs_offline_smoke_regressions() {
+  grep -Fq -- '- run: scripts/test-azure-reference-smoke.sh' "$workflow"
+  if grep -Eq 'REFERENCE_DEPLOYED_SMOKE|scripts/azure-reference-smoke\.sh' "$workflow"; then
+    echo "reference workflow must not invoke live Azure smoke" >&2
+    exit 1
+  fi
+}
 
 write_reference_build_gradle() {
   local root="$1"
@@ -348,6 +357,7 @@ expect_single_branch_clone_fetches_origin_main_and_reaches_test_gate() {
 }
 
 setup_stub_fixture
+expect_workflow_runs_offline_smoke_regressions
 expect_explicit_fetch_then_gradle_compile_then_individual_runs_then_full_suite
 expect_opt_in_runs_deployed_smoke_exactly_once
 expect_missing_gradle_dependency_failure

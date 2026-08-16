@@ -17,6 +17,7 @@ jobs:
         with:
           fetch-depth: 0
       - run: scripts/test-reference-validator.sh
+      - run: scripts/test-azure-reference-smoke.sh
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

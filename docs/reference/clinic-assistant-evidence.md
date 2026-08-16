@@ -2,25 +2,26 @@
 
 Date: 2026-08-16
 
-## Validated revisions
+## Current validation status
 
-- Local shared/template branch merged into this reference branch: `main` at
-  `842dff2`
-- Published shared/template branch: `origin/main` at `9d52d5c`
-- Shared Azure workshop branch merged into and validated on this reference
-  branch: `feature/workshop-azure-path` at `a31796e`; it descends from local
-  `main` at `842dff2` and includes the later Azure path commits.
-- The local `main` and Azure workshop revisions above are not represented as
-  published `origin/main` revisions in this evidence.
-- Structured-boundary implementation revision: `97fcda7`
-- Deployed smoke validator revision: `97fcda7`
+- Local shared/template branch merged into this reference branch through
+  `main` at `f26e53b`.
+- The deployed smoke now requires both exact Samantha visit records and a
+  one-shot reset-success marker emitted only after model-memory reset and
+  visible-transcript clearing complete.
+- Offline fixture and local application validation are current for these
+  assertions.
+- A fresh live Azure refresh is pending. No earlier exact-revision live run is
+  current evidence for the strengthened visit and reset assertions.
 - The implementation classifies workshop attempted-write and medical-advice
   requests before model invocation, returns deterministic fixed refusals, and
   renders typed assistant outcomes.
 
-## Fresh deployed reference smoke
+## Previous deployed reference smoke (superseded)
 
-- Live validation date: `2026-08-16`
+- Historical live validation date: `2026-08-16`
+- Status: superseded by the strengthened visit-set and model-memory reset
+  assertions; retained only as historical context pending a fresh live refresh.
 - Region: `swedencentral`
 - Model: `gpt-5.4-mini`
 - Model version: `2026-03-17`
@@ -99,7 +100,8 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 - `./gradlew -q test`: PASS — 30 suite reports, 198 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
-- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS — final deployed run reported `reference deployed smoke passed (7 scenarios plus reset)` and `reference branch is current and validated`
+- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: NOT RUN for the
+  strengthened assertions; fresh live refresh pending.
 - Focused assistant suite: PASS — 10 suite reports, 86 tests, 0 failures, 0 errors, 0 skipped
 - Full Maven suite (`./mvnw -q test`): PASS — 27 suite reports, 196 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
@@ -136,8 +138,9 @@ remain model-driven.
 the fixed refusal contract no longer depends on free-text model compliance.
 
 Historical prototype smoke evidence first proved the live medical-advice
-refusal path at revision `ee7397d`. The fresh 2026-08-16 validation above is
-the current evidence for the structured-outcome revision.
+refusal path at revision `ee7397d`. The 2026-08-16 run above is historical
+only; a fresh live refresh is pending for the strengthened visit-set and reset
+contracts.
 
 ## Redaction note
 

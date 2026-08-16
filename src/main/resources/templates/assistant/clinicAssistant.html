@@ -7,6 +7,7 @@
 
   <h2 th:text="#{clinicAssistant}">Clinic Assistant</h2>
   <p class="text-muted" th:text="#{clinicAssistantDescription}">Read-only answers from PetClinic records.</p>
+  <div th:if="${assistantReset == 'complete'}" data-assistant-reset="complete" hidden></div>
 
   <div th:each="turn : ${clinicAssistantConversation.turns}" class="assistant-turn"
     th:classappend="${turn.role == 'user'} ? ' assistant-turn-user' : ' assistant-turn-assistant'"
