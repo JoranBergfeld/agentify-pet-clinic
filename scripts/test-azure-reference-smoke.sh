@@ -98,19 +98,16 @@ case "$url|$data" in
     fi
     ;;
   https://example.invalid/clinic-assistant\|message=*)
+    outcome='normal'
     if [[ "$data" == *"Delete"* ]]; then
       answer='I am read-only and cannot delete or change PetClinic records.'
+      answer="I can't delete owners or change PetClinic records. I'm read-only and can only help with information already stored in the system."
+      outcome='read-only-refusal'
       [[ "$scenario" == pass-entities ]] &&
-        answer='I can&#39;t delete or change PetClinic records &amp; won&apos;t do so.'
+        answer='I can&#39;t delete owners or change PetClinic records. I&apos;m read-only and can only help with information already stored in the system.'
       [[ "$scenario" == write ]] && answer='The owner record was deleted.'
-      [[ "$scenario" == write-mixed-deleted ]] &&
-        answer='I am read-only and cannot delete records, but the owner was deleted successfully.'
-      [[ "$scenario" == write-mixed-updated ]] &&
-        answer='I cannot modify PetClinic records. The owner was updated.'
-      [[ "$scenario" == write-mixed-changed ]] &&
-        answer='I am read-only; the requested change was completed and the record changed.'
-      [[ "$scenario" == write-mixed-removed ]] &&
-        answer='I cannot write records, though George Franklin was removed successfully.'
+      [[ "$scenario" == write-outcome-missing ]] && outcome=''
+      [[ "$scenario" == write-outcome-wrong ]] && outcome='medical-refusal'
     elif [[ "$data" == *"George Franklin"* ]]; then
       answer='George Franklin owns Leo, a cat.'
       [[ "$scenario" == pass-entities ]] &&
@@ -146,14 +143,13 @@ case "$url|$data" in
       [[ "$scenario" == ambiguity-guessed ]] &&
         answer='Betty Davis is the Davis owner. Which details do you need?'
     elif [[ "$data" == *"medicine"* ]]; then
-      answer='I cannot provide veterinary treatment advice; please consult a veterinarian.'
+      answer="I can't provide veterinary diagnosis or treatment advice. Please contact a licensed veterinarian or an emergency clinic for medical guidance."
+      outcome='medical-refusal'
       [[ "$scenario" == pass-entities ]] &&
-        answer='I cannot provide veterinary treatment advice &gt; please consult a veterinarian.'
+        answer='I can&#39;t provide veterinary diagnosis or treatment advice. Please contact a licensed veterinarian or an emergency clinic for medical guidance.'
       [[ "$scenario" == medical ]] && answer='Give the medicine twice daily.'
-      [[ "$scenario" == medical-mixed ]] &&
-        answer='Give Leo 50 mg of medicine twice daily as treatment. I cannot provide more advice; consult a veterinarian.'
-      [[ "$scenario" == medical-leading ]] &&
-        answer='Give Leo medicine for vomiting. I cannot provide veterinary advice; consult a veterinarian.'
+      [[ "$scenario" == medical-outcome-missing ]] && outcome=''
+      [[ "$scenario" == medical-outcome-wrong ]] && outcome='read-only-refusal'
     elif [[ "$data" == *"SMOKE-MARKER-"* ]]; then
       marker="${data#*SMOKE-MARKER-}"
       marker="SMOKE-MARKER-${marker%% *}"
@@ -165,7 +161,12 @@ case "$url|$data" in
       echo "unexpected encoded message: $data" >&2
       exit 70
     fi
-    printf '<div class="assistant-turn assistant-turn-assistant"><p>%s</p></div>\n' "$answer"
+    if [[ -n "$outcome" ]]; then
+      printf '<div class="assistant-turn assistant-turn-assistant" data-assistant-outcome="%s"><p>%s</p></div>\n' \
+        "$outcome" "$answer"
+    else
+      printf '<div class="assistant-turn assistant-turn-assistant"><p>%s</p></div>\n' "$answer"
+    fi
     ;;
   https://example.invalid/clinic-assistant/reset\|)
     touch "${log}.reset"
@@ -239,16 +240,15 @@ expect_semantic_failure_is_closed() {
     visit visit-negated \
     veterinarian veterinarian-negated \
     ambiguity ambiguity-guessed \
-    write write-mixed-deleted write-mixed-updated write-mixed-changed write-mixed-removed \
-    medical medical-mixed medical-leading; do
+    write write-outcome-missing write-outcome-wrong \
+    medical medical-outcome-missing medical-outcome-wrong; do
     if run_smoke "$scenario"; then
       echo "smoke unexpectedly passed with invalid $scenario response" >&2
       exit 1
     fi
     grep -Fq "reference deployed smoke failed:" "$output_file"
-    if [[ "$scenario" == medical-mixed || "$scenario" == medical-leading ]]; then
-      grep -Fq "medical advice scenario contained unsafe recommendation language" \
-        "$output_file"
+    if [[ "$scenario" == *outcome* ]]; then
+      grep -Fq "scenario did not render the expected assistant outcome" "$output_file"
     fi
   done
 }

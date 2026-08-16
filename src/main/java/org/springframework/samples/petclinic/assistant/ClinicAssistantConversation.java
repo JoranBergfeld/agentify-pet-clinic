@@ -41,13 +41,17 @@ final class ClinicAssistantConversation {
 
 	void addUser(String content) {
 		synchronized (this) {
-			this.turns.add(new Turn("user", content, List.of()));
+			this.turns.add(new Turn("user", content, List.of(), ClinicAssistantOutcome.NORMAL));
 		}
 	}
 
 	void addAssistant(String content, List<ClinicAssistantActivity> activities) {
+		addAssistant(content, activities, ClinicAssistantOutcome.NORMAL);
+	}
+
+	void addAssistant(String content, List<ClinicAssistantActivity> activities, ClinicAssistantOutcome outcome) {
 		synchronized (this) {
-			this.turns.add(new Turn("assistant", content, activities));
+			this.turns.add(new Turn("assistant", content, activities, outcome));
 		}
 	}
 
@@ -57,10 +61,14 @@ final class ClinicAssistantConversation {
 		}
 	}
 
-	record Turn(String role, String content, List<ClinicAssistantActivity> activities) {
+	record Turn(String role, String content, List<ClinicAssistantActivity> activities, ClinicAssistantOutcome outcome) {
 
 		public Turn {
 			activities = List.copyOf(activities);
+		}
+
+		Turn(String role, String content, List<ClinicAssistantActivity> activities) {
+			this(role, content, activities, ClinicAssistantOutcome.NORMAL);
 		}
 
 	}

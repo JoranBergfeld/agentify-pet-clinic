@@ -1,6 +1,6 @@
 # Clinic Assistant reference evidence
 
-Date: 2026-08-15
+Date: 2026-08-16
 
 ## Validated revisions
 
@@ -9,28 +9,25 @@ Date: 2026-08-15
 - Validated Clinic Assistant implementation/test revision: `b85347b5545ef62c78364199099c83dbb55bba10`
 - This Java 17 release-floor refresh may land after `b85347b5545ef62c78364199099c83dbb55bba10`; the Clinic Assistant application code/test claim stays pinned to that revision because this change only updates build configuration, template/reference validation commands, and evidence text, not the assistant feature itself.
 
-## Task 8 deployed reference smoke refresh
+## Task 8 deployed reference smoke status
 
-- Exact reviewed smoke-validator revision: `4d76aba95a3864ff324ee917881dfc2b59b55b5c`
-- Final validated reference revision: `4d76aba95a3864ff324ee917881dfc2b59b55b5c`
+- Historical live smoke revision: `4d76aba95a3864ff324ee917881dfc2b59b55b5c`
 - Region: `swedencentral`
 - Model: `gpt-5.4-mini`
 - Model version: `2026-03-17`
 - Deployment SKU: `GlobalStandard`
 - Deployment capacity: `10`
-- Azure Preflight: PASS for readiness, provisioning, required resource topology, managed identity, Foundry User assignment, model deployment, app settings, and application health.
-- `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS.
-- Owner/pet scenario: PASS.
-- Pet/recorded-visit scenario: PASS.
-- Veterinarian/specialty scenario: PASS.
-- Davis ambiguity scenario: PASS.
-- Attempted-write refusal scenario: PASS.
-- Medical-advice refusal scenario: PASS.
-- Unique-marker reset scenario: PASS.
-- Assertions used semantic patterns rather than exact model prose.
+- The historical revision passed Azure Preflight, seven deployed scenarios,
+  reset, cleanup, and independent post-cleanup verification on 2026-08-15.
+- That live result is not current evidence for the new deterministic
+  application-boundary refusals and structured assistant outcomes.
+- A new live refresh is pending at the revision that adds
+  `read-only-refusal` and `medical-refusal`; live Azure has intentionally not
+  been run for this revision yet.
+- The pending smoke asserts the structured outcome plus exact fixed safe text
+  for attempted-write and medical requests. Known-data and ambiguity scenarios
+  retain semantic positive markers and contradiction guards.
 - The smoke used one cookie jar, fetched `/clinic-assistant` before posting, submitted URL-encoded messages while following redirects, isolated model scenarios through the UI reset endpoint, and failed closed on transport or semantic assertion failures.
-- Final cleanup: PASS at `2026-08-15T09:23:45Z`.
-- Independent post-cleanup verification: PASS; the disposable resource group was absent and the matching deleted Foundry account was absent.
 - Evidence intentionally excludes environment and resource names, URLs, full subscription or tenant identifiers, credentials, and raw model transcripts.
 
 ## Commands
@@ -44,7 +41,6 @@ scripts/test-reference-validator.sh
 scripts/validate-reference.sh
 scripts/test-azure-reference-smoke.sh
 scripts/azure-preflight.sh
-REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh
 scripts/azure-cleanup.sh
 ./mvnw -q test
 ```
@@ -89,7 +85,8 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 - Pet coverage: PASS via `ClinicQueryServiceTests.findsPetsByExactCaseInsensitiveNameAcrossOwnersWithOwnerIdentity`
 - Veterinarian coverage: PASS via `ClinicQueryServiceTests.listsVeterinariansWithExactRecordContractAndSortedSpecialtyNames`
 - Ambiguity-preserving multi-results: PASS for preserving multiple exact pet matches with owner identity via `ClinicQueryServiceTests.findsPetsByExactCaseInsensitiveNameAcrossOwnersWithOwnerIdentity`; the configured clarification boundary is PASS via `ClinicAssistantBoundaryTests.configuresClarificationForMultipleMatches`.
-- Endpoint refusal transcript flow: PASS via `ClinicAssistantBoundaryScenarioTests.rendersReadOnlyRefusalForAttemptedWriteRequestsWithoutFabricatedActivity` and `ClinicAssistantBoundaryScenarioTests.rendersMedicalAdviceRefusalWithoutFabricatedActivity`
+- Deterministic refusal boundary: PASS locally via `ClinicAssistantServiceTests.refusesAttemptedWritesWithoutInvokingTheModel`, `ClinicAssistantServiceTests.refusesVeterinaryDiagnosisAndTreatmentWithoutInvokingTheModel`, and `ClinicAssistantServiceTests.sendsNormalKnownDataQuestionsToTheModel`
+- Endpoint refusal transcript flow and structured outcomes: PASS locally via `ClinicAssistantBoundaryScenarioTests.rendersReadOnlyRefusalForAttemptedWriteRequestsWithoutFabricatedActivity`, `ClinicAssistantBoundaryScenarioTests.rendersMedicalAdviceRefusalWithoutFabricatedActivity`, and `ClinicAssistantBoundaryScenarioTests.rendersNormalOutcomeForModelAnswers`
 - Conversation transcript model: PASS via `ClinicAssistantConversationTests.createsAStringConversationWithPackagePrivateTypesAndImmutableTurns` and `ClinicAssistantConversationTests.recordsUserAndAssistantTurnsAndCanClearThem`
 - Activity visibility: PASS via `ClinicAssistantToolsTests.returnsPurposeBuiltRecordsAndVisibleActivity`, `ClinicAssistantServiceTests.recordsTheUserAnswerAndVisibleActivity`, and `ClinicAssistantControllerTests.preservesTranscriptAndVisibleActivityInTheSession`
 - Memory behavior: PASS via `ClinicAssistantModelTests.passesConversationIdAndActivityLogToTheChatClient`, `ClinicAssistantModelTests.restoresPriorConversationMemoryWhenPromptFails`, `ClinicAssistantModelTests.restoresPriorConversationMemoryWhenTheModelReturnsNull`, `ClinicAssistantModelTests.serializesConcurrentAnswersForTheSameConversation`, and `ClinicAssistantModelTests.allowsDifferentConversationStripesToPromptConcurrently`
@@ -101,9 +98,14 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 
 ## Unsupported and medical boundaries
 
-The focused local suite now carries two layers of deterministic local evidence for unsupported and medical boundaries. `ClinicAssistantBoundaryScenarioTests` drives the `/clinic-assistant` endpoint through MockMvc with the real `ClinicAssistantService` and a mocked `ClinicAssistantModel`, then proves the rendered transcript preserves the staff request and explicit refusal without fabricating activity. `ClinicAssistantBoundaryTests` continues to assert the configured `ClinicAssistantConfiguration.SYSTEM_PROMPT` boundary for unsupported or absent requests, read-only/no-mutation claims, veterinary diagnosis or treatment refusal, and multi-match clarification. This is PASS as mock-model endpoint-flow and configuration-boundary evidence only; it does **not** claim live-model compliance.
+The focused local suite now proves obvious workshop attempted-write and
+veterinary diagnosis/treatment requests are classified before
+`ClinicAssistantModel.answer`, receive fixed responses with no activity, and
+render typed outcomes. A normal known-data prompt still invokes the model.
+`ClinicAssistantBoundaryTests` retains the system-prompt defense in depth, but
+the fixed refusal contract no longer depends on free-text model compliance.
 
-Historical prototype smoke evidence first proved the live medical-advice refusal path at commit [`ee7397dbe3f15846ff7ba98139fee11ac21d4cb2`](https://github.com/JoranBergfeld/agentify-pet-clinic/blob/ee7397dbe3f15846ff7ba98139fee11ac21d4cb2/docs/prototype/azure-deployment-slice-evidence.md). The Task 8 refresh above now also proves the attempted-write and medical-advice refusal paths through the deployed reference HTML UI.
+Historical prototype smoke evidence first proved the live medical-advice refusal path at commit [`ee7397dbe3f15846ff7ba98139fee11ac21d4cb2`](https://github.com/JoranBergfeld/agentify-pet-clinic/blob/ee7397dbe3f15846ff7ba98139fee11ac21d4cb2/docs/prototype/azure-deployment-slice-evidence.md). The 2026-08-15 Task 8 live refresh is retained only as historical evidence; a new live refresh for the structured-outcome revision is pending.
 
 ## Redaction note
 

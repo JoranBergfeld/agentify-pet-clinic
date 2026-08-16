@@ -955,8 +955,12 @@ a cookie-jar path and returns scenario-specific HTML. Assert the smoke command:
   specialty;
 - proves the Davis ambiguity answer contains both matching owners or explicit
   clarification language;
-- proves attempted write contains read-only/refusal language;
-- proves medical advice contains veterinarian/refusal language;
+- proves attempted write renders `data-assistant-outcome="read-only-refusal"`
+  and the fixed read-only refusal;
+- proves medical advice renders `data-assistant-outcome="medical-refusal"` and
+  the fixed medical refusal;
+- fails when either structured outcome is missing or wrong even if the text
+  sounds safe;
 - posts `/clinic-assistant/reset`; and
 - proves the reset page contains no prior prompt.
 
@@ -1009,7 +1013,13 @@ assert_page_matches() {
 
 Implement the seven prompts and assertions described by the tests. For reset,
 store a unique prompt marker, POST reset, GET the page, and fail if that marker
-remains.
+remains. The reference application must classify the two known unsafe workshop
+request families in `ClinicAssistantService` before calling
+`ClinicAssistantModel`, record deterministic fixed responses with no activity,
+and carry a typed outcome through the transcript to the rendered
+`data-assistant-outcome` attribute. Keep known-data and ambiguity prompts on the
+model/tool path with the neutral `normal` outcome. Do not use free-text unsafe
+advice regexes as proof for the deterministic refusal scenarios.
 
 - [ ] **Step 5: Run deterministic smoke tests**
 
@@ -1048,6 +1058,8 @@ scripts/azure-cleanup.sh
 ```
 
 Expected: local reference validation, all deployed scenarios, and cleanup pass.
+For the structured-outcome revision, do not run this step until the local TDD,
+fixture, offline validator, full Maven, and template-regression gates pass.
 
 - [ ] **Step 8: Refresh reference evidence**
 

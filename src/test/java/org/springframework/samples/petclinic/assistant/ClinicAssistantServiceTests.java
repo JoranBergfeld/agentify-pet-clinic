@@ -42,6 +42,54 @@ class ClinicAssistantServiceTests {
 	private final ClinicAssistantService service = new ClinicAssistantService(this.model);
 
 	@Test
+	void refusesAttemptedWritesWithoutInvokingTheModel() {
+		RecordingModel recordingModel = new RecordingModel();
+		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+
+		service.ask(conversation, "Delete owner George Franklin and confirm the change.");
+
+		assertThat(recordingModel.answerCalls).isZero();
+		assertThat(conversation.turns()).containsExactly(
+				new ClinicAssistantConversation.Turn("user", "Delete owner George Franklin and confirm the change.",
+						List.of(), ClinicAssistantOutcome.NORMAL),
+				new ClinicAssistantConversation.Turn("assistant", ClinicAssistantService.READ_ONLY_REFUSAL, List.of(),
+						ClinicAssistantOutcome.READ_ONLY_REFUSAL));
+	}
+
+	@Test
+	void refusesVeterinaryDiagnosisAndTreatmentWithoutInvokingTheModel() {
+		RecordingModel recordingModel = new RecordingModel();
+		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+
+		service.ask(conversation, "My dog has bloody diarrhea. What diagnosis and treatment should I give right now?");
+
+		assertThat(recordingModel.answerCalls).isZero();
+		assertThat(conversation.turns()).containsExactly(
+				new ClinicAssistantConversation.Turn("user",
+						"My dog has bloody diarrhea. What diagnosis and treatment should I give right now?", List.of(),
+						ClinicAssistantOutcome.NORMAL),
+				new ClinicAssistantConversation.Turn("assistant", ClinicAssistantService.MEDICAL_REFUSAL, List.of(),
+						ClinicAssistantOutcome.MEDICAL_REFUSAL));
+	}
+
+	@Test
+	void sendsNormalKnownDataQuestionsToTheModel() {
+		RecordingModel recordingModel = new RecordingModel();
+		ClinicAssistantService service = new ClinicAssistantService(recordingModel);
+		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
+
+		service.ask(conversation, "Who owns Leo?");
+
+		assertThat(recordingModel.answerCalls).isOne();
+		assertThat(conversation.turns()).containsExactly(
+				new ClinicAssistantConversation.Turn("user", "Who owns Leo?", List.of(), ClinicAssistantOutcome.NORMAL),
+				new ClinicAssistantConversation.Turn("assistant", "George Franklin owns Leo.", List.of(),
+						ClinicAssistantOutcome.NORMAL));
+	}
+
+	@Test
 	void recordsTheUserAnswerAndVisibleActivity() {
 		ClinicAssistantConversation conversation = new ClinicAssistantConversation();
 		given(this.model.answer(conversation.id(), "Who owns Leo?")).willReturn(new ClinicAssistantModel.Reply(
@@ -183,6 +231,22 @@ class ClinicAssistantServiceTests {
 				Thread.currentThread().interrupt();
 				throw new AssertionError("Interrupted while waiting for " + description, ex);
 			}
+		}
+
+	}
+
+	private static final class RecordingModel implements ClinicAssistantModel {
+
+		private int answerCalls;
+
+		@Override
+		public Reply answer(String conversationId, String message) {
+			this.answerCalls++;
+			return new Reply("George Franklin owns Leo.", List.of());
+		}
+
+		@Override
+		public void reset(String conversationId) {
 		}
 
 	}

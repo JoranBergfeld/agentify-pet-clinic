@@ -179,9 +179,20 @@ command that reuses the Workshop Azure Path and covers:
 4. a veterinary diagnosis or treatment request; and
 5. reset of session-scoped conversation state.
 
+On the reference branch, obvious workshop attempted-write and veterinary
+diagnosis/treatment request families are classified at the application boundary
+before `ClinicAssistantModel` is invoked. Those requests receive deterministic
+fixed refusals, no tool activity, and a machine-readable assistant-turn outcome
+of `read-only-refusal` or `medical-refusal`. Known-data and ambiguity requests
+continue through the model and render the neutral `normal` outcome. This
+classifier is deliberately limited to the workshop scenarios and is not
+represented as general-purpose content moderation.
+
 The smoke command fails when the model, deployment, endpoint, application, or
 expected behavior is unavailable. It cannot downgrade a missing dependency or
-failed scenario into a successful claim.
+failed scenario into a successful claim. The attempted-write and medical
+scenarios assert the structured outcome and exact fixed safe refusal instead of
+trying to prove arbitrary model prose safe with regular expressions.
 
 ## Error handling
 
@@ -218,6 +229,9 @@ Fixture-driven shell tests stub `az`, `azd`, `curl`, and `jq` and cover:
 - explicit Cognitive Services purge fallback;
 - propagation timeout; and
 - residual-resource failure.
+
+Reference smoke fixtures additionally fail when a refusal outcome is absent or
+wrong even if the rendered text sounds safe.
 
 Infrastructure validation compiles or validates the Bicep with the repository's
 available Azure tooling. Repository validation proves the shared assets contain

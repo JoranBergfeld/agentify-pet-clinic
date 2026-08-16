@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -54,21 +55,18 @@ class ClinicAssistantBoundaryScenarioTests {
 
 	@Test
 	void rendersReadOnlyRefusalForAttemptedWriteRequestsWithoutFabricatedActivity() throws Exception {
-		assertTranscriptWithoutFabricatedActivity("Delete owner George Franklin from PetClinic.",
-				"I can't delete owners or change PetClinic records. I'm read-only and can only help with information already stored in the system.");
+		assertRefusalTranscript("Delete owner George Franklin from PetClinic.",
+				ClinicAssistantService.READ_ONLY_REFUSAL, ClinicAssistantOutcome.READ_ONLY_REFUSAL);
 	}
 
 	@Test
 	void rendersMedicalAdviceRefusalWithoutFabricatedActivity() throws Exception {
-		assertTranscriptWithoutFabricatedActivity(
-				"My dog has bloody diarrhea. What diagnosis and treatment should I give right now?",
-				"I can't provide veterinary diagnosis or treatment advice. Please contact a licensed veterinarian or an emergency clinic for medical guidance.");
+		assertRefusalTranscript("My dog has bloody diarrhea. What diagnosis and treatment should I give right now?",
+				ClinicAssistantService.MEDICAL_REFUSAL, ClinicAssistantOutcome.MEDICAL_REFUSAL);
 	}
 
-	private void assertTranscriptWithoutFabricatedActivity(String userMessage, String assistantReply) throws Exception {
-		given(this.model.answer(anyString(), eq(userMessage)))
-			.willReturn(new ClinicAssistantModel.Reply(assistantReply, List.of()));
-
+	private void assertRefusalTranscript(String userMessage, String assistantReply, ClinicAssistantOutcome outcome)
+			throws Exception {
 		MvcResult postResult = this.mockMvc.perform(post("/clinic-assistant").param("message", userMessage))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(redirectedUrl("/clinic-assistant"))
@@ -78,8 +76,9 @@ class ClinicAssistantBoundaryScenarioTests {
 			.getAttribute(ClinicAssistantController.CONVERSATION_ATTRIBUTE);
 
 		assertThat(conversation.turns()).containsExactly(
-				new ClinicAssistantConversation.Turn("user", userMessage, List.of()),
-				new ClinicAssistantConversation.Turn("assistant", assistantReply, List.of()));
+				new ClinicAssistantConversation.Turn("user", userMessage, List.of(), ClinicAssistantOutcome.NORMAL),
+				new ClinicAssistantConversation.Turn("assistant", assistantReply, List.of(), outcome));
+		verifyNoInteractions(this.model);
 
 		MvcResult transcriptResult = this.mockMvc.perform(get("/clinic-assistant").session(session))
 			.andExpect(status().isOk())
@@ -87,7 +86,26 @@ class ClinicAssistantBoundaryScenarioTests {
 
 		assertThat(transcriptResult.getResponse().getContentAsString()).contains(HtmlUtils.htmlEscape(userMessage))
 			.contains(HtmlUtils.htmlEscape(assistantReply))
+			.contains("data-assistant-outcome=\"" + outcome.htmlValue() + "\"")
 			.doesNotContain("assistant-activity");
+	}
+
+	@Test
+	void rendersNormalOutcomeForModelAnswers() throws Exception {
+		String userMessage = "Who owns Leo?";
+		given(this.model.answer(anyString(), eq(userMessage)))
+			.willReturn(new ClinicAssistantModel.Reply("George Franklin owns Leo.", List.of()));
+
+		MvcResult postResult = this.mockMvc.perform(post("/clinic-assistant").param("message", userMessage))
+			.andExpect(status().is3xxRedirection())
+			.andReturn();
+		MockHttpSession session = (MockHttpSession) postResult.getRequest().getSession(false);
+
+		MvcResult transcriptResult = this.mockMvc.perform(get("/clinic-assistant").session(session))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		assertThat(transcriptResult.getResponse().getContentAsString()).contains("data-assistant-outcome=\"normal\"");
 	}
 
 }
