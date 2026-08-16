@@ -90,12 +90,12 @@ grep -Fq 'azure-identity:1.18.2' build.gradle
 ## Results
 
 - `./gradlew -q assertJava17Release`: PASS — every `JavaCompile` task reports `options.release = 17`
-- `./gradlew -q test`: PASS — 29 suite reports, 113 tests, 0 failures, 0 errors, 4 skipped
+- `./gradlew -q test`: PASS — 30 suite reports, 198 tests, 0 failures, 0 errors, 4 skipped
 - `scripts/test-reference-validator.sh`: PASS — proves a single-branch reference clone materializes `refs/remotes/origin/main`, enforces the Gradle Spring AI dependency gate before test execution, reaches the `./gradlew -q assertJava17Release compileJava` gate, then proves focused classes still run one-at-a-time with `-Dsurefire.failIfNoSpecifiedTests=true` and `MissingReferenceValidationTest` still stops validation before the full-suite fallback.
 - `scripts/validate-reference.sh`: PASS (exit `0`; final line `reference branch is current and validated`)
 - `REFERENCE_DEPLOYED_SMOKE=1 scripts/validate-reference.sh`: PASS — final deployed run reported `reference deployed smoke passed (7 scenarios plus reset)` and `reference branch is current and validated`
-- Focused assistant suite: PASS — 10 suite reports, 72 tests, 0 failures, 0 errors, 0 skipped
-- Full Maven suite (`./mvnw -q test`): PASS — 26 suite reports, 141 tests, 0 failures, 0 errors, 2 skipped
+- Focused assistant suite: PASS — 10 suite reports, 86 tests, 0 failures, 0 errors, 0 skipped
+- Full Maven suite (`./mvnw -q test`): PASS — 27 suite reports, 196 tests, 0 failures, 0 errors, 2 skipped
 - Current Java 21 run emitted non-failing Mockito/Byte Buddy dynamic-agent warnings during test startup
 
 ## Focused coverage claims
