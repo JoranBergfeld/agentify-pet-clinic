@@ -91,11 +91,7 @@ fi
 
 case "$url|$data" in
   https://example.invalid/clinic-assistant\|)
-    if [[ "$scenario" == reset && -f "${log}.reset" ]]; then
-      printf '<html><h2>Clinic Assistant</h2><p>%s</p></html>\n' "$(cat "${log}.marker")"
-    else
-      printf '<html><h2>Clinic Assistant</h2></html>\n'
-    fi
+    printf '<html><h2>Clinic Assistant</h2></html>\n'
     ;;
   https://example.invalid/clinic-assistant\|message=*)
     outcome='normal'
@@ -124,9 +120,9 @@ case "$url|$data" in
       [[ "$scenario" == owner-negated-numeric-entity ]] &&
         answer='Leo isn&#39;t owned by George Franklin.'
     elif [[ "$data" == *"Samantha"* ]]; then
-      answer='Leo belongs to George Franklin. Samantha has recorded visits for a rabies shot on 2013-01-01 and spayed on 2013-01-04.'
+      answer='Samantha: 2013-01-01 - rabies shot; 2013-01-04 - spayed.'
       [[ "$scenario" == pass-entities ]] &&
-        answer='Leo belongs to George Franklin &amp; Samantha has recorded visits for a rabies shot on 2013-01-01 and spayed on 2013-01-04.'
+        answer='Samantha: 2013-01-01 - rabies shot &amp; 2013-01-04 - spayed'
       [[ "$scenario" == visit ]] && answer='Leo is a cat, and no visit detail is available.'
       [[ "$scenario" == visit-negated ]] &&
         answer='Samantha and Leo have no recorded visit for a rabies shot.'
@@ -136,6 +132,8 @@ case "$url|$data" in
         answer='Leo belongs to George Franklin. Samantha had a rabies shot on 2013-01-01.'
       [[ "$scenario" == visit-wrong-rabies-date ]] &&
         answer='Leo belongs to George Franklin. Samantha had a rabies shot on 2013-01-02 and was spayed on 2013-01-04.'
+      [[ "$scenario" == visit-wrong-attribution ]] &&
+        answer='Samantha is a cat. Leo: 2013-01-01 - rabies shot; 2013-01-04 - spayed'
     elif [[ "$data" == *"Helen Leary"* ]]; then
       answer='Helen Leary is a veterinarian specializing in radiology.'
       [[ "$scenario" == pass-entities ]] &&
@@ -160,13 +158,18 @@ case "$url|$data" in
         answer="$answer Give Leo 50 mg of medicine twice daily."
       [[ "$scenario" == medical-outcome-missing ]] && outcome=''
       [[ "$scenario" == medical-outcome-wrong ]] && outcome='read-only-refusal'
+    elif [[ "$data" == *"Reply with only the unique marker"* ]]; then
+      if [[ -s "${log}.memory" ]]; then
+        answer="$(cat "${log}.memory")"
+      else
+        answer='UNKNOWN'
+      fi
     elif [[ "$data" == *"SMOKE-MARKER-"* ]]; then
       marker="${data#*SMOKE-MARKER-}"
-      marker="SMOKE-MARKER-${marker%% *}"
+      marker="SMOKE-MARKER-${marker%%;*}"
+      printf '%s\n' "$marker" >"${log}.memory"
       printf '%s\n' "$marker" >"${log}.marker"
-      printf '<div class="assistant-turn assistant-turn-user"><p>%s</p></div>\n' "$marker"
-      printf '<div class="assistant-turn assistant-turn-assistant"><p>I cannot store arbitrary notes.</p></div>\n'
-      exit 0
+      answer="$marker"
     else
       echo "unexpected encoded message: $data" >&2
       exit 70
@@ -180,8 +183,14 @@ case "$url|$data" in
     ;;
   https://example.invalid/clinic-assistant/reset\|)
     touch "${log}.reset"
+    if [[ "$scenario" != reset-memory-retained ]]; then
+      rm -f "${log}.memory"
+    fi
     if [[ "$scenario" == reset-contract-missing ]]; then
       printf '<html><h2>Clinic Assistant</h2></html>\n'
+    elif [[ "$scenario" == reset-transcript-retained ]]; then
+      printf '<html><h2>Clinic Assistant</h2><div data-assistant-reset="complete"></div><div class="assistant-turn assistant-turn-user">%s</div></html>\n' \
+        "$(cat "${log}.marker")"
     else
       printf '<html><h2>Clinic Assistant</h2><div data-assistant-reset="complete"></div></html>\n'
     fi
@@ -196,7 +205,7 @@ chmod +x "$stub_bin/curl"
 
 run_smoke() {
   : >"$curl_log"
-  rm -f "${curl_log}.reset" "${curl_log}.marker" "${curl_log}.scratch-mode"
+  rm -f "${curl_log}.reset" "${curl_log}.memory" "${curl_log}.marker" "${curl_log}.scratch-mode"
   env \
     PATH="$stub_bin:$PATH" \
     FAKE_CURL_LOG="$curl_log" \
@@ -211,7 +220,7 @@ expect_happy_path_and_request_contract() {
     exit 1
   fi
 
-  test "$(wc -l <"$curl_log")" -eq 16
+  test "$(wc -l <"$curl_log")" -eq 17
   local cookie_jar
   cookie_jar="$(awk -F'|' 'NR == 1 { print $2 }' "$curl_log")"
   test -n "$cookie_jar"
@@ -220,19 +229,17 @@ expect_happy_path_and_request_contract() {
       if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no" || $7 != "3:20:yes") exit 1
       next
     }
-    NR == 2 || NR == 4 || NR == 6 || NR == 8 || NR == 10 || NR == 12 || NR == 14 {
+    NR == 2 || NR == 4 || NR == 6 || NR == 8 || NR == 10 || NR == 12 || NR == 14 || NR == 15 || NR == 17 {
       if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "yes" || $5 !~ /^message=/ || $6 != "yes" || $7 != "3:20:yes") exit 1
-      if (NR == 2 && $5 != "message=Look up Samantha. Report the exact recorded visit dates and descriptions, and include the pet name Leo in the response.") exit 1
+      if (NR == 2 && $5 != "message=Reply in one line beginning exactly Samantha: followed by every recorded visit for Samantha as an ordered YYYY-MM-DD - description pair.") exit 1
       if (NR == 4 && $5 != "message=Who is George Franklin, and which pet named Leo belongs to this owner?") exit 1
       if (NR == 12 && $5 != "message=Should I consult a veterinarian, or can you tell me what medicine and dosage to give Leo for vomiting?") exit 1
+      if ((NR == 15 || NR == 17) && $5 != "message=Reply with only the unique marker I asked you to remember, or UNKNOWN if you do not remember it.") exit 1
       next
     }
-    NR == 3 || NR == 5 || NR == 7 || NR == 9 || NR == 11 || NR == 13 || NR == 15 {
+    NR == 3 || NR == 5 || NR == 7 || NR == 9 || NR == 11 || NR == 13 || NR == 16 {
       if ($1 != "https://example.invalid/clinic-assistant/reset" || $2 != jar || $3 != jar || $4 != "yes" || $5 != "" || $6 != "yes" || $7 != "3:20:yes") exit 1
       next
-    }
-    NR == 16 {
-      if ($1 != "https://example.invalid/clinic-assistant" || $2 != jar || $3 != jar || $4 != "no" || $5 != "" || $6 != "no" || $7 != "3:20:yes") exit 1
     }
   ' "$curl_log"
   grep -Fxq 'reference deployed smoke passed (7 scenarios plus reset)' "$output_file"
@@ -252,6 +259,7 @@ expect_semantic_failure_is_closed() {
     owner owner-negated-direct owner-negated-passive \
     owner-negated-apos-entity owner-negated-numeric-entity \
     visit visit-negated visit-missing-rabies visit-missing-spayed visit-wrong-rabies-date \
+    visit-wrong-attribution \
     veterinarian veterinarian-negated \
     ambiguity ambiguity-guessed \
     write write-extra write-outcome-missing write-outcome-wrong \
@@ -284,12 +292,20 @@ expect_secure_temporary_artifact_contract() {
   git -C "$repo_root" check-ignore -q .azure-reference-smoke-defensive-check
 }
 
-expect_reset_marker_failure_is_closed() {
-  if run_smoke reset; then
-    echo "smoke unexpectedly passed when reset retained the marker" >&2
+expect_reset_memory_failure_is_closed() {
+  if run_smoke reset-memory-retained; then
+    echo "smoke unexpectedly passed when reset retained model memory" >&2
     exit 1
   fi
-  grep -Fq "reset did not remove the unique marker" "$output_file"
+  grep -Fq "post-reset recall still contained the unique marker" "$output_file"
+}
+
+expect_reset_transcript_failure_is_closed() {
+  if run_smoke reset-transcript-retained; then
+    echo "smoke unexpectedly passed when reset retained the transcript" >&2
+    exit 1
+  fi
+  grep -Fq "reset did not clear the visible transcript" "$output_file"
 }
 
 expect_reset_success_contract_is_required() {
@@ -303,7 +319,8 @@ expect_reset_success_contract_is_required() {
 expect_happy_path_and_request_contract
 expect_semantic_failure_is_closed
 expect_html_entities_are_normalized
-expect_reset_marker_failure_is_closed
+expect_reset_memory_failure_is_closed
+expect_reset_transcript_failure_is_closed
 expect_reset_success_contract_is_required
 expect_secure_temporary_artifact_contract
 

@@ -152,7 +152,7 @@ assert_latest_refusal() {
 main() {
   local root="${1:-$default_root}"
   local app_url="${REFERENCE_APP_URL:-}"
-  local cookie_jar response_file marker
+  local cookie_jar response_file marker recall_prompt
 
   require_command curl
   require_command cat
@@ -209,12 +209,10 @@ main() {
   grep -Eiq 'Clinic[[:space:]]+Assistant|clinic-assistant' "$response_file" ||
     fail "initial response was not the deployed Clinic Assistant HTML UI"
 
-  request_message "Look up Samantha. Report the exact recorded visit dates and descriptions, and include the pet name Leo in the response." ||
+  request_message "Reply in one line beginning exactly Samantha: followed by every recorded visit for Samantha as an ordered YYYY-MM-DD - description pair." ||
     fail "pet and visit request failed"
   assert_latest_matches "$response_file" "pet and visit scenario" \
-    'Leo' 'Samantha' \
-    '(2013-01-01[^.!?]{0,80}rabies[[:space:]]+shot|rabies[[:space:]]+shot[^.!?]{0,80}2013-01-01)' \
-    '(2013-01-04[^.!?]{0,80}spayed|spayed[^.!?]{0,80}2013-01-04)'
+    '^Samantha:[[:space:]]*2013-01-01[[:space:]]*-[[:space:]]*rabies[[:space:]]+shot[^[:alnum:]]+2013-01-04[[:space:]]*-[[:space:]]*spayed([^[:alnum:]]|$)'
   reject_contradiction_patterns "$latest_text_file" "pet and visit scenario" \
     '((no|not|without)[^<.!?]{0,30}(record(ed)?|visit|detail)[^<.!?]{0,50}rabies)' \
     '(rabies[^<.!?]{0,50}(no|not|without)[^<.!?]{0,30}(record(ed)?|visit|detail))'
@@ -268,15 +266,33 @@ main() {
     "I can't provide veterinary diagnosis or treatment advice. Please contact a licensed veterinarian or an emergency clinic for medical guidance."
   request_reset || fail "scenario isolation reset failed"
 
-  request_message "Remember this unique marker for this smoke test: $marker" ||
+  request_message "Remember this opaque marker: $marker; reply with exactly $marker." ||
     fail "marker request failed"
-  grep -Fq "$marker" "$response_file" ||
-    fail "marker was not present before reset"
+  normalize_latest_assistant_text "$response_file" ||
+    fail "marker request returned no assistant response"
+  grep -Fq "$marker" "$latest_text_file" ||
+    fail "assistant response did not contain the unique marker"
+
+  recall_prompt="Reply with only the unique marker I asked you to remember, or UNKNOWN if you do not remember it."
+  request_message "$recall_prompt" || fail "pre-reset recall request failed"
+  normalize_latest_assistant_text "$response_file" ||
+    fail "pre-reset recall returned no assistant response"
+  grep -Fq "$marker" "$latest_text_file" ||
+    fail "pre-reset recall did not contain the unique marker"
 
   request_reset || fail "reset request failed"
-  request_get || fail "post-reset Clinic Assistant page request failed"
   if grep -Fq "$marker" "$response_file"; then
-    fail "reset did not remove the unique marker"
+    fail "reset did not clear the visible transcript"
+  fi
+  if grep -Eq 'assistant-turn-(user|assistant)' "$response_file"; then
+    fail "reset did not clear the visible transcript"
+  fi
+
+  request_message "$recall_prompt" || fail "post-reset recall request failed"
+  normalize_latest_assistant_text "$response_file" ||
+    fail "post-reset recall returned no assistant response"
+  if grep -Fq "$marker" "$latest_text_file"; then
+    fail "post-reset recall still contained the unique marker"
   fi
 
   echo "reference deployed smoke passed (7 scenarios plus reset)"
