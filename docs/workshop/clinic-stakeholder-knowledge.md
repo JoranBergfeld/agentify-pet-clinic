@@ -2,7 +2,7 @@
 
 ## Participant brief
 
-PetClinic staff need a chatbot that answers questions about owners, pets, Visits, and veterinarians.
+PetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.
 
 ## Fixed facts
 

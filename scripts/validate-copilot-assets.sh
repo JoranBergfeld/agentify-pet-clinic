@@ -131,6 +131,9 @@ require_contract_line \
   "## Explicit unknowns"
 require_contract_line \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "PetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application."
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
   "- The Clinic Assistant must never claim to change PetClinic data."
 require_contract_line \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
