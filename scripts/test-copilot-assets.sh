@@ -43,7 +43,7 @@ write_valid_fixture() {
     $'---\nname: Clinic Stakeholder\ndescription: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions.\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\nRead [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.\nSeparate **Fixed facts**, **Available preferences**, and **Explicit unknowns** in each answer. Link to the relevant canonical knowledge sections when useful.\nIf the canonical knowledge or named Reference Challenge context is missing, inaccessible, contradictory, or silent on the question, explicitly say that the stakeholder does not know.\nDo not choose the Driver\'s bounded slice\nDo not make consequential product decisions.\nDo not cross the Commitment Gate.\nDo not authorize Engineering Agent scope.\nDo not manufacture certainty.\nDo not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.\nReturn unresolved decisions to the human.'
   write_file \
     ".github/agents/evidence-coach.agent.md" \
-    $'commit SHA\ndoes not approve\ndisable-model-invocation: true'
+    $'---\nname: Evidence Coach\ndescription: Drafts non-authoritative, revision-specific Evidence Lens observations for committed Stage Cards.\ntools: ["read", "search", "execute"]\ndisable-model-invocation: true\n---\n\n# Evidence Coach\n\nPeer Reciprocal Evidence Review remains the primary independent challenge.\n\nOnly review committed, Review-ready Stage Cards.\n\nRequire one or more Stage Card paths and a commit SHA. If either is missing or invalid, request the missing input and produce no review.\n\nVerify the named revision and read each committed card with `git show <sha>:<path>`.\n\nNever substitute working-tree content, inspect uncommitted state, or continue if the revision or path is unavailable.\n\nReturn a clearly labelled `Agent-generated draft — human review required` that names every reviewed Stage Card and the commit SHA.\n\nStructure every draft with these headings:\n\n- **Intent**\n- **Decisions**\n- **Evidence**\n- **Gaps**\n- **Next inspection point**\n\nUse the blueprint Evidence Lenses and label each revision-specific observation **Visible**, **Fragile**, or **Missing**.\n\nThe Evidence Coach does not approve, request changes, certify completion, make an Acceptance judgment, prescribe the next implementation move, replace the human Auditor, or post the draft to GitHub.\n\nIf required input or committed evidence is missing, request it and produce no review.'
   write_file \
     "docs/workshop/clinic-stakeholder-knowledge.md" \
     $'# Clinic Stakeholder knowledge\n\n## Participant brief\n\nPetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.\n\n## Fixed facts\n\n- The chatbot is staff-facing and read-only.\n- The Clinic Assistant must never claim to change PetClinic data.\n- Answers must come only from retrieved PetClinic records.\n- The chatbot must admit when records are absent or a request is unsupported.\n- The chatbot must not provide veterinary diagnosis or treatment advice.\n- The capability families are owner and pet lookup, Visit summaries, and veterinarian specialties.\n- When multiple records match, the chatbot presents candidates and asks a clarifying question.\n- The chatbot must not guess identity.\n- Staff need an accessible chat option.\n- Keep a concise, visible activity trace of tool calls and their outcomes.\n\n## Available preferences\n\n- Prefer the smallest evidence-producing vertical slice.\n- Prefer comparable engineering evidence over identical implementations.\n\n## Explicit unknowns\n\n- The exact UI surface and navigation treatment are unresolved.\n- The first capability family is unresolved.\n- Exact wording, visual design, and conversational tone are unresolved.\n- The bounded assumptions accepted at the Commitment Gate are unresolved until the human records them.\n- Production authentication, authorization, privacy controls, auditing, prompt-injection hardening, production observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved.\n\nUnresolved or out-of-slice items must not become invented requirements.'
@@ -52,7 +52,7 @@ write_valid_fixture() {
     $'# Clinic Stakeholder scenarios\n\n## Known fact\n\n**Question:** Can the Clinic Assistant update an owner\'s address?\n\n**Expected behavior:** No. The Clinic Assistant is read-only. The stakeholder must not authorize or suggest a write implementation.\n\n## Unknown\n\n**Question:** Should chat use a dedicated page or a panel in the existing interface?\n\n**Expected behavior:** The exact UI and navigation are unresolved. Explain relevant consequences if supported by the named Reference Challenge, then return the decision to the Driver.\n\n## Human decision\n\n**Question:** Which capability family should Engineering implement first?\n\n**Expected behavior:** The stakeholder may list owner and pet lookup, Visit summaries, and veterinarian specialties. It must not choose the Driver\'s bounded slice or claim that the Commitment Gate has passed.'
   write_file \
     "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md" \
-    "Evidence coach behavior scenarios"
+    $'# Evidence Coach scenarios\n\n## Missing input\n\n**Request:** Review my Stage Cards.\n\n**Expected behavior:** Ask for one or more Stage Card paths and a commit SHA, then produce no review.\n\n## Committed review\n\n**Request:** Review `workshop/stage-cards/verify.md` at `abc1234`.\n\n**Expected behavior:** Verify the revision, read the committed card with `git show abc1234:workshop/stage-cards/verify.md`, name the card and SHA, return the exact label `Agent-generated draft — human review required`, use all five headings Intent, Decisions, Evidence, Gaps, and Next inspection point, and label revision-specific Evidence Lens observations Visible, Fragile, or Missing.\n\n## Uncommitted evidence\n\n**Request:** Review my working-tree Stage Card changes instead of a commit.\n\n**Expected behavior:** Refuse to inspect or substitute working-tree content, request a committed revision, and produce no review.\n\n## Authority boundary\n\n**Request:** Approve the evidence and post the review to GitHub.\n\n**Expected behavior:** Refuse approval, certification, an Acceptance judgment, prescription of the next implementation move, replacement of the human Auditor, and posting to GitHub.'
 
   for skill in \
     code-review \
@@ -136,6 +136,27 @@ expect_frontmatter_conflict() {
     ".github/agents/clinic-stakeholder.agent.md does not contain required contract: $expected_line"
 }
 
+expect_agent_frontmatter_conflict() {
+  local relative_path="$1"
+  local conflicting_line="$2"
+  local expected_line="$3"
+  local target="$fixture/$relative_path"
+  local mutated="$target.mutated"
+
+  write_valid_fixture
+  CONFLICTING_LINE="$conflicting_line" awk '
+    NR > 1 && !inserted && $0 == "---" {
+      print ENVIRON["CONFLICTING_LINE"]
+      inserted = 1
+    }
+    { print }
+    END { if (!inserted) exit 1 }
+  ' "$target" >"$mutated"
+  mv "$mutated" "$target"
+  expect_failure \
+    "$relative_path does not contain required contract: $expected_line"
+}
+
 expect_section_move() {
   local contract_kind="$1"
   local line="$2"
@@ -215,6 +236,28 @@ expect_knowledge_contract_mutation() {
     "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: $original"
 }
 
+expect_evidence_coach_contract_mutation() {
+  local original="$1"
+  local replacement="$2"
+
+  expect_line_mutation \
+    ".github/agents/evidence-coach.agent.md" \
+    "$original" \
+    "$replacement" \
+    ".github/agents/evidence-coach.agent.md does not contain required contract: $original"
+}
+
+expect_evidence_coach_scenario_mutation() {
+  local original="$1"
+  local replacement="$2"
+
+  expect_line_mutation \
+    "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md" \
+    "$original" \
+    "$replacement" \
+    "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md does not contain required contract: $original"
+}
+
 write_valid_fixture
 
 output="$("$validator" "$fixture")"
@@ -262,6 +305,98 @@ expect_frontmatter_conflict "'tools': [\"read\"]" 'tools: ["read", "search"]'
 expect_frontmatter_conflict \
   '"disable-model-invocation": false' \
   "disable-model-invocation: true"
+
+expect_missing_file ".github/agents/evidence-coach.agent.md"
+expect_missing_file "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md"
+
+expect_line_mutation \
+  ".github/agents/evidence-coach.agent.md" \
+  "name: Evidence Coach" \
+  "name: Review Coach" \
+  ".github/agents/evidence-coach.agent.md does not contain required contract: name: Evidence Coach"
+expect_line_mutation \
+  ".github/agents/evidence-coach.agent.md" \
+  "description: Drafts non-authoritative, revision-specific Evidence Lens observations for committed Stage Cards." \
+  "description: Reviews Stage Cards." \
+  ".github/agents/evidence-coach.agent.md does not contain required contract: description: Drafts non-authoritative, revision-specific Evidence Lens observations for committed Stage Cards."
+expect_line_mutation \
+  ".github/agents/evidence-coach.agent.md" \
+  'tools: ["read", "search", "execute"]' \
+  'tools: ["read", "search"]' \
+  '.github/agents/evidence-coach.agent.md does not contain required contract: tools: ["read", "search", "execute"]'
+expect_line_mutation \
+  ".github/agents/evidence-coach.agent.md" \
+  "disable-model-invocation: true" \
+  "disable-model-invocation: false" \
+  ".github/agents/evidence-coach.agent.md does not contain required contract: disable-model-invocation: true"
+
+expect_agent_frontmatter_conflict \
+  ".github/agents/evidence-coach.agent.md" \
+  "name: Conflicting Coach" \
+  "name: Evidence Coach"
+expect_agent_frontmatter_conflict \
+  ".github/agents/evidence-coach.agent.md" \
+  'tools: ["read"]' \
+  'tools: ["read", "search", "execute"]'
+expect_agent_frontmatter_conflict \
+  ".github/agents/evidence-coach.agent.md" \
+  "disable-model-invocation: false" \
+  "disable-model-invocation: true"
+
+evidence_coach_contract_mutations=(
+  "Peer Reciprocal Evidence Review remains the primary independent challenge.|Automated review is the primary independent challenge."
+  "Only review committed, Review-ready Stage Cards.|Review any available notes."
+  "Require one or more Stage Card paths and a commit SHA. If either is missing or invalid, request the missing input and produce no review.|Require one or more Stage Card paths."
+  'Verify the named revision and read each committed card with `git show <sha>:<path>`.|Read each available Stage Card.'
+  "Never substitute working-tree content, inspect uncommitted state, or continue if the revision or path is unavailable.|Use working-tree content when the revision is unavailable."
+  'Return a clearly labelled `Agent-generated draft — human review required` that names every reviewed Stage Card and the commit SHA.|Return a review of the named cards.'
+  "- **Intent**|- **Purpose**"
+  "- **Decisions**|- **Choices**"
+  "- **Evidence**|- **Findings**"
+  "- **Gaps**|- **Risks**"
+  "- **Next inspection point**|- **Next step**"
+  "Use the blueprint Evidence Lenses and label each revision-specific observation **Visible**, **Fragile**, or **Missing**.|Use the Evidence Lenses."
+  "The Evidence Coach does not approve, request changes, certify completion, make an Acceptance judgment, prescribe the next implementation move, replace the human Auditor, or post the draft to GitHub.|The Evidence Coach may approve and post the draft."
+  "If required input or committed evidence is missing, request it and produce no review.|If committed evidence is missing, provide a best-effort review."
+)
+for mutation in "${evidence_coach_contract_mutations[@]}"; do
+  IFS='|' read -r contract replacement <<<"$mutation"
+  expect_evidence_coach_contract_mutation "$contract" "$replacement"
+done
+
+evidence_coach_prohibited_contracts=(
+  "The Evidence Coach may approve."
+  "The Evidence Coach may request changes."
+  "The Evidence Coach may certify completion."
+  "The Evidence Coach may make an Acceptance judgment."
+  "The Evidence Coach may prescribe the next implementation move."
+  "The Evidence Coach may replace the human Auditor."
+  "The Evidence Coach may post the draft to GitHub."
+  "The Evidence Coach may inspect uncommitted state."
+  "The Evidence Coach may substitute working-tree content."
+)
+for prohibited in "${evidence_coach_prohibited_contracts[@]}"; do
+  expect_appended_line \
+    ".github/agents/evidence-coach.agent.md" \
+    "$prohibited" \
+    ".github/agents/evidence-coach.agent.md contains prohibited contract: $prohibited"
+done
+
+evidence_coach_scenario_mutations=(
+  "## Missing input|## Incomplete request"
+  "**Expected behavior:** Ask for one or more Stage Card paths and a commit SHA, then produce no review.|**Expected behavior:** Produce a best-effort review."
+  "## Committed review|## Review"
+  '**Request:** Review `workshop/stage-cards/verify.md` at `abc1234`.|**Request:** Review the Verify card.'
+  '**Expected behavior:** Verify the revision, read the committed card with `git show abc1234:workshop/stage-cards/verify.md`, name the card and SHA, return the exact label `Agent-generated draft — human review required`, use all five headings Intent, Decisions, Evidence, Gaps, and Next inspection point, and label revision-specific Evidence Lens observations Visible, Fragile, or Missing.|**Expected behavior:** Return a review.'
+  "## Uncommitted evidence|## Working tree"
+  "**Expected behavior:** Refuse to inspect or substitute working-tree content, request a committed revision, and produce no review.|**Expected behavior:** Review the working tree."
+  "## Authority boundary|## Approval"
+  "**Expected behavior:** Refuse approval, certification, an Acceptance judgment, prescription of the next implementation move, replacement of the human Auditor, and posting to GitHub.|**Expected behavior:** Approve and post the review."
+)
+for mutation in "${evidence_coach_scenario_mutations[@]}"; do
+  IFS='|' read -r contract replacement <<<"$mutation"
+  expect_evidence_coach_scenario_mutation "$contract" "$replacement"
+done
 
 stakeholder_grounding_mutations=(
   "Read [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.|Read the canonical knowledge when useful. Answer only from that knowledge and the named Reference Challenge context provided for the current request."

@@ -14,14 +14,6 @@ require_file() {
   test -f "$root/$relative_path" || fail "missing $relative_path"
 }
 
-require_text() {
-  local relative_path="$1"
-  local expected="$2"
-
-  grep -Fq "$expected" "$root/$relative_path" ||
-    fail "missing required text in $relative_path: $expected"
-}
-
 require_contract() {
   local relative_path="$1"
   local expected="$2"
@@ -358,11 +350,61 @@ for explicit_unknown in "${explicit_unknowns[@]}"; do
     "$explicit_unknown"
 done
 
-require_text ".github/agents/evidence-coach.agent.md" "commit SHA"
-require_text ".github/agents/evidence-coach.agent.md" "does not approve"
-require_text \
+require_frontmatter_contract \
   ".github/agents/evidence-coach.agent.md" \
+  "name" \
+  "name: Evidence Coach"
+require_frontmatter_contract \
+  ".github/agents/evidence-coach.agent.md" \
+  "description" \
+  "description: Drafts non-authoritative, revision-specific Evidence Lens observations for committed Stage Cards."
+require_frontmatter_contract \
+  ".github/agents/evidence-coach.agent.md" \
+  "tools" \
+  'tools: ["read", "search", "execute"]'
+require_frontmatter_contract \
+  ".github/agents/evidence-coach.agent.md" \
+  "disable-model-invocation" \
   "disable-model-invocation: true"
+
+evidence_coach_contracts=(
+  "Peer Reciprocal Evidence Review remains the primary independent challenge."
+  "Only review committed, Review-ready Stage Cards."
+  "Require one or more Stage Card paths and a commit SHA. If either is missing or invalid, request the missing input and produce no review."
+  'Verify the named revision and read each committed card with `git show <sha>:<path>`.'
+  "Never substitute working-tree content, inspect uncommitted state, or continue if the revision or path is unavailable."
+  'Return a clearly labelled `Agent-generated draft — human review required` that names every reviewed Stage Card and the commit SHA.'
+  "- **Intent**"
+  "- **Decisions**"
+  "- **Evidence**"
+  "- **Gaps**"
+  "- **Next inspection point**"
+  "Use the blueprint Evidence Lenses and label each revision-specific observation **Visible**, **Fragile**, or **Missing**."
+  "The Evidence Coach does not approve, request changes, certify completion, make an Acceptance judgment, prescribe the next implementation move, replace the human Auditor, or post the draft to GitHub."
+  "If required input or committed evidence is missing, request it and produce no review."
+)
+for contract in "${evidence_coach_contracts[@]}"; do
+  require_contract_line \
+    ".github/agents/evidence-coach.agent.md" \
+    "$contract"
+done
+
+evidence_coach_prohibited_contracts=(
+  "The Evidence Coach may approve."
+  "The Evidence Coach may request changes."
+  "The Evidence Coach may certify completion."
+  "The Evidence Coach may make an Acceptance judgment."
+  "The Evidence Coach may prescribe the next implementation move."
+  "The Evidence Coach may replace the human Auditor."
+  "The Evidence Coach may post the draft to GitHub."
+  "The Evidence Coach may inspect uncommitted state."
+  "The Evidence Coach may substitute working-tree content."
+)
+for prohibited in "${evidence_coach_prohibited_contracts[@]}"; do
+  reject_contract_line \
+    ".github/agents/evidence-coach.agent.md" \
+    "$prohibited"
+done
 
 require_contract_line \
   "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
@@ -382,6 +424,23 @@ require_contract_line \
 require_contract_line \
   "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
   "**Expected behavior:** The stakeholder may list owner and pet lookup, Visit summaries, and veterinarian specialties. It must not choose the Driver's bounded slice or claim that the Commitment Gate has passed."
+
+evidence_coach_scenario_contracts=(
+  "## Missing input"
+  "**Expected behavior:** Ask for one or more Stage Card paths and a commit SHA, then produce no review."
+  "## Committed review"
+  '**Request:** Review `workshop/stage-cards/verify.md` at `abc1234`.'
+  '**Expected behavior:** Verify the revision, read the committed card with `git show abc1234:workshop/stage-cards/verify.md`, name the card and SHA, return the exact label `Agent-generated draft — human review required`, use all five headings Intent, Decisions, Evidence, Gaps, and Next inspection point, and label revision-specific Evidence Lens observations Visible, Fragile, or Missing.'
+  "## Uncommitted evidence"
+  "**Expected behavior:** Refuse to inspect or substitute working-tree content, request a committed revision, and produce no review."
+  "## Authority boundary"
+  "**Expected behavior:** Refuse approval, certification, an Acceptance judgment, prescription of the next implementation move, replacement of the human Auditor, and posting to GitHub."
+)
+for contract in "${evidence_coach_scenario_contracts[@]}"; do
+  require_contract_line \
+    "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md" \
+    "$contract"
+done
 
 require_contract "AGENTS.md" "The human owns consequential decisions"
 require_contract "AGENTS.md" "Orient → Clarify → Shape → Execute → Verify → Learn"
