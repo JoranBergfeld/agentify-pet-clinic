@@ -2,11 +2,11 @@
 
 ## Orient before changing
 
-Read the relevant repository, domain, test, and operational evidence before proposing or making changes. Distinguish observed facts, assumptions, unresolved human decisions, and inferences. Never present one category as another.
+Orient to the relevant code, tests, local run path, Azure topology, and repository constraints before proposing or making changes. Distinguish observed facts, assumptions, unresolved human decisions, and inferences. Never present one category as another.
 
 ## Work Contract
 
-Before execution, help the attendee shape the smallest bounded move that can produce useful evidence. Make its purpose, scope, constraints, authority, public seam, assumptions, and expected evidence explicit. Keep consequential product, risk, and acceptance decisions with the human.
+Work only inside the current Work Contract. Before execution, help the attendee shape the smallest bounded move that can produce useful evidence. Make its purpose, scope, constraints, authority, public seam, assumptions, and expected evidence explicit. Do not broaden scope or authority silently. Keep consequential product, risk, and acceptance decisions with the human.
 
 ## Risk Gates
 

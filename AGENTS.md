@@ -4,7 +4,7 @@ This repository supports an attendee-led workshop for controlled, inspectable ag
 
 ## Human authority
 
-The human owns consequential decisions
+The human owns consequential decisions, the Work Contract, every Risk Gate, residual-risk acceptance, and the final claim of completion. Propose options and evidence; never silently make those judgments.
 
 - Shape a **Work Contract** before execution: intent, scope, constraints, agent authority, public seams, assumptions, and expected acceptance evidence.
 - At the **Commitment Gate**, the human decides whether to proceed, narrow, or escalate.
@@ -16,7 +16,7 @@ The human owns consequential decisions
 
 Orient → Clarify → Shape → Execute → Verify → Learn
 
-Treat stages, skills, and artifacts as adaptable risk controls, not a mandatory ceremony. When adapting them, name the displaced risk and provide equivalent evidence. Before each delegated move, state its bounded purpose, scope, authority, and expected evidence. Make uncertainty, inaccessible inputs, contradictory evidence, and failures explicit.
+Treat stages, skills, and artifacts as adaptable risk controls, not a mandatory ceremony. When adapting them, name the displaced risk and provide equivalent evidence. Before each bounded move, state its purpose, authorized scope, and expected evidence. Make uncertainty, inaccessible inputs, contradictory evidence, and failures explicit.
 
 ## Workshop roles
 
