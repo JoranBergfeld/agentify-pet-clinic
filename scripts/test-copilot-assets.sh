@@ -46,7 +46,7 @@ write_valid_fixture() {
     $'commit SHA\ndoes not approve\ndisable-model-invocation: true'
   write_file \
     "docs/workshop/clinic-stakeholder-knowledge.md" \
-    $'# Clinic Stakeholder knowledge\n\n## Participant brief\n\nPetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.\n\n## Fixed facts\n\n- The Clinic Assistant must never claim to change PetClinic data.\n- When multiple records match, the chatbot presents candidates and asks a clarifying question.\n\n## Available preferences\n\n- Keep a concise, visible activity trace of tool calls and their outcomes.\n\n## Explicit unknowns'
+    $'# Clinic Stakeholder knowledge\n\n## Participant brief\n\nPetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.\n\n## Fixed facts\n\n- The Clinic Assistant must never claim to change PetClinic data.\n- When multiple records match, the chatbot presents candidates and asks a clarifying question.\n\n## Available preferences\n\n- Keep a concise, visible activity trace of tool calls and their outcomes.\n\n## Explicit unknowns\n\n- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved.'
   write_file \
     "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
     "Clinic stakeholder behavior scenarios"
@@ -134,6 +134,18 @@ sed -i '/activity trace of tool calls and their outcomes/d' \
   "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
 expect_failure \
   "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - Keep a concise, visible activity trace of tool calls and their outcomes."
+write_valid_fixture
+
+sed -i 's/prompt-injection hardening/prompt hardening/' \
+  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+expect_failure \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
+write_valid_fixture
+
+sed -i 's/persistent conversations/persistence/' \
+  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+expect_failure \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
 write_valid_fixture
 
 sed -i '/Acceptance Gate/d' "$fixture/.github/copilot-instructions.md"

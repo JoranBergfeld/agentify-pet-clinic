@@ -141,6 +141,9 @@ require_contract_line \
 require_contract_line \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "- Keep a concise, visible activity trace of tool calls and their outcomes."
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
 require_text ".github/agents/evidence-coach.agent.md" "commit SHA"
 require_text ".github/agents/evidence-coach.agent.md" "does not approve"
 require_text \
