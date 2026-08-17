@@ -30,12 +30,29 @@ require_contract() {
     fail "$relative_path does not contain required contract: $expected"
 }
 
-require_exact_contract_line() {
+require_frontmatter_line() {
   local relative_path="$1"
   local expected="$2"
+  local line
+  local line_number=0
+  local found=false
 
-  grep -Fxq "$expected" "$root/$relative_path" ||
-    fail "$relative_path does not contain required contract: $expected"
+  while IFS= read -r line || test -n "$line"; do
+    ((line_number += 1))
+
+    if ((line_number == 1)); then
+      test "$line" = "---" ||
+        fail "$relative_path does not contain required contract: $expected"
+    elif test "$line" = "---"; then
+      test "$found" = true ||
+        fail "$relative_path does not contain required contract: $expected"
+      return
+    elif test "$line" = "$expected"; then
+      found=true
+    fi
+  done <"$root/$relative_path"
+
+  fail "$relative_path does not contain required contract: $expected"
 }
 
 required_files=(
@@ -98,7 +115,7 @@ require_contract ".github/copilot-instructions.md" "Work Contract"
 require_contract ".github/copilot-instructions.md" "Commitment Gate"
 require_contract ".github/copilot-instructions.md" "Acceptance Gate"
 require_contract ".github/copilot-instructions.md" "Learning Gate"
-require_exact_contract_line \
+require_frontmatter_line \
   ".github/instructions/repository-maintenance.instructions.md" \
   "applyTo: \".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md\""
 
