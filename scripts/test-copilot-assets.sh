@@ -44,6 +44,7 @@ skills = [
     "grilling",
     "prototype",
     "tdd",
+    "to-spec",
     "wayfinder",
 ]
 lock = {
@@ -106,6 +107,7 @@ write_valid_fixture() {
     grilling \
     prototype \
     tdd \
+    to-spec \
     wayfinder; do
     write_file ".github/skills/$skill/SKILL.md" "$skill skill"
   done
@@ -424,6 +426,11 @@ expect_lock_inventory_mutation \
   "extra" \
   "skills-lock.json skill inventory mismatch: extra retired-skill"
 expect_missing_file ".github/skills/wayfinder/LOCAL-TRACKER.md"
+expect_missing_file ".github/skills/to-spec/SKILL.md"
+expect_excluded_skill_reference \
+  ".github/skills/to-spec/SKILL.md" \
+  "Run /setup-matt-pocock-skills when tracker configuration is absent." \
+  "setup-matt-pocock-skills"
 
 write_valid_fixture
 mkdir -p "$fixture/docs/rogue-skill"

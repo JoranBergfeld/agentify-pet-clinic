@@ -11,3 +11,4 @@ applyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**
 - Preserve human authority over consequential decisions, Risk Gates, residual-risk acceptance, and final completion claims.
 - When changing Copilot assets, update `scripts/validate-copilot-assets.sh` and its focused tests for the new contract.
 - Add or mutate a fixture so the focused test fails for the intended missing contract before changing the asset itself.
+- Keep `to-spec` maintainer-scoped: it serves people building the workshop, never the attendee path, and its published spec remains a proposal that the human accepts or rejects.

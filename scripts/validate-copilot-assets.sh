@@ -155,6 +155,7 @@ supported_skills=(
   "grilling"
   "prototype"
   "tdd"
+  "to-spec"
   "wayfinder"
 )
 
@@ -171,7 +172,6 @@ excluded_skills=(
   "setup-matt-pocock-skills"
   "teach"
   "to-questionnaire"
-  "to-spec"
   "to-tickets"
   "triage"
   "wait-what"
@@ -204,7 +204,7 @@ while IFS= read -r -d '' skill_dir; do
   skill="${skill_dir#"$root/.github/skills/"}"
   case "$skill" in
     code-review | codebase-design | diagnosing-bugs | domain-modeling | \
-      grilling | prototype | tdd | wayfinder)
+      grilling | prototype | tdd | to-spec | wayfinder)
       ;;
     *)
       fail "unsupported skill directory: $skill"
