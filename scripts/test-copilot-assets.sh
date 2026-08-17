@@ -74,6 +74,7 @@ write_valid_fixture() {
   copy_guidance ".github/copilot-instructions.md"
   copy_guidance "docs/agents/domain.md"
   copy_guidance "docs/agents/issue-tracker.md"
+  copy_guidance "docs/agents/triage-labels.md"
   write_file \
     "docs/workshop-blueprint.md" \
     $'# Workshop blueprint\n\n## Evidence Lenses\n\nUse Visible, Fragile, and Missing to describe evidence.'
@@ -423,6 +424,16 @@ expect_appended_line \
   ".github/skills/wayfinder/LOCAL-TRACKER.md" \
   "See triage-labels.md for local role definitions." \
   ".github/skills/wayfinder/LOCAL-TRACKER.md contains prohibited contract: triage-labels.md"
+
+expect_appended_line \
+  "AGENTS.md" \
+  "See the [missing workshop context](MISSING-CONTEXT.md)." \
+  "AGENTS.md contains broken internal Markdown link: MISSING-CONTEXT.md"
+
+expect_appended_line \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "Read the [missing stakeholder appendix](MISSING-APPENDIX.md)." \
+  ".github/agents/clinic-stakeholder.agent.md contains broken internal Markdown link: MISSING-APPENDIX.md"
 
 expect_line_mutation \
   ".github/skills/wayfinder/SKILL.md" \

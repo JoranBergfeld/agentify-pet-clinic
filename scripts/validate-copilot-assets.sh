@@ -264,34 +264,49 @@ import sys
 from urllib.parse import unquote, urlsplit
 
 root = pathlib.Path(sys.argv[1]).resolve()
+markdown_paths = {
+    root / "AGENTS.md",
+    root / "CONTEXT.md",
+    root / "docs" / "workshop-blueprint.md",
+    root / ".github" / "copilot-instructions.md",
+}
+for guidance_dir in (
+    root / ".github" / "instructions",
+    root / ".github" / "agents",
+    root / "docs" / "agents",
+):
+    if guidance_dir.is_dir():
+        markdown_paths.update(guidance_dir.rglob("*.md"))
 for skill in sys.argv[2:]:
     skill_dir = root / ".github" / "skills" / skill
-    for markdown_path in sorted(skill_dir.rglob("*.md")):
-        content_lines = []
-        fence = None
-        for line in markdown_path.read_text(encoding="utf-8").splitlines():
-            fence_match = re.match(r"^[ \t]{0,3}(`{3,}|~{3,})", line)
-            if fence_match:
-                marker = fence_match.group(1)
-                if fence is None:
-                    fence = marker[0]
-                elif marker[0] == fence:
-                    fence = None
-                continue
+    markdown_paths.update(skill_dir.rglob("*.md"))
+
+for markdown_path in sorted(markdown_paths):
+    content_lines = []
+    fence = None
+    for line in markdown_path.read_text(encoding="utf-8").splitlines():
+        fence_match = re.match(r"^[ \t]{0,3}(`{3,}|~{3,})", line)
+        if fence_match:
+            marker = fence_match.group(1)
             if fence is None:
-                content_lines.append(line)
-        content = "\n".join(content_lines)
-        for match in re.finditer(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", content):
-            raw_target = match.group(1).strip()
-            target = raw_target[1:-1] if raw_target.startswith("<") and raw_target.endswith(">") else raw_target.split(maxsplit=1)[0]
-            parsed = urlsplit(target)
-            if parsed.scheme or parsed.netloc or not parsed.path:
-                continue
-            link_path = pathlib.Path(unquote(parsed.path))
-            resolved = (root / str(link_path).lstrip("/")) if link_path.is_absolute() else (markdown_path.parent / link_path)
-            if not resolved.exists():
-                print(f"{markdown_path.relative_to(root)} contains broken internal Markdown link: {target}")
-                raise SystemExit
+                fence = marker[0]
+            elif marker[0] == fence:
+                fence = None
+            continue
+        if fence is None:
+            content_lines.append(line)
+    content = "\n".join(content_lines)
+    for match in re.finditer(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", content):
+        raw_target = match.group(1).strip()
+        target = raw_target[1:-1] if raw_target.startswith("<") and raw_target.endswith(">") else raw_target.split(maxsplit=1)[0]
+        parsed = urlsplit(target)
+        if parsed.scheme in {"http", "https", "mailto"} or parsed.netloc or not parsed.path:
+            continue
+        link_path = pathlib.Path(unquote(parsed.path))
+        resolved = (root / str(link_path).lstrip("/")) if link_path.is_absolute() else (markdown_path.parent / link_path)
+        if not resolved.exists():
+            print(f"{markdown_path.relative_to(root)} contains broken internal Markdown link: {target}")
+            raise SystemExit
 PY
 )"
 if test -n "$link_error"; then
