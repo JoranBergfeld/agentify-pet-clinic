@@ -592,6 +592,24 @@ for prohibited in "${evidence_coach_prohibited_contracts[@]}"; do
     "$prohibited"
 done
 
+guidance_authority_files=(
+  "CONTEXT.md"
+  "AGENTS.md"
+  ".github/copilot-instructions.md"
+)
+guidance_prohibited_contracts=(
+  "posts a labelled, revision-specific PR comment"
+  "posts the review to GitHub"
+  "approves the evidence"
+  "certifies the work"
+  "crosses the Acceptance Gate"
+)
+for guidance_file in "${guidance_authority_files[@]}"; do
+  for prohibited in "${guidance_prohibited_contracts[@]}"; do
+    reject_contract_line "$guidance_file" "$prohibited"
+  done
+done
+
 require_contract_line \
   "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
   "## Known fact"

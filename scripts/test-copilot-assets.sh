@@ -388,6 +388,27 @@ expect_excluded_skill_reference \
   "Use /wizard to adapt the workshop workflow." \
   "wizard"
 
+guidance_authority_files=(
+  "CONTEXT.md"
+  "AGENTS.md"
+  ".github/copilot-instructions.md"
+)
+guidance_authority_claims=(
+  "posts a labelled, revision-specific PR comment"
+  "posts the review to GitHub"
+  "approves the evidence"
+  "certifies the work"
+  "crosses the Acceptance Gate"
+)
+for guidance_file in "${guidance_authority_files[@]}"; do
+  for guidance_claim in "${guidance_authority_claims[@]}"; do
+    expect_appended_line \
+      "$guidance_file" \
+      "The Evidence Coach $guidance_claim without human involvement." \
+      "$guidance_file contains prohibited contract: $guidance_claim"
+  done
+done
+
 write_valid_fixture
 printf '%s\n' \
   "Use docs/agents/triage-labels.md and /triage-labels for label definitions." \

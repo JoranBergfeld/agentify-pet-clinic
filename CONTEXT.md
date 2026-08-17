@@ -69,8 +69,8 @@ The human who manages logistics, cohort timing, breaks, and transitions without 
 _Avoid_: Facilitator, instructor, approver
 
 **Evidence Coach**:
-The optional repository GitHub Copilot custom agent that reviews committed, Review-ready Stage Cards through the Evidence Lenses and posts a labelled, revision-specific PR comment without replacing peer critique, approving decisions, prescribing the next move, or certifying work.
-_Avoid_: Facilitator, Auditor, approver
+The optional repository GitHub Copilot custom agent that reviews committed, Review-ready Stage Cards through the Evidence Lenses and drafts a labelled, revision-specific PR comment the human posts, without replacing peer critique, approving decisions, prescribing the next move, or certifying work.
+_Avoid_: Facilitator, Auditor, approver, autonomous reviewer
 
 **Supported Environment**:
 The attendee-owned local GitHub Copilot and Azure setup used to demonstrate the Reference Workflow without defining or limiting the Agentic Engineering Principles.
