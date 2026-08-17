@@ -152,4 +152,11 @@ require_absent_reference_only_file "scripts/test-azure-reference-smoke.sh"
 
 require_absent_secret_bearing_files
 
+copilot_validator="$root/scripts/validate-copilot-assets.sh"
+test -f "$copilot_validator" ||
+  fail "missing Copilot asset validator: scripts/validate-copilot-assets.sh"
+test -x "$copilot_validator" ||
+  fail "Copilot asset validator is not executable: scripts/validate-copilot-assets.sh"
+"$copilot_validator" "$root"
+
 echo "template baseline is structurally clean"

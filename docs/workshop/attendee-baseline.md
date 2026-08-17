@@ -8,6 +8,27 @@ application code, Spring AI dependencies, completed Work Contracts, completed
 Stage Cards, completed Reference Challenge evidence, reference answers,
 generated credentials, secrets, or Azure environment state.
 
+The template includes `AGENTS.md`, `CONTEXT.md`, attendee-first Copilot
+instructions, scoped maintainer instructions, `docs/agents/` guidance, the
+Clinic Stakeholder, the optional Evidence Coach, their scenario fixtures,
+canonical Clinic Stakeholder knowledge, the Workshop Blueprint, and
+`skills-lock.json`.
+
+The exact supported workshop skill set is:
+
+- `code-review`
+- `codebase-design`
+- `diagnosing-bugs`
+- `domain-modeling`
+- `grilling`
+- `prototype`
+- `tdd`
+- `wayfinder`
+
+The template must not include unsupported skills or agents authorized to
+approve, certify, post reviews, or make Commitment, Acceptance, Learning, or
+other Risk Gate judgments.
+
 That exclusion also covers reference-only Clinic Assistant UI assets:
 `src/main/resources/templates/assistant/`, Clinic Assistant markers in the
 shared layout/messages/styles baseline files, and `spring.ai.*` application
@@ -27,6 +48,8 @@ Baseline provenance is recorded in `workshop/baseline.properties`:
 Validate the boundary with:
 
 ```bash
+scripts/test-copilot-assets.sh
+scripts/validate-copilot-assets.sh
 scripts/test-template-baseline-validator.sh
 scripts/validate-template-baseline.sh
 ./mvnw test
