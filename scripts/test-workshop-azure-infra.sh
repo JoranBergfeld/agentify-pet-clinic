@@ -71,10 +71,40 @@ PY
 python3 - "$azure_yaml" <<'PY'
 import sys
 
-import yaml
-
+# The azure-cli image this script runs in does not ship PyYAML, so parse the
+# small, fully controlled azure.yaml with the standard library instead. Only
+# plain nested mappings with scalar leaves are supported; anything else is a
+# hard failure rather than a silent mis-parse.
+manifest = {}
+stack = [(-1, manifest)]
 with open(sys.argv[1], encoding="utf-8") as manifest_file:
-    manifest = yaml.safe_load(manifest_file)
+    for number, raw_line in enumerate(manifest_file, start=1):
+        line = raw_line.rstrip("\n")
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        stripped = line.lstrip(" ")
+        indent = len(line) - len(stripped)
+        assert not stripped.startswith("-"), (
+            f"azure.yaml line {number} uses an unsupported sequence: {line!r}"
+        )
+        assert ":" in stripped, (
+            f"azure.yaml line {number} is not a mapping entry: {line!r}"
+        )
+        key, _, value = stripped.partition(":")
+        while stack and indent <= stack[-1][0]:
+            stack.pop()
+        assert stack, f"azure.yaml line {number} is indented inconsistently: {line!r}"
+        parent = stack[-1][1]
+        assert isinstance(parent, dict), (
+            f"azure.yaml line {number} nests under a scalar: {line!r}"
+        )
+        value = value.strip()
+        if value:
+            parent[key.strip()] = value
+        else:
+            child = {}
+            parent[key.strip()] = child
+            stack.append((indent, child))
 
 expected_values = {
     ("name",): "agentic-engineering-workshop",
