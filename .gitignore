@@ -49,3 +49,7 @@ _site/
 
 ### Agent worktrees ###
 .worktrees/
+
+### Workshop Azure Path ###
+.azure/
+.workshop-evidence/

@@ -2,6 +2,7 @@ name: Validate Template
 
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -21,7 +22,19 @@ jobs:
           cache: maven
       - name: Test template baseline validator
         run: scripts/test-template-baseline-validator.sh
+      - name: Test Copilot assets
+        run: scripts/test-copilot-assets.sh
       - name: Validate template baseline
         run: scripts/validate-template-baseline.sh
+      - name: Test workshop Azure infrastructure and validate Bicep
+        uses: azure/cli@9f7ce6f37c31b777ec6c6b6d1dfe7db79f497956 # v2
+        with:
+          inlineScript: scripts/test-workshop-azure-infra.sh
+      - name: Test Azure readiness
+        run: scripts/test-azure-readiness.sh
+      - name: Test Azure Preflight
+        run: scripts/test-azure-preflight.sh
+      - name: Test Azure cleanup
+        run: scripts/test-azure-cleanup.sh
       - name: Run Maven tests
         run: ./mvnw -q test

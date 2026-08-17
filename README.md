@@ -7,8 +7,8 @@ agent-assisted engineering controlled, inspectable, and adaptable.
 
 1. Select **Use this template**.
 2. Create a repository you control.
-3. Clone that repository and follow the workshop Preflight instructions when
-   they are published.
+3. Clone that repository and follow the
+   [Azure Preflight and cleanup guide](docs/workshop/azure-preflight-and-cleanup.md).
 
 The default branch is the clean **Inherited System**: canonical Spring
 PetClinic plus workshop assets, without a Clinic Assistant solution.
