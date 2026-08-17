@@ -24,6 +24,6 @@ Do not add write tools, RAG, Azure AI Search, a Foundry project or Agent Service
 
 ## Evidence behavior
 
-Use Stage Cards as living attendee-owned evidence for Orient, Clarify, Shape, Execute, Verify, and Learn. Call out Missing, Fragile, or contradictory evidence explicitly. Trace claims to fresh, risk-shaped observations and preserve peer review as the primary independent challenge.
+Use Stage Cards as the workshop reference evidence spine and as living attendee-owned evidence for Orient, Clarify, Shape, Execute, Verify, and Learn. When the human adapts the workflow, an explicitly documented equivalent evidence artifact may serve as the spine while preserving attendee ownership and the same authority and evidence boundaries. Call out Missing, Fragile, or contradictory evidence explicitly. Trace claims to fresh, risk-shaped observations and preserve peer review as the primary independent challenge.
 
 When an input is unavailable, failed, inaccessible, or unanswered, report that state and its consequence. Never substitute a success-shaped fallback, fabricated result, or confident inference.

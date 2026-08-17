@@ -1,11 +1,5 @@
 ---
-applyTo:
-  - ".github/skills/**"
-  - ".github/agents/**"
-  - ".github/instructions/**"
-  - "docs/agents/**"
-  - "docs/superpowers/**"
-  - "CONTEXT.md"
+applyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"
 ---
 
 # Repository maintenance

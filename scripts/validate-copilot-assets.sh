@@ -30,6 +30,14 @@ require_contract() {
     fail "$relative_path does not contain required contract: $expected"
 }
 
+require_exact_contract_line() {
+  local relative_path="$1"
+  local expected="$2"
+
+  grep -Fxq "$expected" "$root/$relative_path" ||
+    fail "$relative_path does not contain required contract: $expected"
+}
+
 required_files=(
   "AGENTS.md"
   ".github/copilot-instructions.md"
@@ -90,8 +98,8 @@ require_contract ".github/copilot-instructions.md" "Work Contract"
 require_contract ".github/copilot-instructions.md" "Commitment Gate"
 require_contract ".github/copilot-instructions.md" "Acceptance Gate"
 require_contract ".github/copilot-instructions.md" "Learning Gate"
-require_contract \
+require_exact_contract_line \
   ".github/instructions/repository-maintenance.instructions.md" \
-  "applyTo:"
+  "applyTo: \".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md\""
 
 echo "Copilot assets are structurally valid"

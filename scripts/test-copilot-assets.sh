@@ -35,7 +35,9 @@ write_valid_fixture() {
 
   copy_guidance "AGENTS.md"
   copy_guidance ".github/copilot-instructions.md"
-  copy_guidance ".github/instructions/repository-maintenance.instructions.md"
+  write_file \
+    ".github/instructions/repository-maintenance.instructions.md" \
+    $'---\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"\n---\n\n# Repository maintenance'
   write_file \
     ".github/agents/clinic-stakeholder.agent.md" \
     $'docs/workshop/clinic-stakeholder-knowledge.md\ndisable-model-invocation: true'
@@ -82,6 +84,13 @@ write_valid_fixture
 output="$("$validator" "$fixture")"
 test "$output" = "Copilot assets are structurally valid" ||
   fail_test "unexpected success output: $output"
+
+write_file \
+  ".github/instructions/repository-maintenance.instructions.md" \
+  $'---\n# applyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"\napplyTo:\n  - ".github/skills/**"\n  - ".github/agents/**"\n  - ".github/instructions/**"\n  - "docs/agents/**"\n  - "docs/superpowers/**"\n  - "CONTEXT.md"\n---'
+expect_failure \
+  ".github/instructions/repository-maintenance.instructions.md does not contain required contract: applyTo: \".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md\""
+write_valid_fixture
 
 rm "$fixture/.github/agents/clinic-stakeholder.agent.md"
 expect_failure "missing .github/agents/clinic-stakeholder.agent.md"
