@@ -116,6 +116,16 @@ expect_appended_line() {
   expect_failure "$expected"
 }
 
+expect_excluded_skill_reference() {
+  local relative_path="$1"
+  local reference="$2"
+  local skill="$3"
+
+  write_valid_fixture
+  printf '%s\n' "$reference" >>"$fixture/$relative_path"
+  expect_failure "$relative_path references excluded repository skill: $skill"
+}
+
 expect_frontmatter_conflict() {
   local conflicting_line="$1"
   local expected_line="$2"
@@ -264,6 +274,31 @@ output="$("$validator" "$fixture")"
 test "$output" = "Copilot assets are structurally valid" ||
   fail_test "unexpected success output: $output"
 
+printf '%s\n' \
+  "Research findings can inform implementation and triage decisions." \
+  >>"$fixture/.github/skills/wayfinder/SKILL.md"
+output="$("$validator" "$fixture")"
+test "$output" = "Copilot assets are structurally valid" ||
+  fail_test "ordinary prose produced unexpected output: $output"
+
+expect_excluded_skill_reference \
+  ".github/skills/wayfinder/SKILL.md" \
+  "Dispatch /research for external facts." \
+  "research"
+expect_excluded_skill_reference \
+  ".github/skills/diagnosing-bugs/SKILL.md" \
+  "Hand off to /improve-codebase-architecture." \
+  "improve-codebase-architecture"
+expect_excluded_skill_reference \
+  ".github/skills/code-review/SKILL.md" \
+  "Run /setup-matt-pocock-skills when tracker configuration is absent." \
+  "setup-matt-pocock-skills"
+expect_excluded_skill_reference \
+  ".github/skills/code-review/SKILL.md" \
+  "See .github/skills/research/SKILL.md." \
+  "research"
+
+write_valid_fixture
 write_file \
   ".github/instructions/repository-maintenance.instructions.md" \
   $'---\napplyTo:\n  - ".github/skills/**"\n  - ".github/agents/**"\n  - ".github/instructions/**"\n  - "docs/agents/**"\n  - "docs/superpowers/**"\n  - "CONTEXT.md"\n---\n\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"'

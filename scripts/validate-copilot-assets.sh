@@ -154,6 +154,27 @@ supported_skills=(
   "wayfinder"
 )
 
+excluded_skills=(
+  "ask-matt"
+  "grill-me"
+  "grill-with-docs"
+  "handoff"
+  "implement"
+  "improve-codebase-architecture"
+  "loop-me"
+  "research"
+  "resolving-merge-conflicts"
+  "setup-matt-pocock-skills"
+  "teach"
+  "to-questionnaire"
+  "to-spec"
+  "to-tickets"
+  "triage"
+  "wait-what"
+  "wizard"
+  "writing-for-agents"
+)
+
 for relative_path in "${required_files[@]}"; do
   require_file "$relative_path"
 done
@@ -173,6 +194,24 @@ while IFS= read -r skill_dir; do
       ;;
   esac
 done < <(find "$root/.github/skills" -mindepth 1 -maxdepth 1 -type d | sort)
+
+for skill in "${supported_skills[@]}"; do
+  while IFS= read -r -d '' markdown_path; do
+    relative_path="${markdown_path#"$root/"}"
+    for excluded_skill in "${excluded_skills[@]}"; do
+      if grep -Eq \
+        "(^|[^[:alnum:]_.-])/${excluded_skill}([^[:alnum:]_-]|$)" \
+        "$markdown_path" ||
+        grep -Eq \
+          "(^|[^[:alnum:]_./-])\\.github/skills/${excluded_skill}([^[:alnum:]_-]|$)" \
+          "$markdown_path"; then
+        fail "$relative_path references excluded repository skill: $excluded_skill"
+      fi
+    done
+  done < <(
+    find "$root/.github/skills/$skill" -type f -name '*.md' -print0 | sort -z
+  )
+done
 
 require_frontmatter_contract \
   ".github/agents/clinic-stakeholder.agent.md" \
