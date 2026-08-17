@@ -134,10 +134,12 @@ reject_contract_line() {
 
 required_files=(
   "AGENTS.md"
+  "skills-lock.json"
   ".github/copilot-instructions.md"
   ".github/instructions/repository-maintenance.instructions.md"
   ".github/agents/clinic-stakeholder.agent.md"
   ".github/agents/evidence-coach.agent.md"
+  ".github/skills/wayfinder/LOCAL-TRACKER.md"
   "docs/workshop/clinic-stakeholder-knowledge.md"
   "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md"
   "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md"
@@ -195,23 +197,102 @@ while IFS= read -r skill_dir; do
   esac
 done < <(find "$root/.github/skills" -mindepth 1 -maxdepth 1 -type d | sort)
 
-for skill in "${supported_skills[@]}"; do
-  while IFS= read -r -d '' markdown_path; do
-    relative_path="${markdown_path#"$root/"}"
-    for excluded_skill in "${excluded_skills[@]}"; do
-      if grep -Eq \
-        "(^|[^[:alnum:]_.-])/${excluded_skill}([^[:alnum:]_-]|$)" \
-        "$markdown_path" ||
-        grep -Eq \
-          "(^|[^[:alnum:]_./-])\\.github/skills/${excluded_skill}([^[:alnum:]_-]|$)" \
-          "$markdown_path"; then
-        fail "$relative_path references excluded repository skill: $excluded_skill"
+inventory_error="$(
+  python3 - "$root/skills-lock.json" "$root/.github/skills" <<'PY'
+import json
+import pathlib
+import sys
+
+lock_path = pathlib.Path(sys.argv[1])
+skills_path = pathlib.Path(sys.argv[2])
+with lock_path.open(encoding="utf-8") as lock_file:
+    lock = json.load(lock_file)
+locked = set(lock["skills"])
+installed = {path.name for path in skills_path.iterdir() if path.is_dir()}
+missing = sorted(installed - locked)
+extra = sorted(locked - installed)
+if missing:
+    print(f"missing {', '.join(missing)}")
+elif extra:
+    print(f"extra {', '.join(extra)}")
+PY
+)"
+if test -n "$inventory_error"; then
+  fail "skills-lock.json skill inventory mismatch: $inventory_error"
+fi
+
+while IFS= read -r -d '' markdown_path; do
+  relative_path="${markdown_path#"$root/"}"
+  for excluded_skill in "${excluded_skills[@]}"; do
+    if grep -Eq \
+      "(^|[^[:alnum:]_.-])/${excluded_skill}([^[:alnum:]_-]|$)" \
+      "$markdown_path" ||
+      grep -Eq \
+        "(^|[^[:alnum:]_./-])\\.github/skills/${excluded_skill}([^[:alnum:]_-]|$)" \
+        "$markdown_path"; then
+      fail "$relative_path references excluded repository skill: $excluded_skill"
+    fi
+  done
+done < <(
+  {
+    printf '%s\0' \
+      "$root/AGENTS.md" \
+      "$root/.github/copilot-instructions.md"
+    for guidance_dir in \
+      "$root/.github/instructions" \
+      "$root/.github/agents" \
+      "$root/docs/agents"; do
+      if test -d "$guidance_dir"; then
+        find "$guidance_dir" -type f -name '*.md' -print0
       fi
     done
-  done < <(
-    find "$root/.github/skills/$skill" -type f -name '*.md' -print0 | sort -z
-  )
-done
+    for skill in "${supported_skills[@]}"; do
+      find "$root/.github/skills/$skill" -type f -name '*.md' -print0
+    done
+  } | sort -zu
+)
+
+link_error="$(
+  python3 - "$root" "${supported_skills[@]}" <<'PY'
+import pathlib
+import re
+import sys
+from urllib.parse import unquote, urlsplit
+
+root = pathlib.Path(sys.argv[1]).resolve()
+for skill in sys.argv[2:]:
+    skill_dir = root / ".github" / "skills" / skill
+    for markdown_path in sorted(skill_dir.rglob("*.md")):
+        content_lines = []
+        fence = None
+        for line in markdown_path.read_text(encoding="utf-8").splitlines():
+            fence_match = re.match(r"^[ \t]{0,3}(`{3,}|~{3,})", line)
+            if fence_match:
+                marker = fence_match.group(1)
+                if fence is None:
+                    fence = marker[0]
+                elif marker[0] == fence:
+                    fence = None
+                continue
+            if fence is None:
+                content_lines.append(line)
+        content = "\n".join(content_lines)
+        for match in re.finditer(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", content):
+            raw_target = match.group(1).strip()
+            target = raw_target[1:-1] if raw_target.startswith("<") and raw_target.endswith(">") else raw_target.split(maxsplit=1)[0]
+            parsed = urlsplit(target)
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                continue
+            link_path = pathlib.Path(unquote(parsed.path))
+            resolved = (root / str(link_path).lstrip("/")) if link_path.is_absolute() else (markdown_path.parent / link_path)
+            if not resolved.exists():
+                print(f"{markdown_path.relative_to(root)} contains broken internal Markdown link: {target}")
+                raise SystemExit
+PY
+)"
+if test -n "$link_error"; then
+  fail "$link_error"
+fi
 
 require_frontmatter_contract \
   ".github/agents/clinic-stakeholder.agent.md" \

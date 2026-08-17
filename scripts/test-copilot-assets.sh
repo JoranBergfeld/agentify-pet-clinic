@@ -30,11 +30,48 @@ copy_guidance() {
   fi
 }
 
+write_skill_lock() {
+  mkdir -p "$fixture"
+  python3 - "$fixture/skills-lock.json" <<'PY'
+import json
+import sys
+
+skills = [
+    "code-review",
+    "codebase-design",
+    "diagnosing-bugs",
+    "domain-modeling",
+    "grilling",
+    "prototype",
+    "tdd",
+    "wayfinder",
+]
+lock = {
+    "version": 1,
+    "skills": {
+        skill: {
+            "source": "mattpocock/skills",
+            "sourceType": "github",
+            "skillPath": f"skills/engineering/{skill}/SKILL.md",
+            "computedHash": f"fixture-{skill}",
+        }
+        for skill in skills
+    },
+}
+with open(sys.argv[1], "w", encoding="utf-8") as lock_file:
+    json.dump(lock, lock_file, indent=2)
+    lock_file.write("\n")
+PY
+}
+
 write_valid_fixture() {
   local skill
 
   copy_guidance "AGENTS.md"
   copy_guidance ".github/copilot-instructions.md"
+  copy_guidance "docs/agents/domain.md"
+  copy_guidance "docs/agents/issue-tracker.md"
+  write_skill_lock
   write_file \
     ".github/instructions/repository-maintenance.instructions.md" \
     $'---\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"\n---\n\n# Repository maintenance'
@@ -65,6 +102,12 @@ write_valid_fixture() {
     wayfinder; do
     write_file ".github/skills/$skill/SKILL.md" "$skill skill"
   done
+  write_file \
+    ".github/skills/wayfinder/SKILL.md" \
+    $'wayfinder skill\n\nUse the [local-Markdown tracker operations](LOCAL-TRACKER.md) when repository tracker guidance is unavailable.'
+  write_file \
+    ".github/skills/wayfinder/LOCAL-TRACKER.md" \
+    "# Local tracker operations"
 }
 
 expect_failure() {
@@ -203,6 +246,34 @@ expect_missing_file() {
   expect_failure "missing $relative_path"
 }
 
+expect_lock_inventory_mutation() {
+  local mutation="$1"
+  local expected="$2"
+
+  write_valid_fixture
+  python3 - "$fixture/skills-lock.json" "$mutation" <<'PY'
+import json
+import sys
+
+path, mutation = sys.argv[1:]
+with open(path, encoding="utf-8") as lock_file:
+    lock = json.load(lock_file)
+if mutation == "missing":
+    del lock["skills"]["code-review"]
+else:
+    lock["skills"]["retired-skill"] = {
+        "source": "example/retired",
+        "sourceType": "github",
+        "skillPath": "skills/retired/SKILL.md",
+        "computedHash": "retired",
+    }
+with open(path, "w", encoding="utf-8") as lock_file:
+    json.dump(lock, lock_file, indent=2)
+    lock_file.write("\n")
+PY
+  expect_failure "$expected"
+}
+
 expect_fixed_fact_mutation() {
   local fact="$1"
 
@@ -297,6 +368,32 @@ expect_excluded_skill_reference \
   ".github/skills/code-review/SKILL.md" \
   "See .github/skills/research/SKILL.md." \
   "research"
+expect_excluded_skill_reference \
+  "docs/agents/domain.md" \
+  "Dispatch /research before updating the glossary." \
+  "research"
+
+write_valid_fixture
+printf '%s\n' \
+  "Use docs/agents/triage-labels.md and /triage-labels for label definitions." \
+  >>"$fixture/docs/agents/issue-tracker.md"
+output="$("$validator" "$fixture")"
+test "$output" = "Copilot assets are structurally valid" ||
+  fail_test "skill-name prefix produced unexpected output: $output"
+
+expect_lock_inventory_mutation \
+  "missing" \
+  "skills-lock.json skill inventory mismatch: missing code-review"
+expect_lock_inventory_mutation \
+  "extra" \
+  "skills-lock.json skill inventory mismatch: extra retired-skill"
+expect_missing_file ".github/skills/wayfinder/LOCAL-TRACKER.md"
+
+expect_line_mutation \
+  ".github/skills/wayfinder/SKILL.md" \
+  "Use the [local-Markdown tracker operations](LOCAL-TRACKER.md) when repository tracker guidance is unavailable." \
+  "Use the [local-Markdown tracker operations](MISSING-TRACKER.md) when repository tracker guidance is unavailable." \
+  ".github/skills/wayfinder/SKILL.md contains broken internal Markdown link: MISSING-TRACKER.md"
 
 write_valid_fixture
 write_file \
