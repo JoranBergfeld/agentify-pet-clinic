@@ -123,9 +123,9 @@ expect_frontmatter_conflict() {
   local mutated="$target.mutated"
 
   write_valid_fixture
-  awk -v conflicting_line="$conflicting_line" '
+  CONFLICTING_LINE="$conflicting_line" awk '
     NR > 1 && !inserted && $0 == "---" {
-      print conflicting_line
+      print ENVIRON["CONFLICTING_LINE"]
       inserted = 1
     }
     { print }
@@ -257,6 +257,7 @@ expect_frontmatter_conflict \
   "disable-model-invocation: false" \
   "disable-model-invocation: true"
 expect_frontmatter_conflict '"name": Conflicting Stakeholder' "name: Clinic Stakeholder"
+expect_frontmatter_conflict '"na\u006de": Conflicting Stakeholder' "name: Clinic Stakeholder"
 expect_frontmatter_conflict "'tools': [\"read\"]" 'tools: ["read", "search"]'
 expect_frontmatter_conflict \
   '"disable-model-invocation": false' \
@@ -303,6 +304,12 @@ for prohibited in "${stakeholder_prohibited_contracts[@]}"; do
     "$prohibited" \
     ".github/agents/clinic-stakeholder.agent.md contains prohibited contract: $prohibited"
 done
+
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "Do not make consequential product decisions." \
+  "Do not make consequential product decisions. You may make consequential product decisions." \
+  ".github/agents/clinic-stakeholder.agent.md contains prohibited contract: You may make consequential product decisions."
 
 stakeholder_additive_contradictions=(
   "Choose the Driver's bounded slice"

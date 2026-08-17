@@ -59,6 +59,49 @@ require_frontmatter_contract() {
   local expected="$3"
 
   awk -v key="$key" -v expected="$expected" '
+    function escaped_key_like(candidate, key, first, last, inner, i, key_index,
+                              escape_kind, escape_length, escape_digits, ch) {
+      first = substr(candidate, 1, 1)
+      last = substr(candidate, length(candidate), 1)
+      if ((first == "\"" && last == "\"") ||
+          (first == "\047" && last == "\047")) {
+        inner = substr(candidate, 2, length(candidate) - 2)
+      } else {
+        inner = candidate
+      }
+
+      if (inner == key && inner != candidate) return 1
+      if (index(inner, "\\") == 0) return 0
+
+      i = 1
+      key_index = 1
+      while (i <= length(inner) && key_index <= length(key)) {
+        ch = substr(inner, i, 1)
+        if (ch != "\\") {
+          if (ch != substr(key, key_index, 1)) return 0
+          i += 1
+          key_index += 1
+          continue
+        }
+
+        escape_kind = substr(inner, i + 1, 1)
+        escape_length = escape_kind == "x" ? 2 :
+                        escape_kind == "u" ? 4 :
+                        escape_kind == "U" ? 8 : 0
+        if (escape_length == 0) {
+          i += 2
+        } else {
+          escape_digits = substr(inner, i + 2, escape_length)
+          if (length(escape_digits) != escape_length ||
+              escape_digits !~ /^[[:xdigit:]]+$/) return 0
+          i += escape_length + 2
+        }
+        key_index += 1
+      }
+
+      return i > length(inner) && key_index > length(key)
+    }
+
     NR == 1 {
       if ($0 != "---") exit 1
       next
@@ -74,9 +117,7 @@ require_frontmatter_contract() {
       if (separator > 0) {
         candidate = substr(line, 1, separator - 1)
         sub(/[[:space:]]*$/, "", candidate)
-        if ((candidate ~ /^".*"$/) || (candidate ~ /^\047.*\047$/)) {
-          candidate = substr(candidate, 2, length(candidate) - 2)
-        }
+        if (escaped_key_like(candidate, key)) noncanonical = 1
         if (candidate == key) {
           count += 1
           if ($0 == expected) exact += 1
@@ -84,7 +125,7 @@ require_frontmatter_contract() {
       }
     }
     END {
-      if (!closed || count != 1 || exact != 1) exit 1
+      if (!closed || noncanonical || count != 1 || exact != 1) exit 1
     }
   ' "$root/$relative_path" ||
     fail "$relative_path does not contain required contract: $expected"
@@ -94,7 +135,7 @@ reject_contract_line() {
   local relative_path="$1"
   local prohibited="$2"
 
-  if grep -Fxq -- "$prohibited" "$root/$relative_path"; then
+  if grep -Fq -- "$prohibited" "$root/$relative_path"; then
     fail "$relative_path contains prohibited contract: $prohibited"
   fi
 }
