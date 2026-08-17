@@ -30,6 +30,14 @@ require_contract() {
     fail "$relative_path does not contain required contract: $expected"
 }
 
+require_contract_line() {
+  local relative_path="$1"
+  local expected="$2"
+
+  grep -Fxq "$expected" "$root/$relative_path" ||
+    fail "$relative_path does not contain required contract: $expected"
+}
+
 require_frontmatter_line() {
   local relative_path="$1"
   local expected="$2"
@@ -100,9 +108,27 @@ done < <(find "$root/.github/skills" -mindepth 1 -maxdepth 1 -type d | sort)
 require_text \
   ".github/agents/clinic-stakeholder.agent.md" \
   "docs/workshop/clinic-stakeholder-knowledge.md"
-require_text \
+require_frontmatter_line \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  'tools: ["read", "search"]'
+require_frontmatter_line \
   ".github/agents/clinic-stakeholder.agent.md" \
   "disable-model-invocation: true"
+require_contract \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "Do not choose the Driver's bounded slice"
+require_contract \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "Explicit unknowns"
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "## Fixed facts"
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "## Available preferences"
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "## Explicit unknowns"
 require_text ".github/agents/evidence-coach.agent.md" "commit SHA"
 require_text ".github/agents/evidence-coach.agent.md" "does not approve"
 require_text \

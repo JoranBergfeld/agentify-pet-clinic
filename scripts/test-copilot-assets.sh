@@ -40,13 +40,13 @@ write_valid_fixture() {
     $'---\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"\n---\n\n# Repository maintenance'
   write_file \
     ".github/agents/clinic-stakeholder.agent.md" \
-    $'docs/workshop/clinic-stakeholder-knowledge.md\ndisable-model-invocation: true'
+    $'---\nname: Clinic Stakeholder\ndescription: Reports fixed facts and Explicit unknowns\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\ndocs/workshop/clinic-stakeholder-knowledge.md\nDo not choose the Driver\'s bounded slice'
   write_file \
     ".github/agents/evidence-coach.agent.md" \
     $'commit SHA\ndoes not approve\ndisable-model-invocation: true'
   write_file \
     "docs/workshop/clinic-stakeholder-knowledge.md" \
-    "Clinic stakeholder knowledge"
+    $'# Clinic Stakeholder knowledge\n\n## Fixed facts\n\n## Available preferences\n\n## Explicit unknowns'
   write_file \
     "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
     "Clinic stakeholder behavior scenarios"
@@ -94,9 +94,23 @@ write_valid_fixture
 
 rm "$fixture/.github/agents/clinic-stakeholder.agent.md"
 expect_failure "missing .github/agents/clinic-stakeholder.agent.md"
-write_file \
-  ".github/agents/clinic-stakeholder.agent.md" \
-  $'docs/workshop/clinic-stakeholder-knowledge.md\ndisable-model-invocation: true'
+write_valid_fixture
+
+rm "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+expect_failure "missing docs/workshop/clinic-stakeholder-knowledge.md"
+write_valid_fixture
+
+sed -i '/Explicit unknowns/d' \
+  "$fixture/.github/agents/clinic-stakeholder.agent.md"
+expect_failure \
+  ".github/agents/clinic-stakeholder.agent.md does not contain required contract: Explicit unknowns"
+write_valid_fixture
+
+sed -i '/## Explicit unknowns/d' \
+  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+expect_failure \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: ## Explicit unknowns"
+write_valid_fixture
 
 sed -i '/Acceptance Gate/d' "$fixture/.github/copilot-instructions.md"
 expect_failure \
