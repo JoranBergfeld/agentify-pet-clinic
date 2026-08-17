@@ -79,6 +79,62 @@ expect_failure() {
     fail_test "expected 'Copilot assets invalid: $expected', got '$output'"
 }
 
+expect_line_mutation() {
+  local relative_path="$1"
+  local original="$2"
+  local replacement="$3"
+  local expected="$4"
+  local target="$fixture/$relative_path"
+  local mutated="$target.mutated"
+
+  write_valid_fixture
+  if ! awk -v original="$original" -v replacement="$replacement" '
+    !changed && $0 == original {
+      if (replacement != "") {
+        print replacement
+      }
+      changed = 1
+      next
+    }
+    { print }
+    END { if (!changed) exit 1 }
+  ' "$target" >"$mutated"; then
+    rm -f "$mutated"
+    fail_test "could not mutate exact contract in $relative_path: $original"
+  fi
+  mv "$mutated" "$target"
+  expect_failure "$expected"
+}
+
+expect_missing_file() {
+  local relative_path="$1"
+
+  write_valid_fixture
+  rm "$fixture/$relative_path"
+  expect_failure "missing $relative_path"
+}
+
+expect_fixed_fact_mutation() {
+  local fact="$1"
+
+  expect_line_mutation \
+    "docs/workshop/clinic-stakeholder-knowledge.md" \
+    "$fact" \
+    "" \
+    "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: $fact"
+}
+
+expect_scenario_mutation() {
+  local original="$1"
+  local replacement="$2"
+
+  expect_line_mutation \
+    "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+    "$original" \
+    "$replacement" \
+    "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md does not contain required contract: $original"
+}
+
 write_valid_fixture
 
 output="$("$validator" "$fixture")"
@@ -90,101 +146,136 @@ write_file \
   $'---\napplyTo:\n  - ".github/skills/**"\n  - ".github/agents/**"\n  - ".github/instructions/**"\n  - "docs/agents/**"\n  - "docs/superpowers/**"\n  - "CONTEXT.md"\n---\n\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"'
 expect_failure \
   ".github/instructions/repository-maintenance.instructions.md does not contain required contract: applyTo: \".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md\""
-write_valid_fixture
 
-rm "$fixture/.github/agents/clinic-stakeholder.agent.md"
-expect_failure "missing .github/agents/clinic-stakeholder.agent.md"
-write_valid_fixture
+expect_missing_file ".github/agents/clinic-stakeholder.agent.md"
+expect_missing_file "docs/workshop/clinic-stakeholder-knowledge.md"
 
-sed -i '/^name: Clinic Stakeholder$/d' \
-  "$fixture/.github/agents/clinic-stakeholder.agent.md"
-expect_failure \
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "name: Clinic Stakeholder" \
+  "name: Stakeholder" \
   ".github/agents/clinic-stakeholder.agent.md does not contain required contract: name: Clinic Stakeholder"
-write_valid_fixture
-
-sed -i 's/^description: .*/description: Reports stakeholder facts./' \
-  "$fixture/.github/agents/clinic-stakeholder.agent.md"
-expect_failure \
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "description: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions." \
+  "description: Reports stakeholder facts." \
   ".github/agents/clinic-stakeholder.agent.md does not contain required contract: description: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions."
-write_valid_fixture
-
-rm "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure "missing docs/workshop/clinic-stakeholder-knowledge.md"
-write_valid_fixture
-
-sed -i '/Explicit unknowns/d' \
-  "$fixture/.github/agents/clinic-stakeholder.agent.md"
-expect_failure \
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  'tools: ["read", "search"]' \
+  'tools: ["read"]' \
+  '.github/agents/clinic-stakeholder.agent.md does not contain required contract: tools: ["read", "search"]'
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "disable-model-invocation: true" \
+  "disable-model-invocation: false" \
+  ".github/agents/clinic-stakeholder.agent.md does not contain required contract: disable-model-invocation: true"
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "docs/workshop/stakeholder-knowledge.md" \
+  "missing required text in .github/agents/clinic-stakeholder.agent.md: docs/workshop/clinic-stakeholder-knowledge.md"
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "Do not choose the Driver's bounded slice" \
+  "Choose the Driver's bounded slice" \
+  ".github/agents/clinic-stakeholder.agent.md does not contain required contract: Do not choose the Driver's bounded slice"
+expect_line_mutation \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "Explicit unknowns" \
+  "Unknowns" \
   ".github/agents/clinic-stakeholder.agent.md does not contain required contract: Explicit unknowns"
-write_valid_fixture
 
-sed -i '/## Explicit unknowns/d' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
+expect_line_mutation \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "## Fixed facts" \
+  "## Facts" \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: ## Fixed facts"
+expect_line_mutation \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "## Available preferences" \
+  "## Preferences" \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: ## Available preferences"
+expect_line_mutation \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "## Explicit unknowns" \
+  "## Unknowns" \
   "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: ## Explicit unknowns"
-write_valid_fixture
-
-sed -i '/Add a Clinic Assistant to the existing application[.]/d' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
+expect_line_mutation \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "PetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application." \
+  "PetClinic staff need a chatbot. Add a Clinic Assistant to the existing application." \
   "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: PetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application."
-write_valid_fixture
 
-sed -i '/must never claim to change PetClinic data/d' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: - The Clinic Assistant must never claim to change PetClinic data."
-write_valid_fixture
+fixed_facts=(
+  "- The chatbot is staff-facing and read-only."
+  "- The Clinic Assistant must never claim to change PetClinic data."
+  "- Answers must come only from retrieved PetClinic records."
+  "- The chatbot must admit when records are absent or a request is unsupported."
+  "- The chatbot must not provide veterinary diagnosis or treatment advice."
+  "- The capability families are owner and pet lookup, Visit summaries, and veterinarian specialties."
+  "- When multiple records match, the chatbot presents candidates and asks a clarifying question."
+  "- The chatbot must not guess identity."
+  "- Staff need an accessible chat option."
+  "- Keep a concise, visible activity trace of tool calls and their outcomes."
+)
+for fixed_fact in "${fixed_facts[@]}"; do
+  expect_fixed_fact_mutation "$fixed_fact"
+done
 
-sed -i '/must not provide veterinary diagnosis or treatment advice/d' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: - The chatbot must not provide veterinary diagnosis or treatment advice."
 write_valid_fixture
-
-sed -i '/presents candidates and asks a clarifying question/d' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: - When multiple records match, the chatbot presents candidates and asks a clarifying question."
-write_valid_fixture
-
-sed -i '/activity trace of tool calls and their outcomes/d' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: - Keep a concise, visible activity trace of tool calls and their outcomes."
-write_valid_fixture
-
 sed -i \
   '/activity trace of tool calls and their outcomes/d; /## Available preferences/a\\n- Keep a concise, visible activity trace of tool calls and their outcomes.' \
   "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
 expect_failure \
   "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: - Keep a concise, visible activity trace of tool calls and their outcomes."
-write_valid_fixture
 
-sed -i 's/prompt-injection hardening/prompt hardening/' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
-write_valid_fixture
+explicit_unknowns="- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
+expect_line_mutation \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "$explicit_unknowns" \
+  "- Production authentication, authorization, privacy, auditing, prompt hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved." \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: $explicit_unknowns"
+expect_line_mutation \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "$explicit_unknowns" \
+  "- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistence are outside the workshop slice and unresolved." \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: $explicit_unknowns"
 
-sed -i 's/persistent conversations/persistence/' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
-write_valid_fixture
+known_behavior="**Expected behavior:** No. The Clinic Assistant is read-only. The stakeholder must not authorize or suggest a write implementation."
+expect_scenario_mutation "## Known fact" "## Known information"
+expect_scenario_mutation \
+  "$known_behavior" \
+  "**Expected behavior:** No. The Clinic Assistant is read/write. The stakeholder must not authorize or suggest a write implementation."
+expect_scenario_mutation \
+  "$known_behavior" \
+  "**Expected behavior:** No. The Clinic Assistant is read-only. The stakeholder may authorize a write implementation."
 
-sed -i '/^## Unknown$/d' \
-  "$fixture/scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md"
-expect_failure \
-  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md does not contain required contract: ## Unknown"
-write_valid_fixture
+unknown_behavior="**Expected behavior:** The exact UI and navigation are unresolved. Explain relevant consequences if supported by the named Reference Challenge, then return the decision to the Driver."
+expect_scenario_mutation "## Unknown" "## Open question"
+expect_scenario_mutation \
+  "$unknown_behavior" \
+  "**Expected behavior:** Use a panel in the existing interface. Explain relevant consequences if supported by the named Reference Challenge, then return the decision to the Driver."
+expect_scenario_mutation \
+  "$unknown_behavior" \
+  "**Expected behavior:** The exact UI and navigation are unresolved. Explain relevant consequences, then return the decision to the Driver."
+expect_scenario_mutation \
+  "$unknown_behavior" \
+  "**Expected behavior:** The exact UI and navigation are unresolved. Explain relevant consequences if supported by the named Reference Challenge, then make the decision."
 
-sed -i '/return the decision to the Driver/d' \
-  "$fixture/scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md"
-expect_failure \
-  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md does not contain required contract: **Expected behavior:** The exact UI and navigation are unresolved. Explain relevant consequences if supported by the named Reference Challenge, then return the decision to the Driver."
-write_valid_fixture
+human_decision_behavior="**Expected behavior:** The stakeholder may list owner and pet lookup, Visit summaries, and veterinarian specialties. It must not choose the Driver's bounded slice or claim that the Commitment Gate has passed."
+expect_scenario_mutation "## Human decision" "## Stakeholder decision"
+expect_scenario_mutation \
+  "$human_decision_behavior" \
+  "**Expected behavior:** The stakeholder may recommend any capability. It must not choose the Driver's bounded slice or claim that the Commitment Gate has passed."
+expect_scenario_mutation \
+  "$human_decision_behavior" \
+  "**Expected behavior:** The stakeholder may list owner and pet lookup, Visit summaries, and veterinarian specialties. It may choose the Driver's bounded slice but must not claim that the Commitment Gate has passed."
+expect_scenario_mutation \
+  "$human_decision_behavior" \
+  "**Expected behavior:** The stakeholder may list owner and pet lookup, Visit summaries, and veterinarian specialties. It must not choose the Driver's bounded slice and may claim that the Commitment Gate has passed."
 
+write_valid_fixture
 sed -i '/Acceptance Gate/d' "$fixture/.github/copilot-instructions.md"
 expect_failure \
   ".github/copilot-instructions.md does not contain required contract: Acceptance Gate"
