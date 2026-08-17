@@ -68,9 +68,15 @@ write_valid_fixture() {
   local skill
 
   copy_guidance "AGENTS.md"
+  write_file \
+    "CONTEXT.md" \
+    $'# Workshop context\n\n## Shared language\n\n- **Work Contract**: The bounded move authorized by the attendee.'
   copy_guidance ".github/copilot-instructions.md"
   copy_guidance "docs/agents/domain.md"
   copy_guidance "docs/agents/issue-tracker.md"
+  write_file \
+    "docs/workshop-blueprint.md" \
+    $'# Workshop blueprint\n\n## Evidence Lenses\n\nUse Visible, Fragile, and Missing to describe evidence.'
   write_skill_lock
   write_file \
     ".github/instructions/repository-maintenance.instructions.md" \
@@ -107,7 +113,7 @@ write_valid_fixture() {
     $'wayfinder skill\n\nUse the [local-Markdown tracker operations](LOCAL-TRACKER.md) when repository tracker guidance is unavailable.'
   write_file \
     ".github/skills/wayfinder/LOCAL-TRACKER.md" \
-    "# Local tracker operations"
+    $'# Issue tracker: Local Markdown\n\n## Local triage roles\n\n- `needs-triage` — maintainer evaluation is required.\n- `needs-info` — waiting for more information from the requester.\n- `ready-for-agent` — fully specified and ready for an AFK agent.\n- `ready-for-human` — requires human implementation or judgment.\n- `wontfix` — will not be actioned.\n\n## Wayfinder ticket statuses\n\n- `open` — unclaimed and unresolved; eligible for the frontier once unblocked.\n- `claimed` — claimed by a session; other sessions must skip it.\n- `resolved` — answer recorded and map updated; no longer on the frontier.'
 }
 
 expect_failure() {
@@ -372,6 +378,14 @@ expect_excluded_skill_reference \
   "docs/agents/domain.md" \
   "Dispatch /research before updating the glossary." \
   "research"
+expect_excluded_skill_reference \
+  "CONTEXT.md" \
+  "Dispatch /research before changing workshop language." \
+  "research"
+expect_excluded_skill_reference \
+  "docs/workshop-blueprint.md" \
+  "Use /wizard to adapt the workshop workflow." \
+  "wizard"
 
 write_valid_fixture
 printf '%s\n' \
@@ -388,6 +402,27 @@ expect_lock_inventory_mutation \
   "extra" \
   "skills-lock.json skill inventory mismatch: extra retired-skill"
 expect_missing_file ".github/skills/wayfinder/LOCAL-TRACKER.md"
+
+for local_tracker_contract in \
+  '- `needs-triage` — maintainer evaluation is required.' \
+  '- `needs-info` — waiting for more information from the requester.' \
+  '- `ready-for-agent` — fully specified and ready for an AFK agent.' \
+  '- `ready-for-human` — requires human implementation or judgment.' \
+  '- `wontfix` — will not be actioned.' \
+  '- `open` — unclaimed and unresolved; eligible for the frontier once unblocked.' \
+  '- `claimed` — claimed by a session; other sessions must skip it.' \
+  '- `resolved` — answer recorded and map updated; no longer on the frontier.'; do
+  expect_line_mutation \
+    ".github/skills/wayfinder/LOCAL-TRACKER.md" \
+    "$local_tracker_contract" \
+    "" \
+    ".github/skills/wayfinder/LOCAL-TRACKER.md does not contain required contract: $local_tracker_contract"
+done
+
+expect_appended_line \
+  ".github/skills/wayfinder/LOCAL-TRACKER.md" \
+  "See triage-labels.md for local role definitions." \
+  ".github/skills/wayfinder/LOCAL-TRACKER.md contains prohibited contract: triage-labels.md"
 
 expect_line_mutation \
   ".github/skills/wayfinder/SKILL.md" \

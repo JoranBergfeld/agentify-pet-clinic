@@ -134,12 +134,14 @@ reject_contract_line() {
 
 required_files=(
   "AGENTS.md"
+  "CONTEXT.md"
   "skills-lock.json"
   ".github/copilot-instructions.md"
   ".github/instructions/repository-maintenance.instructions.md"
   ".github/agents/clinic-stakeholder.agent.md"
   ".github/agents/evidence-coach.agent.md"
   ".github/skills/wayfinder/LOCAL-TRACKER.md"
+  "docs/workshop-blueprint.md"
   "docs/workshop/clinic-stakeholder-knowledge.md"
   "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md"
   "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md"
@@ -237,6 +239,8 @@ done < <(
   {
     printf '%s\0' \
       "$root/AGENTS.md" \
+      "$root/CONTEXT.md" \
+      "$root/docs/workshop-blueprint.md" \
       "$root/.github/copilot-instructions.md"
     for guidance_dir in \
       "$root/.github/instructions" \
@@ -293,6 +297,23 @@ PY
 if test -n "$link_error"; then
   fail "$link_error"
 fi
+
+local_tracker_contracts=(
+  '- `needs-triage` — maintainer evaluation is required.'
+  '- `needs-info` — waiting for more information from the requester.'
+  '- `ready-for-agent` — fully specified and ready for an AFK agent.'
+  '- `ready-for-human` — requires human implementation or judgment.'
+  '- `wontfix` — will not be actioned.'
+  '- `open` — unclaimed and unresolved; eligible for the frontier once unblocked.'
+  '- `claimed` — claimed by a session; other sessions must skip it.'
+  '- `resolved` — answer recorded and map updated; no longer on the frontier.'
+)
+for contract in "${local_tracker_contracts[@]}"; do
+  require_contract_line ".github/skills/wayfinder/LOCAL-TRACKER.md" "$contract"
+done
+reject_contract_line \
+  ".github/skills/wayfinder/LOCAL-TRACKER.md" \
+  "triage-labels.md"
 
 require_frontmatter_contract \
   ".github/agents/clinic-stakeholder.agent.md" \
