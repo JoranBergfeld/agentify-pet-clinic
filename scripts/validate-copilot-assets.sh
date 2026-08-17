@@ -200,8 +200,8 @@ for skill in "${supported_skills[@]}"; do
   require_file ".github/skills/$skill/SKILL.md"
 done
 
-while IFS= read -r skill_dir; do
-  skill="${skill_dir##*/}"
+while IFS= read -r -d '' skill_dir; do
+  skill="${skill_dir#"$root/.github/skills/"}"
   case "$skill" in
     code-review | codebase-design | diagnosing-bugs | domain-modeling | \
       grilling | prototype | tdd | wayfinder)
@@ -210,7 +210,10 @@ while IFS= read -r skill_dir; do
       fail "unsupported skill directory: $skill"
       ;;
   esac
-done < <(find "$root/.github/skills" -mindepth 1 -maxdepth 1 -type d | sort)
+done < <(
+  find "$root/.github/skills" -mindepth 1 -maxdepth 1 \
+    \( -type d -o -type l \) -print0 | sort -z
+)
 
 inventory_error="$(
   python3 - "$root/skills-lock.json" "$root/.github/skills" <<'PY'
@@ -667,6 +670,6 @@ require_contract ".github/copilot-instructions.md" "Learning Gate"
 require_frontmatter_contract \
   ".github/instructions/repository-maintenance.instructions.md" \
   "applyTo" \
-  "applyTo: \".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md\""
+  "applyTo: \"AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh\""
 
 echo "Copilot assets are structurally valid"

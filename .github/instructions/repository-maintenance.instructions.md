@@ -1,5 +1,5 @@
 ---
-applyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"
+applyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh"
 ---
 
 # Repository maintenance

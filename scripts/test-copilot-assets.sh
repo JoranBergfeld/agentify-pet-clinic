@@ -81,7 +81,7 @@ write_valid_fixture() {
   write_skill_lock
   write_file \
     ".github/instructions/repository-maintenance.instructions.md" \
-    $'---\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"\n---\n\n# Repository maintenance'
+    $'---\napplyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh"\n---\n\n# Repository maintenance'
   write_file \
     ".github/agents/clinic-stakeholder.agent.md" \
     $'---\nname: Clinic Stakeholder\ndescription: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions.\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\nRead [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.\nSeparate **Fixed facts**, **Available preferences**, and **Explicit unknowns** in each answer. Link to the relevant canonical knowledge sections when useful.\nIf the canonical knowledge or named Reference Challenge context is missing, inaccessible, contradictory, or silent on the question, explicitly say that the stakeholder does not know.\nDo not choose the Driver\'s bounded slice\nDo not make consequential product decisions.\nDo not cross the Commitment Gate.\nDo not authorize Engineering Agent scope.\nDo not manufacture certainty.\nDo not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.\nReturn unresolved decisions to the human.'
@@ -425,6 +425,34 @@ expect_lock_inventory_mutation \
   "skills-lock.json skill inventory mismatch: extra retired-skill"
 expect_missing_file ".github/skills/wayfinder/LOCAL-TRACKER.md"
 
+write_valid_fixture
+mkdir -p "$fixture/docs/rogue-skill"
+printf '%s\n' '# Rogue skill' >"$fixture/docs/rogue-skill/SKILL.md"
+ln -s ../../docs/rogue-skill "$fixture/.github/skills/rogue-skill"
+python3 - "$fixture/skills-lock.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as lock_file:
+    lock = json.load(lock_file)
+lock["skills"]["rogue-skill"] = {
+    "source": "example/rogue",
+    "sourceType": "github",
+    "skillPath": "skills/rogue/SKILL.md",
+    "computedHash": "rogue",
+}
+with open(path, "w", encoding="utf-8") as lock_file:
+    json.dump(lock, lock_file, indent=2)
+    lock_file.write("\n")
+PY
+expect_failure "unsupported skill directory: rogue-skill"
+rm "$fixture/.github/skills/rogue-skill"
+rm -r "$fixture/docs/rogue-skill"
+write_valid_fixture
+test "$("$validator" "$fixture")" = "Copilot assets are structurally valid" ||
+  fail_test "fixture was not restored after the symlinked skill mutation"
+
 for local_tracker_contract in \
   '- `needs-triage` — maintainer evaluation is required.' \
   '- `needs-info` — waiting for more information from the requester.' \
@@ -465,9 +493,9 @@ expect_line_mutation \
 write_valid_fixture
 write_file \
   ".github/instructions/repository-maintenance.instructions.md" \
-  $'---\napplyTo:\n  - ".github/skills/**"\n  - ".github/agents/**"\n  - ".github/instructions/**"\n  - "docs/agents/**"\n  - "docs/superpowers/**"\n  - "CONTEXT.md"\n---\n\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"'
+  $'---\napplyTo:\n  - ".github/skills/**"\n  - ".github/agents/**"\n  - ".github/instructions/**"\n  - "docs/agents/**"\n  - "docs/superpowers/**"\n  - "CONTEXT.md"\n---\n\napplyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh"'
 expect_failure \
-  ".github/instructions/repository-maintenance.instructions.md does not contain required contract: applyTo: \".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md\""
+  ".github/instructions/repository-maintenance.instructions.md does not contain required contract: applyTo: \"AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh\""
 
 expect_missing_file ".github/agents/clinic-stakeholder.agent.md"
 expect_missing_file "docs/workshop/clinic-stakeholder-knowledge.md"
