@@ -38,6 +38,19 @@ require_contract_line() {
     fail "$relative_path does not contain required contract: $expected"
 }
 
+require_fixed_fact() {
+  local relative_path="$1"
+  local expected="$2"
+
+  awk -v expected="$expected" '
+    $0 == "## Fixed facts" { in_fixed_facts = 1; next }
+    in_fixed_facts && /^## / { exit 1 }
+    in_fixed_facts && $0 == expected { found = 1; exit }
+    END { if (!found) exit 1 }
+  ' "$root/$relative_path" ||
+    fail "$relative_path does not contain required fixed fact: $expected"
+}
+
 require_frontmatter_line() {
   local relative_path="$1"
   local expected="$2"
@@ -110,6 +123,12 @@ require_text \
   "docs/workshop/clinic-stakeholder-knowledge.md"
 require_frontmatter_line \
   ".github/agents/clinic-stakeholder.agent.md" \
+  "name: Clinic Stakeholder"
+require_frontmatter_line \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  "description: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions."
+require_frontmatter_line \
+  ".github/agents/clinic-stakeholder.agent.md" \
   'tools: ["read", "search"]'
 require_frontmatter_line \
   ".github/agents/clinic-stakeholder.agent.md" \
@@ -132,13 +151,34 @@ require_contract_line \
 require_contract_line \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "PetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application."
-require_contract_line \
+require_fixed_fact \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- The chatbot is staff-facing and read-only."
+require_fixed_fact \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "- The Clinic Assistant must never claim to change PetClinic data."
-require_contract_line \
+require_fixed_fact \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- Answers must come only from retrieved PetClinic records."
+require_fixed_fact \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- The chatbot must admit when records are absent or a request is unsupported."
+require_fixed_fact \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- The chatbot must not provide veterinary diagnosis or treatment advice."
+require_fixed_fact \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- The capability families are owner and pet lookup, Visit summaries, and veterinarian specialties."
+require_fixed_fact \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "- When multiple records match, the chatbot presents candidates and asks a clarifying question."
-require_contract_line \
+require_fixed_fact \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- The chatbot must not guess identity."
+require_fixed_fact \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- Staff need an accessible chat option."
+require_fixed_fact \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "- Keep a concise, visible activity trace of tool calls and their outcomes."
 require_contract_line \
@@ -149,6 +189,25 @@ require_text ".github/agents/evidence-coach.agent.md" "does not approve"
 require_text \
   ".github/agents/evidence-coach.agent.md" \
   "disable-model-invocation: true"
+
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "## Known fact"
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "## Unknown"
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "## Human decision"
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "**Expected behavior:** No. The Clinic Assistant is read-only. The stakeholder must not authorize or suggest a write implementation."
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "**Expected behavior:** The exact UI and navigation are unresolved. Explain relevant consequences if supported by the named Reference Challenge, then return the decision to the Driver."
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "**Expected behavior:** The stakeholder may list owner and pet lookup, Visit summaries, and veterinarian specialties. It must not choose the Driver's bounded slice or claim that the Commitment Gate has passed."
 
 require_contract "AGENTS.md" "The human owns consequential decisions"
 require_contract "AGENTS.md" "Orient → Clarify → Shape → Execute → Verify → Learn"

@@ -15,10 +15,10 @@ PetClinic staff need a chatbot that helps them answer questions about owners, pe
 - When multiple records match, the chatbot presents candidates and asks a clarifying question.
 - The chatbot must not guess identity.
 - Staff need an accessible chat option.
+- Keep a concise, visible activity trace of tool calls and their outcomes.
 
 ## Available preferences
 
-- Keep a concise, visible activity trace of tool calls and their outcomes.
 - Prefer the smallest evidence-producing vertical slice.
 - Seek comparable evidence rather than identical implementations.
 
