@@ -183,8 +183,8 @@ for relative_path in "${required_files[@]}"; do
   require_file "$relative_path"
 done
 
-while IFS= read -r agent_file; do
-  agent="${agent_file##*/}"
+while IFS= read -r -d '' agent_file; do
+  agent="${agent_file#"$root/.github/agents/"}"
   case "$agent" in
     clinic-stakeholder.agent.md | evidence-coach.agent.md)
       ;;
@@ -192,7 +192,9 @@ while IFS= read -r agent_file; do
       fail "unsupported custom agent: $agent"
       ;;
   esac
-done < <(find "$root/.github/agents" -maxdepth 1 -type f -name '*.md' | sort)
+done < <(
+  find "$root/.github/agents" \( -type f -o -type l \) -print0 | sort -z
+)
 
 for skill in "${supported_skills[@]}"; do
   require_file ".github/skills/$skill/SKILL.md"
