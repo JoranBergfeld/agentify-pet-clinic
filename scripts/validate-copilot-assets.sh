@@ -139,6 +139,19 @@ require_contract \
 require_contract \
   ".github/agents/clinic-stakeholder.agent.md" \
   "Explicit unknowns"
+
+stakeholder_agent_contracts=(
+  "Do not make consequential product decisions."
+  "Do not cross the Commitment Gate."
+  "Do not authorize Engineering Agent scope."
+  "Do not manufacture certainty."
+  "Do not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details."
+  "Return unresolved decisions to the human."
+)
+for contract in "${stakeholder_agent_contracts[@]}"; do
+  require_contract ".github/agents/clinic-stakeholder.agent.md" "$contract"
+done
+
 require_contract_line \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "## Fixed facts"
@@ -181,9 +194,23 @@ require_fixed_fact \
 require_fixed_fact \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "- Keep a concise, visible activity trace of tool calls and their outcomes."
-require_contract_line \
-  "docs/workshop/clinic-stakeholder-knowledge.md" \
-  "- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
+
+stakeholder_knowledge_contracts=(
+  "- Prefer the smallest evidence-producing vertical slice."
+  "- Prefer comparable engineering evidence over identical implementations."
+  "- The exact UI surface and navigation treatment are unresolved."
+  "- The first capability family is unresolved."
+  "- Exact wording, visual design, and conversational tone are unresolved."
+  "- The bounded assumptions accepted at the Commitment Gate are unresolved until the human records them."
+  "- Production authentication, authorization, privacy controls, auditing, prompt-injection hardening, production observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
+  "Unresolved or out-of-slice items must not become invented requirements."
+)
+for contract in "${stakeholder_knowledge_contracts[@]}"; do
+  require_contract_line \
+    "docs/workshop/clinic-stakeholder-knowledge.md" \
+    "$contract"
+done
+
 require_text ".github/agents/evidence-coach.agent.md" "commit SHA"
 require_text ".github/agents/evidence-coach.agent.md" "does not approve"
 require_text \

@@ -20,14 +20,14 @@ PetClinic staff need a chatbot that helps them answer questions about owners, pe
 ## Available preferences
 
 - Prefer the smallest evidence-producing vertical slice.
-- Seek comparable evidence rather than identical implementations.
+- Prefer comparable engineering evidence over identical implementations.
 
 ## Explicit unknowns
 
-- The exact UI and navigation are unresolved.
+- The exact UI surface and navigation treatment are unresolved.
 - The first capability family is unresolved.
-- Wording, design, and tone are unresolved.
+- Exact wording, visual design, and conversational tone are unresolved.
 - The bounded assumptions accepted at the Commitment Gate are unresolved until the human records them.
-- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved.
+- Production authentication, authorization, privacy controls, auditing, prompt-injection hardening, production observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved.
 
 Unresolved or out-of-slice items must not become invented requirements.

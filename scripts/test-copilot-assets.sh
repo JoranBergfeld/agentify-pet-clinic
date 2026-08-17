@@ -40,13 +40,13 @@ write_valid_fixture() {
     $'---\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"\n---\n\n# Repository maintenance'
   write_file \
     ".github/agents/clinic-stakeholder.agent.md" \
-    $'---\nname: Clinic Stakeholder\ndescription: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions.\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\ndocs/workshop/clinic-stakeholder-knowledge.md\nDo not choose the Driver\'s bounded slice\nExplicit unknowns'
+    $'---\nname: Clinic Stakeholder\ndescription: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions.\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\ndocs/workshop/clinic-stakeholder-knowledge.md\nExplicit unknowns\nDo not choose the Driver\'s bounded slice\nDo not make consequential product decisions.\nDo not cross the Commitment Gate.\nDo not authorize Engineering Agent scope.\nDo not manufacture certainty.\nDo not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.\nReturn unresolved decisions to the human.'
   write_file \
     ".github/agents/evidence-coach.agent.md" \
     $'commit SHA\ndoes not approve\ndisable-model-invocation: true'
   write_file \
     "docs/workshop/clinic-stakeholder-knowledge.md" \
-    $'# Clinic Stakeholder knowledge\n\n## Participant brief\n\nPetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.\n\n## Fixed facts\n\n- The chatbot is staff-facing and read-only.\n- The Clinic Assistant must never claim to change PetClinic data.\n- Answers must come only from retrieved PetClinic records.\n- The chatbot must admit when records are absent or a request is unsupported.\n- The chatbot must not provide veterinary diagnosis or treatment advice.\n- The capability families are owner and pet lookup, Visit summaries, and veterinarian specialties.\n- When multiple records match, the chatbot presents candidates and asks a clarifying question.\n- The chatbot must not guess identity.\n- Staff need an accessible chat option.\n- Keep a concise, visible activity trace of tool calls and their outcomes.\n\n## Available preferences\n\n- Prefer the smallest evidence-producing vertical slice.\n- Seek comparable evidence rather than identical implementations.\n\n## Explicit unknowns\n\n- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved.'
+    $'# Clinic Stakeholder knowledge\n\n## Participant brief\n\nPetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.\n\n## Fixed facts\n\n- The chatbot is staff-facing and read-only.\n- The Clinic Assistant must never claim to change PetClinic data.\n- Answers must come only from retrieved PetClinic records.\n- The chatbot must admit when records are absent or a request is unsupported.\n- The chatbot must not provide veterinary diagnosis or treatment advice.\n- The capability families are owner and pet lookup, Visit summaries, and veterinarian specialties.\n- When multiple records match, the chatbot presents candidates and asks a clarifying question.\n- The chatbot must not guess identity.\n- Staff need an accessible chat option.\n- Keep a concise, visible activity trace of tool calls and their outcomes.\n\n## Available preferences\n\n- Prefer the smallest evidence-producing vertical slice.\n- Prefer comparable engineering evidence over identical implementations.\n\n## Explicit unknowns\n\n- The exact UI surface and navigation treatment are unresolved.\n- The first capability family is unresolved.\n- Exact wording, visual design, and conversational tone are unresolved.\n- The bounded assumptions accepted at the Commitment Gate are unresolved until the human records them.\n- Production authentication, authorization, privacy controls, auditing, prompt-injection hardening, production observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved.\n\nUnresolved or out-of-slice items must not become invented requirements.'
   write_file \
     "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
     $'# Clinic Stakeholder scenarios\n\n## Known fact\n\n**Question:** Can the Clinic Assistant update an owner\'s address?\n\n**Expected behavior:** No. The Clinic Assistant is read-only. The stakeholder must not authorize or suggest a write implementation.\n\n## Unknown\n\n**Question:** Should chat use a dedicated page or a panel in the existing interface?\n\n**Expected behavior:** The exact UI and navigation are unresolved. Explain relevant consequences if supported by the named Reference Challenge, then return the decision to the Driver.\n\n## Human decision\n\n**Question:** Which capability family should Engineering implement first?\n\n**Expected behavior:** The stakeholder may list owner and pet lookup, Visit summaries, and veterinarian specialties. It must not choose the Driver\'s bounded slice or claim that the Commitment Gate has passed.'
@@ -135,6 +135,28 @@ expect_scenario_mutation() {
     "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md does not contain required contract: $original"
 }
 
+expect_agent_contract_mutation() {
+  local original="$1"
+  local replacement="$2"
+
+  expect_line_mutation \
+    ".github/agents/clinic-stakeholder.agent.md" \
+    "$original" \
+    "$replacement" \
+    ".github/agents/clinic-stakeholder.agent.md does not contain required contract: $original"
+}
+
+expect_knowledge_contract_mutation() {
+  local original="$1"
+  local replacement="$2"
+
+  expect_line_mutation \
+    "docs/workshop/clinic-stakeholder-knowledge.md" \
+    "$original" \
+    "$replacement" \
+    "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: $original"
+}
+
 write_valid_fixture
 
 output="$("$validator" "$fixture")"
@@ -177,14 +199,23 @@ expect_line_mutation \
   "missing required text in .github/agents/clinic-stakeholder.agent.md: docs/workshop/clinic-stakeholder-knowledge.md"
 expect_line_mutation \
   ".github/agents/clinic-stakeholder.agent.md" \
-  "Do not choose the Driver's bounded slice" \
-  "Choose the Driver's bounded slice" \
-  ".github/agents/clinic-stakeholder.agent.md does not contain required contract: Do not choose the Driver's bounded slice"
-expect_line_mutation \
-  ".github/agents/clinic-stakeholder.agent.md" \
   "Explicit unknowns" \
   "Unknowns" \
   ".github/agents/clinic-stakeholder.agent.md does not contain required contract: Explicit unknowns"
+
+stakeholder_authority_mutations=(
+  "Do not choose the Driver's bounded slice|Choose the Driver's bounded slice"
+  "Do not make consequential product decisions.|Make consequential product decisions."
+  "Do not cross the Commitment Gate.|Cross the Commitment Gate."
+  "Do not authorize Engineering Agent scope.|Authorize Engineering Agent scope."
+  "Do not manufacture certainty.|Manufacture certainty."
+  "Do not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.|Infer an authoritative product answer from general model knowledge or observed PetClinic implementation details."
+  "Return unresolved decisions to the human.|Resolve decisions for the human."
+)
+for mutation in "${stakeholder_authority_mutations[@]}"; do
+  IFS='|' read -r contract replacement <<<"$mutation"
+  expect_agent_contract_mutation "$contract" "$replacement"
+done
 
 expect_line_mutation \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
@@ -230,17 +261,20 @@ sed -i \
 expect_failure \
   "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: - Keep a concise, visible activity trace of tool calls and their outcomes."
 
-explicit_unknowns="- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
-expect_line_mutation \
-  "docs/workshop/clinic-stakeholder-knowledge.md" \
-  "$explicit_unknowns" \
-  "- Production authentication, authorization, privacy, auditing, prompt hardening, observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved." \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: $explicit_unknowns"
-expect_line_mutation \
-  "docs/workshop/clinic-stakeholder-knowledge.md" \
-  "$explicit_unknowns" \
-  "- Production authentication, authorization, privacy, auditing, prompt-injection hardening, observability, scheduling, writes, and persistence are outside the workshop slice and unresolved." \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: $explicit_unknowns"
+stakeholder_knowledge_mutations=(
+  "- Prefer the smallest evidence-producing vertical slice.|- Prefer a broad vertical slice."
+  "- Prefer comparable engineering evidence over identical implementations.|- Prefer identical implementations over comparable engineering evidence."
+  "- The exact UI surface and navigation treatment are unresolved.|- Use a dedicated chat page."
+  "- The first capability family is unresolved.|- Implement owner and pet lookup first."
+  "- Exact wording, visual design, and conversational tone are unresolved.|- Use concise wording, a minimal visual design, and a formal conversational tone."
+  "- The bounded assumptions accepted at the Commitment Gate are unresolved until the human records them.|- The stakeholder accepts bounded assumptions at the Commitment Gate."
+  "- Production authentication, authorization, privacy controls, auditing, prompt-injection hardening, production observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved.|- Production authentication, authorization, privacy controls, auditing, prompt-injection hardening, production observability, scheduling, writes, and persistent conversations are required."
+  "Unresolved or out-of-slice items must not become invented requirements.|Unresolved or out-of-slice items may become inferred requirements."
+)
+for mutation in "${stakeholder_knowledge_mutations[@]}"; do
+  IFS='|' read -r contract replacement <<<"$mutation"
+  expect_knowledge_contract_mutation "$contract" "$replacement"
+done
 
 known_behavior="**Expected behavior:** No. The Clinic Assistant is read-only. The stakeholder must not authorize or suggest a write implementation."
 expect_scenario_mutation "## Known fact" "## Known information"
