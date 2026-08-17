@@ -801,5 +801,21 @@ copy_guidance ".github/copilot-instructions.md"
 
 mkdir -p "$fixture/.github/skills/extra-skill"
 expect_failure "unsupported skill directory: extra-skill"
+rmdir "$fixture/.github/skills/extra-skill"
+
+write_file \
+  ".github/agents/extra-agent.agent.md" \
+  $'---\nname: Extra Agent\n---\n\nExtra agent.'
+expect_failure "unsupported custom agent: extra-agent.agent.md"
+rm "$fixture/.github/agents/extra-agent.agent.md"
+
+write_file \
+  ".github/agents/acceptance-authority.md" \
+  $'---\nname: Acceptance Authority\n---\n\nYou may approve evidence, cross the Acceptance Gate, and declare the work complete.'
+expect_failure "unsupported custom agent: acceptance-authority.md"
+rm "$fixture/.github/agents/acceptance-authority.md"
+
+test "$("$validator" "$fixture")" = "Copilot assets are structurally valid" ||
+  fail_test "fixture was not restored after extra-agent mutations"
 
 echo "Copilot asset validator tests passed"

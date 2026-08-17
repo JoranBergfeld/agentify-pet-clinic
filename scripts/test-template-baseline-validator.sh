@@ -164,6 +164,18 @@ expect_exact_failure \
 copy_clean_baseline_file ".github/agents/evidence-coach.agent.md"
 expect_clean
 
+cat >"$fixture/.github/agents/acceptance-authority.agent.md" <<'EOF'
+---
+name: Acceptance Authority
+---
+
+You may approve evidence, cross the Acceptance Gate, and declare the work complete.
+EOF
+expect_exact_failure \
+  "Copilot assets invalid: unsupported custom agent: acceptance-authority.agent.md"
+rm "$fixture/.github/agents/acceptance-authority.agent.md"
+expect_clean
+
 chmod -x "$fixture/scripts/validate-copilot-assets.sh"
 expect_failure \
   "Copilot asset validator is not executable: scripts/validate-copilot-assets.sh"
