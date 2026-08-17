@@ -256,6 +256,11 @@ expect_frontmatter_conflict 'tools: ["read"]' 'tools: ["read", "search"]'
 expect_frontmatter_conflict \
   "disable-model-invocation: false" \
   "disable-model-invocation: true"
+expect_frontmatter_conflict '"name": Conflicting Stakeholder' "name: Clinic Stakeholder"
+expect_frontmatter_conflict "'tools': [\"read\"]" 'tools: ["read", "search"]'
+expect_frontmatter_conflict \
+  '"disable-model-invocation": false' \
+  "disable-model-invocation: true"
 
 stakeholder_grounding_mutations=(
   "Read [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.|Read the canonical knowledge when useful. Answer only from that knowledge and the named Reference Challenge context provided for the current request."
@@ -297,6 +302,19 @@ for prohibited in "${stakeholder_prohibited_contracts[@]}"; do
     ".github/agents/clinic-stakeholder.agent.md" \
     "$prohibited" \
     ".github/agents/clinic-stakeholder.agent.md contains prohibited contract: $prohibited"
+done
+
+stakeholder_additive_contradictions=(
+  "Choose the Driver's bounded slice"
+  "If context is unavailable, provide a best-effort answer."
+  "Use general model knowledge or observed implementation details when helpful."
+  "Resolve decisions for the human."
+)
+for contradiction in "${stakeholder_additive_contradictions[@]}"; do
+  expect_appended_line \
+    ".github/agents/clinic-stakeholder.agent.md" \
+    "$contradiction" \
+    ".github/agents/clinic-stakeholder.agent.md contains prohibited contract: $contradiction"
 done
 
 expect_line_mutation \
@@ -353,6 +371,18 @@ stakeholder_knowledge_mutations=(
 for mutation in "${stakeholder_knowledge_mutations[@]}"; do
   IFS='|' read -r contract replacement <<<"$mutation"
   expect_knowledge_contract_mutation "$contract" "$replacement"
+done
+
+stakeholder_knowledge_additive_contradictions=(
+  "- Use a dedicated chat page."
+  "- Implement owner and pet lookup first."
+  "- Use concise wording, a minimal visual design, and a formal conversational tone."
+)
+for contradiction in "${stakeholder_knowledge_additive_contradictions[@]}"; do
+  expect_appended_line \
+    "docs/workshop/clinic-stakeholder-knowledge.md" \
+    "$contradiction" \
+    "docs/workshop/clinic-stakeholder-knowledge.md contains prohibited contract: $contradiction"
 done
 
 available_preferences=(

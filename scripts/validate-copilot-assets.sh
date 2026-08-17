@@ -67,9 +67,21 @@ require_frontmatter_contract() {
       closed = 1
       exit
     }
-    $0 ~ "^[[:space:]]*" key "[[:space:]]*:" {
-      count += 1
-      if ($0 == expected) exact += 1
+    {
+      line = $0
+      sub(/^[[:space:]]*/, "", line)
+      separator = index(line, ":")
+      if (separator > 0) {
+        candidate = substr(line, 1, separator - 1)
+        sub(/[[:space:]]*$/, "", candidate)
+        if ((candidate ~ /^".*"$/) || (candidate ~ /^\047.*\047$/)) {
+          candidate = substr(candidate, 2, length(candidate) - 2)
+        }
+        if (candidate == key) {
+          count += 1
+          if ($0 == expected) exact += 1
+        }
+      }
     }
     END {
       if (!closed || count != 1 || exact != 1) exit 1
@@ -78,11 +90,11 @@ require_frontmatter_contract() {
     fail "$relative_path does not contain required contract: $expected"
 }
 
-reject_text() {
+reject_contract_line() {
   local relative_path="$1"
   local prohibited="$2"
 
-  if grep -Fq "$prohibited" "$root/$relative_path"; then
+  if grep -Fxq -- "$prohibited" "$root/$relative_path"; then
     fail "$relative_path contains prohibited contract: $prohibited"
   fi
 }
@@ -178,9 +190,13 @@ stakeholder_prohibited_contracts=(
   "You may manufacture certainty."
   "You may infer an authoritative product answer from general model knowledge or observed PetClinic implementation details."
   "You may invent requirements."
+  "Choose the Driver's bounded slice"
+  "If context is unavailable, provide a best-effort answer."
+  "Use general model knowledge or observed implementation details when helpful."
+  "Resolve decisions for the human."
 )
 for prohibited in "${stakeholder_prohibited_contracts[@]}"; do
-  reject_text ".github/agents/clinic-stakeholder.agent.md" "$prohibited"
+  reject_contract_line ".github/agents/clinic-stakeholder.agent.md" "$prohibited"
 done
 
 require_contract_line \
@@ -260,6 +276,17 @@ for contract in "${stakeholder_knowledge_contracts[@]}"; do
   require_contract_line \
     "docs/workshop/clinic-stakeholder-knowledge.md" \
     "$contract"
+done
+
+stakeholder_knowledge_prohibited_contracts=(
+  "- Use a dedicated chat page."
+  "- Implement owner and pet lookup first."
+  "- Use concise wording, a minimal visual design, and a formal conversational tone."
+)
+for prohibited in "${stakeholder_knowledge_prohibited_contracts[@]}"; do
+  reject_contract_line \
+    "docs/workshop/clinic-stakeholder-knowledge.md" \
+    "$prohibited"
 done
 
 available_preferences=(
