@@ -40,7 +40,7 @@ write_valid_fixture() {
     $'---\napplyTo: ".github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,CONTEXT.md"\n---\n\n# Repository maintenance'
   write_file \
     ".github/agents/clinic-stakeholder.agent.md" \
-    $'---\nname: Clinic Stakeholder\ndescription: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions.\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\ndocs/workshop/clinic-stakeholder-knowledge.md\nExplicit unknowns\nDo not choose the Driver\'s bounded slice\nDo not make consequential product decisions.\nDo not cross the Commitment Gate.\nDo not authorize Engineering Agent scope.\nDo not manufacture certainty.\nDo not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.\nReturn unresolved decisions to the human.'
+    $'---\nname: Clinic Stakeholder\ndescription: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions.\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\nRead [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.\nSeparate **Fixed facts**, **Available preferences**, and **Explicit unknowns** in each answer. Link to the relevant canonical knowledge sections when useful.\nIf the canonical knowledge or named Reference Challenge context is missing, inaccessible, contradictory, or silent on the question, explicitly say that the stakeholder does not know.\nDo not choose the Driver\'s bounded slice\nDo not make consequential product decisions.\nDo not cross the Commitment Gate.\nDo not authorize Engineering Agent scope.\nDo not manufacture certainty.\nDo not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.\nReturn unresolved decisions to the human.'
   write_file \
     ".github/agents/evidence-coach.agent.md" \
     $'commit SHA\ndoes not approve\ndisable-model-invocation: true'
@@ -104,6 +104,64 @@ expect_line_mutation() {
   fi
   mv "$mutated" "$target"
   expect_failure "$expected"
+}
+
+expect_appended_line() {
+  local relative_path="$1"
+  local appended="$2"
+  local expected="$3"
+
+  write_valid_fixture
+  printf '%s\n' "$appended" >>"$fixture/$relative_path"
+  expect_failure "$expected"
+}
+
+expect_frontmatter_conflict() {
+  local conflicting_line="$1"
+  local expected_line="$2"
+  local target="$fixture/.github/agents/clinic-stakeholder.agent.md"
+  local mutated="$target.mutated"
+
+  write_valid_fixture
+  awk -v conflicting_line="$conflicting_line" '
+    NR > 1 && !inserted && $0 == "---" {
+      print conflicting_line
+      inserted = 1
+    }
+    { print }
+    END { if (!inserted) exit 1 }
+  ' "$target" >"$mutated"
+  mv "$mutated" "$target"
+  expect_failure \
+    ".github/agents/clinic-stakeholder.agent.md does not contain required contract: $expected_line"
+}
+
+expect_section_move() {
+  local contract_kind="$1"
+  local line="$2"
+  local destination_heading="$3"
+  local target="$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+  local mutated="$target.mutated"
+
+  write_valid_fixture
+  awk -v line="$line" -v destination_heading="$destination_heading" '
+    $0 == line && !removed {
+      removed = 1
+      next
+    }
+    {
+      print
+      if ($0 == destination_heading && !inserted) {
+        print ""
+        print line
+        inserted = 1
+      }
+    }
+    END { if (!removed || !inserted) exit 1 }
+  ' "$target" >"$mutated"
+  mv "$mutated" "$target"
+  expect_failure \
+    "docs/workshop/clinic-stakeholder-knowledge.md does not contain required $contract_kind: $line"
 }
 
 expect_missing_file() {
@@ -192,16 +250,24 @@ expect_line_mutation \
   "disable-model-invocation: true" \
   "disable-model-invocation: false" \
   ".github/agents/clinic-stakeholder.agent.md does not contain required contract: disable-model-invocation: true"
-expect_line_mutation \
-  ".github/agents/clinic-stakeholder.agent.md" \
-  "docs/workshop/clinic-stakeholder-knowledge.md" \
-  "docs/workshop/stakeholder-knowledge.md" \
-  "missing required text in .github/agents/clinic-stakeholder.agent.md: docs/workshop/clinic-stakeholder-knowledge.md"
-expect_line_mutation \
-  ".github/agents/clinic-stakeholder.agent.md" \
-  "Explicit unknowns" \
-  "Unknowns" \
-  ".github/agents/clinic-stakeholder.agent.md does not contain required contract: Explicit unknowns"
+
+expect_frontmatter_conflict "name: Conflicting Stakeholder" "name: Clinic Stakeholder"
+expect_frontmatter_conflict 'tools: ["read"]' 'tools: ["read", "search"]'
+expect_frontmatter_conflict \
+  "disable-model-invocation: false" \
+  "disable-model-invocation: true"
+
+stakeholder_grounding_mutations=(
+  "Read [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.|Read the canonical knowledge when useful. Answer only from that knowledge and the named Reference Challenge context provided for the current request."
+  "Read [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.|Read [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer from any relevant context provided for the current request."
+  "Separate **Fixed facts**, **Available preferences**, and **Explicit unknowns** in each answer. Link to the relevant canonical knowledge sections when useful.|Summarize the available information in each answer."
+  "If the canonical knowledge or named Reference Challenge context is missing, inaccessible, contradictory, or silent on the question, explicitly say that the stakeholder does not know.|If context is unavailable, provide a best-effort answer."
+  "Do not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.|Use general model knowledge or observed implementation details when helpful."
+)
+for mutation in "${stakeholder_grounding_mutations[@]}"; do
+  IFS='|' read -r contract replacement <<<"$mutation"
+  expect_agent_contract_mutation "$contract" "$replacement"
+done
 
 stakeholder_authority_mutations=(
   "Do not choose the Driver's bounded slice|Choose the Driver's bounded slice"
@@ -215,6 +281,22 @@ stakeholder_authority_mutations=(
 for mutation in "${stakeholder_authority_mutations[@]}"; do
   IFS='|' read -r contract replacement <<<"$mutation"
   expect_agent_contract_mutation "$contract" "$replacement"
+done
+
+stakeholder_prohibited_contracts=(
+  "You may choose the Driver's bounded slice."
+  "You may make consequential product decisions."
+  "You may cross the Commitment Gate."
+  "You may authorize Engineering Agent scope."
+  "You may manufacture certainty."
+  "You may infer an authoritative product answer from general model knowledge or observed PetClinic implementation details."
+  "You may invent requirements."
+)
+for prohibited in "${stakeholder_prohibited_contracts[@]}"; do
+  expect_appended_line \
+    ".github/agents/clinic-stakeholder.agent.md" \
+    "$prohibited" \
+    ".github/agents/clinic-stakeholder.agent.md contains prohibited contract: $prohibited"
 done
 
 expect_line_mutation \
@@ -254,12 +336,9 @@ for fixed_fact in "${fixed_facts[@]}"; do
   expect_fixed_fact_mutation "$fixed_fact"
 done
 
-write_valid_fixture
-sed -i \
-  '/activity trace of tool calls and their outcomes/d; /## Available preferences/a\\n- Keep a concise, visible activity trace of tool calls and their outcomes.' \
-  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
-expect_failure \
-  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required fixed fact: - Keep a concise, visible activity trace of tool calls and their outcomes."
+for fixed_fact in "${fixed_facts[@]}"; do
+  expect_section_move "fixed fact" "$fixed_fact" "## Available preferences"
+done
 
 stakeholder_knowledge_mutations=(
   "- Prefer the smallest evidence-producing vertical slice.|- Prefer a broad vertical slice."
@@ -274,6 +353,32 @@ stakeholder_knowledge_mutations=(
 for mutation in "${stakeholder_knowledge_mutations[@]}"; do
   IFS='|' read -r contract replacement <<<"$mutation"
   expect_knowledge_contract_mutation "$contract" "$replacement"
+done
+
+available_preferences=(
+  "- Prefer the smallest evidence-producing vertical slice."
+  "- Prefer comparable engineering evidence over identical implementations."
+)
+for available_preference in "${available_preferences[@]}"; do
+  expect_section_move \
+    "available preference" \
+    "$available_preference" \
+    "## Explicit unknowns"
+done
+
+explicit_unknowns=(
+  "- The exact UI surface and navigation treatment are unresolved."
+  "- The first capability family is unresolved."
+  "- Exact wording, visual design, and conversational tone are unresolved."
+  "- The bounded assumptions accepted at the Commitment Gate are unresolved until the human records them."
+  "- Production authentication, authorization, privacy controls, auditing, prompt-injection hardening, production observability, scheduling, writes, and persistent conversations are outside the workshop slice and unresolved."
+  "Unresolved or out-of-slice items must not become invented requirements."
+)
+for explicit_unknown in "${explicit_unknowns[@]}"; do
+  expect_section_move \
+    "explicit unknown" \
+    "$explicit_unknown" \
+    "## Available preferences"
 done
 
 known_behavior="**Expected behavior:** No. The Clinic Assistant is read-only. The stakeholder must not authorize or suggest a write implementation."
