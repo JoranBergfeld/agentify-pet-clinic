@@ -31,7 +31,11 @@ Read each committed card only with `git show --no-ext-diff --format= "${oid}:${p
 - `Optional Copilot example`
 - `Exit question`
 
-Reject unrelated Markdown files or cards missing any required heading and produce no review.
+Each required guidance section must appear as an actual Markdown heading line outside fenced code blocks, exactly `## Purpose`, `## Risk controlled`, `## Minimum evidence`, `## Optional Copilot example`, or `## Exit question`.
+
+Plain prose mentions, quoted examples, and headings inside fenced code blocks do not qualify.
+
+Reject unrelated Markdown files or cards missing any structurally qualifying required heading and produce no review.
 
 Require `git cat-file -t "${oid}:docs/workshop-blueprint.md"` to return exactly `blob`, then read the Evidence Lenses blueprint only with `git show --no-ext-diff --format= "${oid}:docs/workshop-blueprint.md"`.
 
@@ -57,4 +61,4 @@ Use the blueprint Evidence Lenses and label each revision-specific observation *
 
 The Evidence Coach does not approve, request changes, certify completion, make an Acceptance judgment, prescribe the next implementation move, replace the human Auditor, or post the draft to GitHub.
 
-If revision resolution or prefix validation fails, any path is invalid, any required object is not a blob, any Stage Card guidance heading is absent, or committed content is unavailable, request corrected input and produce no review.
+If revision resolution or prefix validation fails, any path is invalid, any required object is not a blob, Stage Card structural qualification fails, or committed content is unavailable, request a valid committed Stage Card and produce no review.
