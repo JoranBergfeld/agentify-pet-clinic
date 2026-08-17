@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+validator="$repo_root/scripts/validate-copilot-assets.sh"
+fixture="$(mktemp -d "$repo_root/.copilot-assets-fixture.XXXXXX")"
+trap 'rm -rf "$fixture"' EXIT
+
+fail_test() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
+
+write_file() {
+  local relative_path="$1"
+  local content="$2"
+
+  mkdir -p "$(dirname "$fixture/$relative_path")"
+  printf '%s\n' "$content" >"$fixture/$relative_path"
+}
+
+write_valid_fixture() {
+  local skill
+
+  write_file "AGENTS.md" "Repository agent guidance"
+  write_file ".github/copilot-instructions.md" "Repository Copilot instructions"
+  write_file \
+    ".github/instructions/repository-maintenance.instructions.md" \
+    "Repository maintenance instructions"
+  write_file \
+    ".github/agents/clinic-stakeholder.agent.md" \
+    $'docs/workshop/clinic-stakeholder-knowledge.md\ndisable-model-invocation: true'
+  write_file \
+    ".github/agents/evidence-coach.agent.md" \
+    $'commit SHA\ndoes not approve\ndisable-model-invocation: true'
+  write_file \
+    "docs/workshop/clinic-stakeholder-knowledge.md" \
+    "Clinic stakeholder knowledge"
+  write_file \
+    "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+    "Clinic stakeholder behavior scenarios"
+  write_file \
+    "scripts/fixtures/copilot-assets/evidence-coach-scenarios.md" \
+    "Evidence coach behavior scenarios"
+
+  for skill in \
+    code-review \
+    codebase-design \
+    diagnosing-bugs \
+    domain-modeling \
+    grilling \
+    prototype \
+    tdd \
+    wayfinder; do
+    write_file ".github/skills/$skill/SKILL.md" "$skill skill"
+  done
+}
+
+expect_failure() {
+  local expected="$1"
+  local output
+
+  if output="$("$validator" "$fixture" 2>&1)"; then
+    fail_test "validator unexpectedly passed: $expected"
+  fi
+
+  test "$output" = "Copilot assets invalid: $expected" ||
+    fail_test "expected 'Copilot assets invalid: $expected', got '$output'"
+}
+
+write_valid_fixture
+
+output="$("$validator" "$fixture")"
+test "$output" = "Copilot assets are structurally valid" ||
+  fail_test "unexpected success output: $output"
+
+rm "$fixture/.github/agents/clinic-stakeholder.agent.md"
+expect_failure "missing .github/agents/clinic-stakeholder.agent.md"
+write_file \
+  ".github/agents/clinic-stakeholder.agent.md" \
+  $'docs/workshop/clinic-stakeholder-knowledge.md\ndisable-model-invocation: true'
+
+mkdir -p "$fixture/.github/skills/extra-skill"
+expect_failure "unsupported skill directory: extra-skill"
+
+echo "Copilot asset validator tests passed"
