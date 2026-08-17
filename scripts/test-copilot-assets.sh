@@ -19,14 +19,23 @@ write_file() {
   printf '%s\n' "$content" >"$fixture/$relative_path"
 }
 
+copy_guidance() {
+  local relative_path="$1"
+
+  mkdir -p "$(dirname "$fixture/$relative_path")"
+  if test -f "$repo_root/$relative_path"; then
+    cp "$repo_root/$relative_path" "$fixture/$relative_path"
+  else
+    : >"$fixture/$relative_path"
+  fi
+}
+
 write_valid_fixture() {
   local skill
 
-  write_file "AGENTS.md" "Repository agent guidance"
-  write_file ".github/copilot-instructions.md" "Repository Copilot instructions"
-  write_file \
-    ".github/instructions/repository-maintenance.instructions.md" \
-    "Repository maintenance instructions"
+  copy_guidance "AGENTS.md"
+  copy_guidance ".github/copilot-instructions.md"
+  copy_guidance ".github/instructions/repository-maintenance.instructions.md"
   write_file \
     ".github/agents/clinic-stakeholder.agent.md" \
     $'docs/workshop/clinic-stakeholder-knowledge.md\ndisable-model-invocation: true'
@@ -79,6 +88,11 @@ expect_failure "missing .github/agents/clinic-stakeholder.agent.md"
 write_file \
   ".github/agents/clinic-stakeholder.agent.md" \
   $'docs/workshop/clinic-stakeholder-knowledge.md\ndisable-model-invocation: true'
+
+sed -i '/Acceptance Gate/d' "$fixture/.github/copilot-instructions.md"
+expect_failure \
+  ".github/copilot-instructions.md does not contain required contract: Acceptance Gate"
+copy_guidance ".github/copilot-instructions.md"
 
 mkdir -p "$fixture/.github/skills/extra-skill"
 expect_failure "unsupported skill directory: extra-skill"

@@ -22,6 +22,14 @@ require_text() {
     fail "missing required text in $relative_path: $expected"
 }
 
+require_contract() {
+  local relative_path="$1"
+  local expected="$2"
+
+  grep -Fq "$expected" "$root/$relative_path" ||
+    fail "$relative_path does not contain required contract: $expected"
+}
+
 required_files=(
   "AGENTS.md"
   ".github/copilot-instructions.md"
@@ -75,5 +83,15 @@ require_text ".github/agents/evidence-coach.agent.md" "does not approve"
 require_text \
   ".github/agents/evidence-coach.agent.md" \
   "disable-model-invocation: true"
+
+require_contract "AGENTS.md" "The human owns consequential decisions"
+require_contract "AGENTS.md" "Orient → Clarify → Shape → Execute → Verify → Learn"
+require_contract ".github/copilot-instructions.md" "Work Contract"
+require_contract ".github/copilot-instructions.md" "Commitment Gate"
+require_contract ".github/copilot-instructions.md" "Acceptance Gate"
+require_contract ".github/copilot-instructions.md" "Learning Gate"
+require_contract \
+  ".github/instructions/repository-maintenance.instructions.md" \
+  "applyTo:"
 
 echo "Copilot assets are structurally valid"
