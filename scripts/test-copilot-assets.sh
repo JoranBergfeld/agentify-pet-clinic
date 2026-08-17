@@ -46,7 +46,7 @@ write_valid_fixture() {
     $'commit SHA\ndoes not approve\ndisable-model-invocation: true'
   write_file \
     "docs/workshop/clinic-stakeholder-knowledge.md" \
-    $'# Clinic Stakeholder knowledge\n\n## Fixed facts\n\n## Available preferences\n\n## Explicit unknowns'
+    $'# Clinic Stakeholder knowledge\n\n## Fixed facts\n\n- The Clinic Assistant must never claim to change PetClinic data.\n- When multiple records match, the chatbot presents candidates and asks a clarifying question.\n\n## Available preferences\n\n- Keep a concise, visible activity trace of tool calls and their outcomes.\n\n## Explicit unknowns'
   write_file \
     "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
     "Clinic stakeholder behavior scenarios"
@@ -110,6 +110,24 @@ sed -i '/## Explicit unknowns/d' \
   "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
 expect_failure \
   "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: ## Explicit unknowns"
+write_valid_fixture
+
+sed -i '/must never claim to change PetClinic data/d' \
+  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+expect_failure \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - The Clinic Assistant must never claim to change PetClinic data."
+write_valid_fixture
+
+sed -i '/presents candidates and asks a clarifying question/d' \
+  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+expect_failure \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - When multiple records match, the chatbot presents candidates and asks a clarifying question."
+write_valid_fixture
+
+sed -i '/activity trace of tool calls and their outcomes/d' \
+  "$fixture/docs/workshop/clinic-stakeholder-knowledge.md"
+expect_failure \
+  "docs/workshop/clinic-stakeholder-knowledge.md does not contain required contract: - Keep a concise, visible activity trace of tool calls and their outcomes."
 write_valid_fixture
 
 sed -i '/Acceptance Gate/d' "$fixture/.github/copilot-instructions.md"

@@ -34,7 +34,7 @@ require_contract_line() {
   local relative_path="$1"
   local expected="$2"
 
-  grep -Fxq "$expected" "$root/$relative_path" ||
+  grep -Fxq -- "$expected" "$root/$relative_path" ||
     fail "$relative_path does not contain required contract: $expected"
 }
 
@@ -129,6 +129,15 @@ require_contract_line \
 require_contract_line \
   "docs/workshop/clinic-stakeholder-knowledge.md" \
   "## Explicit unknowns"
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- The Clinic Assistant must never claim to change PetClinic data."
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- When multiple records match, the chatbot presents candidates and asks a clarifying question."
+require_contract_line \
+  "docs/workshop/clinic-stakeholder-knowledge.md" \
+  "- Keep a concise, visible activity trace of tool calls and their outcomes."
 require_text ".github/agents/evidence-coach.agent.md" "commit SHA"
 require_text ".github/agents/evidence-coach.agent.md" "does not approve"
 require_text \

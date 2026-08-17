@@ -7,17 +7,18 @@ PetClinic staff need a chatbot that answers questions about owners, pets, Visits
 ## Fixed facts
 
 - The chatbot is staff-facing and read-only.
+- The Clinic Assistant must never claim to change PetClinic data.
 - Answers must come only from retrieved PetClinic records.
 - The chatbot must admit when records are absent or a request is unsupported.
 - The chatbot must not provide veterinary diagnosis or treatment advice.
 - The capability families are owner and pet lookup, Visit summaries, and veterinarian specialties.
-- When multiple records match, the chatbot presents candidates or asks a clarifying question.
+- When multiple records match, the chatbot presents candidates and asks a clarifying question.
 - The chatbot must not guess identity.
 - Staff need an accessible chat option.
 
 ## Available preferences
 
-- Keep a concise, visible activity trace.
+- Keep a concise, visible activity trace of tool calls and their outcomes.
 - Prefer the smallest evidence-producing vertical slice.
 - Seek comparable evidence rather than identical implementations.
 
