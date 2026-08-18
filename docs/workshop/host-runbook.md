@@ -47,7 +47,7 @@ Do not elaborate, give examples, or resolve ambiguity. Attendees query the Clini
 
 - You may answer logistics or environment questions, observe tooling blocks, notice room energy, manage transitions, and offer discretionary breaks.
 - If someone asks `what should I build?`, return the decision to the attendee and point to the Clinic Stakeholder.
-- Do not choose Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
+- Do not choose Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
 
 ## 6. Learning exchange
 
