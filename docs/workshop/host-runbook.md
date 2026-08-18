@@ -26,7 +26,7 @@ Use only the technical Preflight check in [Azure Preflight and Cleanup](./azure-
 - Purpose: Support the room while pairs work through their own bounded engineering path.
 - Host actions: Watch for logistics or environment issues, room energy, transitions, and discretionary breaks.
 - What ends this phase: The room is ready to shift from active work into the learning exchange.
-- What the Host must not do: Choose a Work Contract or scope, decide what or how to build, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
+- What the Host must not do: Choose a Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
 
 ### Learning
 
@@ -47,7 +47,7 @@ Do not elaborate, give examples, or resolve ambiguity. Attendees query the Clini
 
 - You may answer logistics or environment questions, observe tooling blocks, notice room energy, manage transitions, and offer discretionary breaks.
 - If someone asks `what should I build?`, return the decision to the attendee and point to the Clinic Stakeholder.
-- Do not choose Work Contract or scope, decide what or how to build, operate an Engineering Agent, review or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
+- Do not choose Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
 
 ## 6. Learning exchange
 
@@ -65,7 +65,7 @@ Protect cohort timing, do not share accounts, and do not debug; the attendee sel
 
 Intervene only to restore staff-facing/read-only/no writes/no new infrastructure/no veterinary diagnosis or treatment advice, and never choose the implementation.
 
-See [participant guide](./participant-guide.md) for the remaining exception behavior.
+These are the only two Host-owned exception actions; attendee-owned handling beyond them lives in [participant guide](./participant-guide.md).
 
 ## 8. Closeout
 

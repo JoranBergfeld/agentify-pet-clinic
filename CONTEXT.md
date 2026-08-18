@@ -26,7 +26,7 @@ _Avoid_: Workshop implementation, course materials
 
 **Participant Guide**:
 The durable attendee-held reference for operating the workshop.
-_Avoid_: workbook, Workshop Blueprint, presentation script
+_Avoid_: workbook, Workshop Blueprint, deck script
 
 **Workshop Package**:
 The complete repository-based result required for first delivery: the accepted Workshop Blueprint, delivery materials, participant and host guidance, challenge and Copilot assets, technical environment automation, reference evidence path, and validated dry-run evidence.
