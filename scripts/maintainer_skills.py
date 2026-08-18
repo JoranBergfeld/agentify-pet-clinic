@@ -4,10 +4,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 CATALOG = Path("docs/agents/maintainer-skills")
@@ -195,7 +198,24 @@ def load_managed_names(projection: Path) -> set[str]:
         raise SkillError(f"symlinked projection marker: {marker.as_posix()}")
     if not marker.exists():
         return set()
-    data = load_json(marker, "projection marker")
+    try:
+        before = marker.lstat()
+        if not stat.S_ISREG(before.st_mode):
+            raise SkillError(f"invalid projection marker: {marker.as_posix()}")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(marker, flags)
+        try:
+            opened = os.fstat(descriptor)
+            if (before.st_dev, before.st_ino) != (opened.st_dev, opened.st_ino):
+                raise SkillError(f"symlinked projection marker: {marker.as_posix()}")
+            with os.fdopen(descriptor, encoding="utf-8", closefd=False) as marker_file:
+                data = json.load(marker_file)
+        finally:
+            os.close(descriptor)
+    except (OSError, json.JSONDecodeError) as error:
+        raise SkillError(f"invalid projection marker: {marker.as_posix()}") from error
+    if not isinstance(data, dict):
+        raise SkillError(f"invalid projection marker: {marker.as_posix()}")
     names = data.get("skills")
     if not isinstance(names, list) or not all(isinstance(name, str) for name in names):
         raise SkillError(f"invalid projection marker: {marker.as_posix()}")
@@ -253,6 +273,28 @@ def remove_path(path: Path) -> None:
         path.unlink()
 
 
+def write_marker(marker: Path, skill_names: set[str]) -> None:
+    if marker.is_symlink():
+        raise SkillError(f"symlinked projection marker: {marker.as_posix()}")
+    payload = json.dumps(
+        {"version": 1, "skills": sorted(skill_names)}, indent=2
+    ) + "\n"
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=marker.parent,
+        prefix=f".{MARKER}.",
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as marker_file:
+            marker_file.write(payload)
+            marker_file.flush()
+            os.fsync(marker_file.fileno())
+        os.replace(temporary, marker)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
 def project(root: Path) -> None:
     attendees, maintainers = validate(root)
     sources = source_skills(root, attendees, maintainers)
@@ -274,15 +316,7 @@ def project(root: Path) -> None:
             if name in sources:
                 shutil.copytree(sources[name], destination)
         marker = absolute / MARKER
-        if marker.is_symlink():
-            raise SkillError(
-                f"symlinked projection marker: {(projection / MARKER).as_posix()}"
-            )
-        marker.write_text(
-            json.dumps({"version": 1, "skills": sorted(expected)}, indent=2)
-            + "\n",
-            encoding="utf-8",
-        )
+        write_marker(marker, expected)
 
 
 def main() -> int:
