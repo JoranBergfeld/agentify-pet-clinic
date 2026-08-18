@@ -10,7 +10,7 @@ This runbook is for the Workshop Host only. Keep it out of attendee-facing mater
 
 ## 2. Pre-workshop readiness
 
-Use only the technical Preflight check in [Azure Preflight and Cleanup](./azure-preflight-and-cleanup.md).
+Confirm attendees completed the technical Preflight and hold its evidence, using [Azure Preflight and Cleanup](./azure-preflight-and-cleanup.md) for that check.
 
 ## 3. Run of show
 
