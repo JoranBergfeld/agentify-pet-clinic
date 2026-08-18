@@ -26,7 +26,7 @@ _Avoid_: Workshop implementation, course materials
 
 **Participant Guide**:
 The durable attendee-held reference for operating the workshop.
-_Avoid_: workbook, Workshop Blueprint, deck script
+_Avoid_: workbook, Workshop Blueprint, presentation script
 
 **Workshop Package**:
 The complete repository-based result required for first delivery: the accepted Workshop Blueprint, delivery materials, participant and host guidance, challenge and Copilot assets, technical environment automation, reference evidence path, and validated dry-run evidence.
@@ -69,7 +69,7 @@ A structured, asynchronous PR critique of Review-ready Stage Cards, organized by
 _Avoid_: Evidence Handoff, role rotation, approval verdict, prescribed next step
 
 **Workshop Host**:
-The human who manages logistics, cohort timing, breaks, and transitions without coaching pair decisions, reviewing engineering evidence, or directing the Reference Workflow.
+The human who manages logistics, cohort timing, breaks, transitions, cohort-wide framing, and organization of the closing exchange without coaching pair decisions, reviewing engineering evidence, or directing the Reference Workflow.
 _Avoid_: Facilitator, instructor, approver
 
 **Evidence Coach**:
