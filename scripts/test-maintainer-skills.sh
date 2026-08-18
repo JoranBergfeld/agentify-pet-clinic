@@ -66,6 +66,7 @@ write_fixture() {
 Require an authorized Work Contract before implementation.
 Pause for the human Commitment Gate before execution.
 Commit or push only with explicit human authorization.
+Commit your work to the current branch only after explicit human authorization.
 EOF
   cat >"$fixture/skills-lock.json" <<'EOF'
 {
@@ -217,6 +218,13 @@ test "$(<"$fixture/victim")" = "preserve" ||
   fail_test "unsafe marker entry modified a path outside the projection"
 
 write_fixture
+mkdir -p "$fixture/external-projection"
+ln -s "$fixture/external-projection" "$fixture/.agents"
+expect_failure \
+  "symlinked projection root: .agents/" \
+  "$fixture/scripts/setup-maintainer-skills.sh" "$fixture"
+
+write_fixture
 mkdir -p "$fixture/.agents/skills/research"
 printf '%s\n' '# user-owned' >"$fixture/.agents/skills/research/SKILL.md"
 expect_failure \
@@ -269,6 +277,35 @@ lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
 PY
 expect_failure \
   "missing maintainer authority contract: implement" \
+  "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
+
+write_fixture
+printf '%s\n' \
+  "Commit your work to the current branch." \
+  >>"$fixture/docs/agents/maintainer-skills/implement/SKILL.md"
+"$python_bin" - "$fixture" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import sys
+
+root = Path(sys.argv[1])
+skill_root = root / "docs/agents/maintainer-skills/implement"
+digest = hashlib.sha256()
+for path in sorted(path for path in skill_root.rglob("*") if path.is_file()):
+    relative = path.relative_to(skill_root).as_posix().encode()
+    content = path.read_bytes()
+    digest.update(len(relative).to_bytes(8, "big"))
+    digest.update(relative)
+    digest.update(len(content).to_bytes(8, "big"))
+    digest.update(content)
+lock_path = root / "maintainer-skills-lock.json"
+lock = json.loads(lock_path.read_text(encoding="utf-8"))
+lock["skills"]["implement"]["contentHash"] = digest.hexdigest()
+lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+PY
+expect_failure \
+  "conflicting maintainer authority contract: implement" \
   "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
 
 echo "maintainer skill tests passed"

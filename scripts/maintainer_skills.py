@@ -40,7 +40,9 @@ IMPLEMENT_AUTHORITY_CONTRACTS = (
     "Require an authorized Work Contract before implementation.",
     "Pause for the human Commitment Gate before execution.",
     "Commit or push only with explicit human authorization.",
+    "Commit your work to the current branch only after explicit human authorization.",
 )
+PROHIBITED_IMPLEMENT_CONTRACT = "Commit your work to the current branch."
 
 
 class SkillError(RuntimeError):
@@ -143,6 +145,8 @@ def maintainer_names(root: Path) -> list[str]:
         contract in implement_content for contract in IMPLEMENT_AUTHORITY_CONTRACTS
     ):
         raise SkillError("missing maintainer authority contract: implement")
+    if PROHIBITED_IMPLEMENT_CONTRACT in implement_content:
+        raise SkillError("conflicting maintainer authority contract: implement")
     return sorted(locked)
 
 
@@ -210,6 +214,17 @@ def preflight_projection(
     root: Path, projection: Path, expected: set[str]
 ) -> set[str]:
     absolute = root / projection
+    projection_parent = root / projection.parts[0]
+    if projection_parent.is_symlink() or absolute.is_symlink():
+        raise SkillError(
+            f"symlinked projection root: {projection_parent.relative_to(root).as_posix()}/"
+        )
+    try:
+        absolute.resolve().relative_to(root.resolve())
+    except ValueError as error:
+        raise SkillError(
+            f"projection root escapes repository: {projection.as_posix()}"
+        ) from error
     resolved_projection = absolute.resolve()
     managed = load_managed_names(absolute)
     for name in expected:
