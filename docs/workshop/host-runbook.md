@@ -26,7 +26,7 @@ Confirm attendees completed the technical Preflight and hold its evidence, using
 - Purpose: Support the room while pairs work through their own bounded engineering path.
 - Host actions: Watch for logistics or environment issues, room energy, transitions, and discretionary breaks.
 - What ends this phase: The room is ready to shift from active work into the learning exchange.
-- What the Host must not do: Choose a Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
+- What the Host must not do: Choose a Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, make or resolve any Risk Gate decision, including Commitment, Acceptance, or Learning, or declare completion.
 
 ### Learning
 
@@ -47,7 +47,7 @@ Do not elaborate, give examples, or resolve ambiguity. Attendees query the Clini
 
 - You may answer logistics questions and route environment questions, observe tooling blocks, notice room energy, manage transitions, and offer discretionary breaks.
 - If someone asks `what should I build?`, return the decision to the attendee and point to the Clinic Stakeholder.
-- Do not choose Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, resolve Commitment or Acceptance Gates, or declare completion.
+- Do not choose Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, make or resolve any Risk Gate decision, including Commitment, Acceptance, or Learning, or declare completion.
 
 ## 6. Learning exchange
 
