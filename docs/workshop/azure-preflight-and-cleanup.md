@@ -6,6 +6,31 @@ performs a real deployment and verifies it so the live workshop can begin from
 a known-good Inherited System. Preflight intentionally leaves the environment
 running; run cleanup only after the workshop or at the recorded deadline.
 
+## Prove partner review access
+
+The Workshop Host provides pair assignments before Preflight. Each Driver
+grants their assigned partner collaborator access to their private workshop
+repository:
+
+```bash
+gh api --method PUT repos/<driver>/<repository>/collaborators/<partner> -f permission=push
+```
+
+Replace the placeholders with GitHub logins and the repository name. The
+partner must accept the invitation before the proof step.
+
+Prove access rather than trusting the grant:
+
+1. The Driver creates a temporary repository issue named
+   `Preflight partner access proof`.
+2. The partner opens that private repository and posts a throwaway comment on
+   the issue.
+3. The Driver confirms the comment is visible and closes the temporary issue.
+
+If the partner cannot open the repository or comment, correct the invitation,
+account, or organization policy and repeat the proof before the workshop.
+Do not defer this failure to live exercise time.
+
 ## Accounts and local tools
 
 You need:

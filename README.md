@@ -9,6 +9,8 @@ agent-assisted engineering controlled, inspectable, and adaptable.
 2. Create a repository you control.
 3. Clone that repository and follow the
    [Azure Preflight and cleanup guide](docs/workshop/azure-preflight-and-cleanup.md).
+4. Read the [Participant Guide](docs/workshop/participant-guide.md) for the
+   attendee-owned workflow, Stage Cards, and peer-review path.
 
 The default branch is the clean **Inherited System**: canonical Spring
 PetClinic plus workshop assets, without a Clinic Assistant solution.

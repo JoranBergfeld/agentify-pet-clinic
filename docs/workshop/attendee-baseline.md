@@ -14,6 +14,17 @@ Clinic Stakeholder, the optional Evidence Coach, their scenario fixtures,
 canonical Clinic Stakeholder knowledge, the Workshop Blueprint, and
 `skills-lock.json`.
 
+The attendee-facing operating material consists of:
+
+- the Participant Guide;
+- the Evidence Lens aid;
+- the Reciprocal Evidence Review aid; and
+- six blank Stage Cards, one for each Reference Workflow stage.
+
+The Stage Cards are working templates: attendees edit them in place on their
+solution branches. They must remain blank and `Status: Working` on template
+`main`.
+
 The exact supported workshop skill set is:
 
 - `code-review`
