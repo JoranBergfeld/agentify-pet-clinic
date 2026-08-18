@@ -44,6 +44,75 @@ require_absent_reference_only_file() {
     || fail "reference-only file is present: $relative_path"
 }
 
+require_blank_stage_cards() {
+  local card
+  local first_line
+  local heading
+  local relative_path
+  local stage_cards_dir="$root/workshop/stage-cards"
+  local -a expected_cards=(
+    "01-orient.md"
+    "02-clarify.md"
+    "03-shape.md"
+    "04-execute.md"
+    "05-verify.md"
+    "06-learn.md"
+  )
+  local -a required_headings=(
+    "## Purpose"
+    "## Risk controlled"
+    "## Minimum evidence"
+    "## Optional Copilot example"
+    "## Exit question"
+    "## Evidence"
+  )
+
+  test -d "$stage_cards_dir" ||
+    fail "missing Stage Card directory: workshop/stage-cards/"
+
+  while IFS= read -r -d '' card; do
+    relative_path="${card#"$root/"}"
+    case "${card##*/}" in
+      01-orient.md | 02-clarify.md | 03-shape.md | 04-execute.md | 05-verify.md | 06-learn.md)
+        ;;
+      *)
+        fail "unexpected Stage Card template: $relative_path"
+        ;;
+    esac
+  done < <(find "$stage_cards_dir" -mindepth 1 -maxdepth 1 -print0)
+
+  for card in "${expected_cards[@]}"; do
+    relative_path="workshop/stage-cards/$card"
+    test -f "$root/$relative_path" ||
+      fail "missing Stage Card template: $relative_path"
+
+    IFS= read -r first_line <"$root/$relative_path"
+    test "$first_line" = "Status: Working" ||
+      fail "Stage Card template must start Working: $relative_path"
+
+    for heading in "${required_headings[@]}"; do
+      grep -Fxq "$heading" "$root/$relative_path" ||
+        fail "Stage Card template is missing required heading '$heading': $relative_path"
+    done
+
+    test "$(grep -Fxc '_Replace this line with your evidence._' "$root/$relative_path")" -eq 1 ||
+      fail "filled Stage Card is present: $relative_path"
+
+    awk '
+      $0 == "## Evidence" {
+        in_evidence = 1
+        next
+      }
+      in_evidence &&
+        $0 != "" &&
+        $0 != "_Replace this line with your evidence._" {
+        exit 1
+      }
+    ' "$root/$relative_path" ||
+      fail "filled Stage Card is present: $relative_path"
+  done
+}
+
 require_safe_generated_evidence() {
   local evidence_file
   local relative_path
@@ -135,6 +204,7 @@ require_absent_reference_only_directory "docs/reference"
 require_absent_reference_only_directory "workshop/reference"
 require_absent_reference_only_directory "workshop/completed"
 require_absent_reference_only_directory "src/main/resources/templates/assistant"
+require_blank_stage_cards
 require_safe_generated_evidence
 require_absent_reference_only_file "scripts/azure-reference-smoke.sh"
 require_absent_reference_only_file "scripts/test-azure-reference-smoke.sh"

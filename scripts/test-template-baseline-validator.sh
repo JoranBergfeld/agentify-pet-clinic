@@ -66,10 +66,52 @@ copy_clean_copilot_assets() {
     "grilling" \
     "prototype" \
     "tdd" \
+    "to-spec" \
     "wayfinder"; do
     cp -a \
       "$repo_root/.github/skills/$relative_path" \
       "$fixture/.github/skills/$relative_path"
+  done
+}
+
+write_clean_stage_cards() {
+  local card
+
+  mkdir -p "$fixture/workshop/stage-cards"
+  for card in \
+    "01-orient" \
+    "02-clarify" \
+    "03-shape" \
+    "04-execute" \
+    "05-verify" \
+    "06-learn"; do
+    cat >"$fixture/workshop/stage-cards/$card.md" <<'EOF'
+Status: Working
+
+## Purpose
+
+Fixed guidance.
+
+## Risk controlled
+
+Fixed guidance.
+
+## Minimum evidence
+
+Fixed guidance.
+
+## Optional Copilot example
+
+Fixed, replaceable example.
+
+## Exit question
+
+Fixed question.
+
+## Evidence
+
+_Replace this line with your evidence._
+EOF
   done
 }
 
@@ -147,6 +189,7 @@ write_clean_pom
 write_clean_gradle
 write_clean_ui_resources
 copy_clean_copilot_assets
+write_clean_stage_cards
 touch "$fixture/mvnw"
 chmod +x "$fixture/mvnw"
 touch "$fixture/.azure/.gitignore"
@@ -156,6 +199,41 @@ cat >"$fixture/.gitignore" <<'EOF'
 EOF
 git -C "$fixture" init --quiet
 
+expect_clean
+
+rm "$fixture/workshop/stage-cards/01-orient.md"
+expect_failure \
+  "missing Stage Card template: workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
+expect_clean
+
+touch "$fixture/workshop/stage-cards/07-extra.md"
+expect_failure \
+  "unexpected Stage Card template: workshop/stage-cards/07-extra.md"
+rm "$fixture/workshop/stage-cards/07-extra.md"
+expect_clean
+
+sed -i 's/^Status: Working$/Status: Review ready/' \
+  "$fixture/workshop/stage-cards/01-orient.md"
+expect_failure \
+  "Stage Card template must start Working: workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
+expect_clean
+
+sed -i '/^## Risk controlled$/d' \
+  "$fixture/workshop/stage-cards/01-orient.md"
+expect_failure \
+  "Stage Card template is missing required heading '## Risk controlled': workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
+expect_clean
+
+cat >>"$fixture/workshop/stage-cards/01-orient.md" <<'EOF'
+
+Observed PetClinic behavior.
+EOF
+expect_failure \
+  "filled Stage Card is present: workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
 expect_clean
 
 rm "$fixture/.github/agents/evidence-coach.agent.md"
