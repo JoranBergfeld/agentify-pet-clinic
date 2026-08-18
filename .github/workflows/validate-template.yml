@@ -22,6 +22,8 @@ jobs:
           cache: maven
       - name: Test template baseline validator
         run: scripts/test-template-baseline-validator.sh
+      - name: Test Copilot assets
+        run: scripts/test-copilot-assets.sh
       - name: Validate template baseline
         run: scripts/validate-template-baseline.sh
       - name: Test workshop Azure infrastructure and validate Bicep

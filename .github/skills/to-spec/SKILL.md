@@ -6,7 +6,11 @@ disable-model-invocation: true
 
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user — just synthesize what you already know.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+This skill is maintainer-scoped. It supports people building and maintaining the workshop, not attendees running it, and it is never invoked implicitly.
+
+The issue tracker configuration must be available at `docs/agents/issue-tracker.md` and the triage label vocabulary at `docs/agents/triage-labels.md`. If either is missing or inaccessible, stop explicitly and ask for that configuration before continuing.
+
+A published spec is a proposal, not an accepted decision. The human owns the Commitment Gate, the acceptance judgment, and the final completion claim.
 
 ## Process
 

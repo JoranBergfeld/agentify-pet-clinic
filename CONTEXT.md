@@ -24,6 +24,10 @@ _Avoid_: Approval ceremony, process checkpoint
 The delivery-ready definition of the workshop's learning outcomes, exercise flow, host cues, participant guidance, take-home principles and workflow, and success criteria.
 _Avoid_: Workshop implementation, course materials
 
+**Participant Guide**:
+The durable attendee-held reference for operating the workshop.
+_Avoid_: workbook, Workshop Blueprint, deck script
+
 **Workshop Package**:
 The complete repository-based result required for first delivery: the accepted Workshop Blueprint, delivery materials, participant and host guidance, challenge and Copilot assets, technical environment automation, reference evidence path, and validated dry-run evidence.
 _Avoid_: Workshop Blueprint, production Clinic Assistant, future enhancement backlog
@@ -65,12 +69,12 @@ A structured, asynchronous PR critique of Review-ready Stage Cards, organized by
 _Avoid_: Evidence Handoff, role rotation, approval verdict, prescribed next step
 
 **Workshop Host**:
-The human who manages logistics, cohort timing, breaks, and transitions without coaching pair decisions, reviewing engineering evidence, or directing the Reference Workflow.
+The human who manages logistics, cohort timing, breaks, transitions, and organization of the closing exchange without coaching pair decisions, reviewing engineering evidence, or directing the Reference Workflow.
 _Avoid_: Facilitator, instructor, approver
 
 **Evidence Coach**:
-The optional repository GitHub Copilot custom agent that reviews committed, Review-ready Stage Cards through the Evidence Lenses and posts a labelled, revision-specific PR comment without replacing peer critique, approving decisions, prescribing the next move, or certifying work.
-_Avoid_: Facilitator, Auditor, approver
+The optional repository GitHub Copilot custom agent that reviews committed, Review-ready Stage Cards through the Evidence Lenses and drafts a labelled, revision-specific PR comment the human posts, without replacing peer critique, approving decisions, prescribing the next move, or certifying work.
+_Avoid_: Facilitator, Auditor, approver, autonomous reviewer
 
 **Supported Environment**:
 The attendee-owned local GitHub Copilot and Azure setup used to demonstrate the Reference Workflow without defining or limiting the Agentic Engineering Principles.
