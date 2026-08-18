@@ -94,6 +94,16 @@ write_fixture() {
     >"$fixture/.github/skills/code-review/SKILL.md"
   printf '%s\n' '# Research' \
     >"$fixture/docs/agents/maintainer-skills/research/SKILL.md"
+  cat >"$fixture/skills-lock.json" <<'EOF'
+{
+  "version": 1,
+  "skills": {
+    "code-review": {
+      "source": "mattpocock/skills"
+    }
+  }
+}
+EOF
   cp "$repo_root/scripts/maintainer_skills.py" "$fixture/scripts/"
   cp "$repo_root/scripts/validate-maintainer-skills.sh" "$fixture/scripts/"
   cp "$repo_root/scripts/setup-maintainer-skills.sh" "$fixture/scripts/"
@@ -271,6 +281,29 @@ def load_lock(root: Path) -> dict:
     return data
 
 
+def attendee_names(root: Path) -> list[str]:
+    path = root / "skills-lock.json"
+    if not path.is_file():
+        raise SkillError("missing attendee lock file: skills-lock.json")
+    try:
+        lock = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SkillError(f"invalid attendee lock file: {error}") from error
+    locked = set(lock.get("skills", {}))
+    installed = directory_names(root / ATTENDEE)
+    missing = sorted(installed - locked)
+    extra = sorted(locked - installed)
+    if missing:
+        raise SkillError(
+            f"attendee inventory mismatch: missing {', '.join(missing)}"
+        )
+    if extra:
+        raise SkillError(
+            f"attendee inventory mismatch: extra {', '.join(extra)}"
+        )
+    return sorted(locked)
+
+
 def validate(root: Path) -> list[str]:
     lock = load_lock(root)
     catalog_root = root / CATALOG
@@ -312,7 +345,7 @@ def load_managed_names(projection: Path) -> set[str]:
 def source_skills(root: Path, maintainer_names: list[str]) -> dict[str, Path]:
     sources = {
         name: root / ATTENDEE / name
-        for name in directory_names(root / ATTENDEE)
+        for name in attendee_names(root)
     }
     for name in maintainer_names:
         if name in sources:
@@ -676,7 +709,6 @@ Add these paths to `copy_clean_copilot_assets` in
 
 ```bash
 "maintainer-skills-lock.json"
-"docs/agents/maintainer-skills"
 "scripts/maintainer_skills.py"
 "scripts/validate-maintainer-skills.sh"
 ```
