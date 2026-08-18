@@ -25,7 +25,9 @@ Prove access rather than trusting the grant:
    `Preflight partner access proof`.
 2. The partner opens that private repository and posts a throwaway comment on
    the issue.
-3. The Driver confirms the comment is visible and closes the temporary issue.
+3. The Driver confirms the comment is visible, then the partner deletes their
+   throwaway comment.
+4. The Driver closes the temporary issue.
 
 If the partner cannot open the repository or comment, correct the invitation,
 account, or organization policy and repeat the proof before the workshop.
