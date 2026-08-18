@@ -69,7 +69,7 @@ A structured, asynchronous PR critique of Review-ready Stage Cards, organized by
 _Avoid_: Evidence Handoff, role rotation, approval verdict, prescribed next step
 
 **Workshop Host**:
-The human who manages logistics, cohort timing, breaks, transitions, cohort-wide framing, and organization of the closing exchange without coaching pair decisions, reviewing engineering evidence, or directing the Reference Workflow.
+The human who manages logistics, cohort timing, breaks, transitions, and organization of the closing exchange without coaching pair decisions, reviewing engineering evidence, or directing the Reference Workflow.
 _Avoid_: Facilitator, instructor, approver
 
 **Evidence Coach**:

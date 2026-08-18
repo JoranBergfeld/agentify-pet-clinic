@@ -4,22 +4,16 @@ This runbook is for the Workshop Host only. Keep it out of attendee-facing mater
 
 ## 1. How to use this runbook
 
-- Use it as the Host-side reference for the workshop flow, boundaries, and exception handling.
+- Use it as the Host-side reference after the externally delivered opening, covering Work, Learning, boundaries, and exception handling.
 - Keep attendee-facing guidance separate.
 - Use it to stay consistent with the workshop blueprint and the participant guide without adding new rules here.
+- Opening materials and participant-brief delivery are outside this repository and this runbook.
 
 ## 2. Pre-workshop readiness
 
 Confirm attendees completed the technical Preflight and hold its evidence, using [Azure Preflight and Cleanup](./azure-preflight-and-cleanup.md) for that check.
 
 ## 3. Run of show
-
-### Intro
-
-- Purpose: Open the room, establish the brief, and move attendees toward their first product question.
-- Host actions: Read the brief exactly as written; keep the room moving into the first participant questions.
-- What ends this phase: The cohort has heard the brief and is ready to query the Clinic Stakeholder.
-- What the Host must not do: Elaborate, give examples, or resolve ambiguity.
 
 ### Work
 
@@ -35,27 +29,19 @@ Confirm attendees completed the technical Preflight and hold its evidence, using
 - What ends this phase: The closing exchange is complete and the workshop is ready to end.
 - What the Host must not do: Evaluate, correct, rank, or add engineering commentary.
 
-## 4. Intro
-
-Read this exactly as written:
-
-> PetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.
-
-Do not elaborate, give examples, or resolve ambiguity. Attendees query the Clinic Stakeholder for product knowledge.
-
-## 5. During Work
+## 4. During Work
 
 - You may answer logistics questions and route environment questions, observe tooling blocks, notice room energy, manage transitions, and offer discretionary breaks.
 - If someone asks `what should I build?`, return the decision to the attendee and point to the Clinic Stakeholder.
 - Do not choose Work Contract or scope, decide what or how to build, coach pair or engineering decisions, direct the Reference Workflow, operate an Engineering Agent, review, judge, or comment on Stage Card evidence, make or resolve any Risk Gate decision, including Commitment, Acceptance, or Learning, or declare completion.
 
-## 6. Learning exchange
+## 5. Learning exchange
 
 - Give each team 3-5 minutes.
 - Sequence teams, hold the rate, cluster attendee-stated themes, and close.
 - Do not evaluate, correct, rank, or add engineering commentary.
 
-## 7. Host exception actions
+## 6. Host exception actions
 
 ### Attendee environment fails
 
@@ -67,6 +53,6 @@ Intervene only to restore staff-facing/read-only/no writes/no new infrastructure
 
 These are the only two Host-owned exception actions; attendee-owned handling beyond them lives in [participant guide](./participant-guide.md).
 
-## 8. Closeout
+## 7. Closeout
 
 Use [Azure Preflight and Cleanup](./azure-preflight-and-cleanup.md) for attendee-owned cleanup and evidence; do not repeat the steps here.

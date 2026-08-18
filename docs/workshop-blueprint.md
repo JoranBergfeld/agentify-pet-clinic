@@ -150,9 +150,7 @@ A Fragile or Missing observation must lead the Driver to repair the evidence, na
 
 ### Initial participant brief
 
-> PetClinic staff need a chatbot that helps them answer questions about owners, pets, Visits, and veterinarians. Add a Clinic Assistant to the existing application.
-
-The brief deliberately preserves broad customer scope and incomplete requirements. Participants query the repository-scoped **Clinic Stakeholder** for available product knowledge, but the stakeholder may honestly report uncertainty. Different bounded interpretations are valid when they remain inside the fixed safety envelope and produce comparable process evidence.
+The externally delivered brief deliberately preserves broad customer scope and incomplete requirements. Participants query the repository-scoped **Clinic Stakeholder** for available product knowledge, but the stakeholder may honestly report uncertainty. Different bounded interpretations are valid when they remain inside the fixed safety envelope and produce comparable process evidence.
 
 At the Commitment Gate, each attendee narrows their Work Contract to the smallest evidence-producing vertical slice they can inspect and accept. The desired end state remains broad; only the authorized workshop slice narrows.
 
@@ -227,26 +225,17 @@ The attendee-facing Azure envelope must be date-stamped and refresh region, mode
 
 ## Three-hour learning arc
 
-Stage times are cadence guidance, not per-stage deadlines. The opening, start of the final Learn exchange, and workshop close are protected cohort anchors. Attendees flex the middle stages and progress to different implementation depths.
+Stage times are cadence guidance, not per-stage deadlines. The externally delivered opening, start of the final Learn exchange, and workshop close are protected cohort anchors. Attendees flex the middle stages and progress to different implementation depths.
 
 | Time | Block | Participant practice and evidence |
 | --- | --- | --- |
-| 0:00–0:15 | Opening | Receive the ambiguous Clinic Assistant brief, see prompt-and-pray contrasted with bounded work, and gain a low-resolution view of the Reference Workflow. Name **Own the intent** and **Orient before acting**. |
+| 0:00–0:15 | Opening | Delivered outside the Workshop Package and repository. |
 | 0:15–0:35 | Orient | Reconstruct the Inherited System and create the Orient Stage Card using code, test, local, deployed, and agent-client evidence. |
 | 0:35–0:55 | Clarify | Query the Clinic Stakeholder, distinguish facts from product decisions, expose uncertainty, and record bounded assumptions without manufacturing certainty. |
 | 0:55–1:10 | Shape and Commitment Gate | Create the smallest useful Work Contract, assess the first three Evidence Lenses, and decide to proceed, narrow, or escalate. |
 | 1:10–2:25 | Execute with progressive review | Each attendee drives their own bounded evidence loop. Stage Cards become Review ready progressively; partners perform Reciprocal Evidence Review asynchronously at natural pauses without a fixed review window. |
 | 2:25–2:40 | Verify and Acceptance Gate | Trace claims to fresh local and deployed evidence, consider peer or Evidence Coach observations, record residual gaps, and make an individual acceptance judgment. |
 | 2:40–3:00 | Learn | Record a principle, risk, and adaptation. Each pair selects its strongest or most surprising learning for the room while the Workshop Host clusters themes and closes on time. |
-
-Use four contrastive micro-demonstrations, each no longer than three minutes and placed immediately before relevant practice:
-
-1. Prompt-and-pray versus bounded orientation.
-2. Hidden certainty versus honestly surfaced stakeholder uncertainty.
-3. Broad delegation versus one evidence-producing move.
-4. Agent confidence or green-by-proxy versus traceable acceptance evidence.
-
-Do not demonstrate a polished end-to-end solution or every workflow mechanic.
 
 ## Exception paths
 
@@ -316,7 +305,6 @@ This blueprint is the canonical design input for the remaining Workshop Package.
 
 - participant guide or workbook;
 - Workshop Host runbook;
-- Reference Challenge brief;
 - attendee starter baseline and reference solution or evidence path;
 - repository Copilot instructions, skills, Clinic Stakeholder, and optional Evidence Coach;
 - Stage Card, Evidence Lens, and Reciprocal Evidence Review aids;
@@ -324,11 +312,11 @@ This blueprint is the canonical design input for the remaining Workshop Package.
 - Azure deployment assets; and
 - full-duration dry-run and acceptance evidence.
 
-The presentation deck is outside repository scope. The initial participant brief is delivered verbatim from the Workshop Host runbook.
+All content used to deliver the opening, including the presentation deck and initial participant brief, is outside repository scope.
 
 Any downstream design change must record its rationale, affected learning outcomes and evidence, and the validation scenarios that must be rerun. The two workshop owners jointly accept a versioned Workshop Package baseline only after traceability review, a complete three-hour owner dry run in separate environments, remediation, and targeted reruns of failed slices.
 
-These amendments do not change the learning outcomes or attendee evidence requirements. The complete three-hour owner dry run must verify the three-phase Host shape, discretionary break handling, exact brief delivery, and the 3-5-minute-per-team Learning rate.
+These amendments do not change the learning outcomes or attendee evidence requirements. The complete three-hour owner dry run must verify the Host boundary after the external opening, discretionary break handling, and the 3-5-minute-per-team Learning rate.
 
 ## Decision sources
 
