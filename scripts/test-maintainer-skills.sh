@@ -225,6 +225,18 @@ expect_failure \
   "$fixture/scripts/setup-maintainer-skills.sh" "$fixture"
 
 write_fixture
+"$fixture/scripts/setup-maintainer-skills.sh" "$fixture"
+marker="$fixture/.agents/skills/.maintainer-skills-managed.json"
+printf '%s\n' 'preserve' >"$fixture/marker-victim"
+rm "$marker"
+ln -s "$fixture/marker-victim" "$marker"
+expect_failure \
+  "symlinked projection marker: .agents/skills/.maintainer-skills-managed.json" \
+  "$fixture/scripts/setup-maintainer-skills.sh" "$fixture"
+test "$(<"$fixture/marker-victim")" = "preserve" ||
+  fail_test "symlinked marker modified a path outside the projection"
+
+write_fixture
 mkdir -p "$fixture/.agents/skills/research"
 printf '%s\n' '# user-owned' >"$fixture/.agents/skills/research/SKILL.md"
 expect_failure \

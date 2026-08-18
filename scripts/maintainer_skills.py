@@ -191,6 +191,8 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
 
 def load_managed_names(projection: Path) -> set[str]:
     marker = projection / MARKER
+    if marker.is_symlink():
+        raise SkillError(f"symlinked projection marker: {marker.as_posix()}")
     if not marker.exists():
         return set()
     data = load_json(marker, "projection marker")
@@ -218,6 +220,10 @@ def preflight_projection(
     if projection_parent.is_symlink() or absolute.is_symlink():
         raise SkillError(
             f"symlinked projection root: {projection_parent.relative_to(root).as_posix()}/"
+        )
+    if (absolute / MARKER).is_symlink():
+        raise SkillError(
+            f"symlinked projection marker: {(projection / MARKER).as_posix()}"
         )
     try:
         absolute.resolve().relative_to(root.resolve())
@@ -268,6 +274,10 @@ def project(root: Path) -> None:
             if name in sources:
                 shutil.copytree(sources[name], destination)
         marker = absolute / MARKER
+        if marker.is_symlink():
+            raise SkillError(
+                f"symlinked projection marker: {(projection / MARKER).as_posix()}"
+            )
         marker.write_text(
             json.dumps({"version": 1, "skills": sorted(expected)}, indent=2)
             + "\n",
