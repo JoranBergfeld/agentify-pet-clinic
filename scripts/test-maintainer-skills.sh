@@ -130,4 +130,23 @@ expect_failure \
   "refusing to overwrite unmanaged skill: .agents/skills/research" \
   "$fixture/scripts/setup-maintainer-skills.sh" "$fixture"
 
+write_fixture
+git -C "$fixture" init --quiet
+expect_failure \
+  "generated projection is not ignored: .agents/" \
+  "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
+
+cat >"$fixture/.gitignore" <<'EOF'
+/.agents/
+/.claude/
+EOF
+"$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
+
+mkdir -p "$fixture/.agents/skills/research"
+printf '%s\n' '# tracked' >"$fixture/.agents/skills/research/SKILL.md"
+git -C "$fixture" add -f .agents/skills/research/SKILL.md
+expect_failure \
+  "tracked generated projection: .agents/skills/research/SKILL.md" \
+  "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
+
 echo "maintainer skill tests passed"

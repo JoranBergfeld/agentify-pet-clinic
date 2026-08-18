@@ -44,6 +44,7 @@ copy_clean_copilot_assets() {
     "AGENTS.md" \
     "CONTEXT.md" \
     "skills-lock.json" \
+    "maintainer-skills-lock.json" \
     ".github/copilot-instructions.md" \
     ".github/instructions/repository-maintenance.instructions.md" \
     ".github/agents/clinic-stakeholder.agent.md" \
@@ -52,6 +53,8 @@ copy_clean_copilot_assets() {
     "docs/workshop-blueprint.md" \
     "docs/workshop/clinic-stakeholder-knowledge.md" \
     "scripts/fixtures/copilot-assets" \
+    "scripts/maintainer_skills.py" \
+    "scripts/validate-maintainer-skills.sh" \
     "scripts/validate-copilot-assets.sh"; do
     mkdir -p "$(dirname "$fixture/$relative_path")"
     cp -a "$repo_root/$relative_path" "$fixture/$relative_path"
@@ -133,7 +136,7 @@ expect_clean() {
   local clean_output
 
   clean_output="$("$validator" "$fixture")"
-  test "$clean_output" = $'Copilot assets are structurally valid\ntemplate baseline is structurally clean' ||
+  test "$clean_output" = $'Copilot assets are structurally valid\nmaintainer skills are structurally valid\ntemplate baseline is structurally clean' ||
     fail_test "unexpected clean output: $clean_output"
 }
 
@@ -161,9 +164,20 @@ touch "$fixture/.azure/.gitignore"
 cat >"$fixture/.gitignore" <<'EOF'
 .workshop-evidence/
 .azure/
+/.agents/
+/.claude/
 EOF
 git -C "$fixture" init --quiet
 
+expect_clean
+
+printf '%s\n' '# changed' \
+  >>"$fixture/docs/agents/maintainer-skills/research/SKILL.md"
+expect_failure "content hash mismatch: research"
+rm -rf "$fixture/docs/agents/maintainer-skills/research"
+cp -a \
+  "$repo_root/docs/agents/maintainer-skills/research" \
+  "$fixture/docs/agents/maintainer-skills/research"
 expect_clean
 
 rm "$fixture/workshop/stage-cards/01-orient.md"
@@ -319,6 +333,8 @@ touch "$fixture/.workshop-evidence/cleanup-example.md"
 expect_clean
 cat >"$fixture/.gitignore" <<'EOF'
 .azure/
+/.agents/
+/.claude/
 EOF
 git -C "$fixture" check-ignore --quiet -- .workshop-evidence/cleanup-example.md &&
   fail_test 'unignored evidence fixture is unexpectedly ignored by git'
@@ -326,6 +342,8 @@ expect_failure "unignored generated evidence is present: .workshop-evidence/"
 cat >"$fixture/.gitignore" <<'EOF'
 .workshop-evidence/
 .azure/
+/.agents/
+/.claude/
 EOF
 rm -rf "$fixture/.workshop-evidence"
 

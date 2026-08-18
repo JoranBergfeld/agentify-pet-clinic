@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -90,12 +91,42 @@ def maintainer_names(root: Path) -> list[str]:
     return sorted(locked)
 
 
+def validate_projection_boundary(root: Path) -> None:
+    result = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0 or Path(result.stdout.strip()).resolve() != root:
+        return
+    for projection in (Path(".agents"), Path(".claude")):
+        probe = (projection / "skills" / "probe").as_posix()
+        ignored = subprocess.run(
+            ["git", "-C", str(root), "check-ignore", "--quiet", "--", probe],
+            check=False,
+        )
+        if ignored.returncode != 0:
+            raise SkillError(
+                f"generated projection is not ignored: {projection.as_posix()}/"
+            )
+    tracked = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "--", ".agents", ".claude"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    if tracked:
+        raise SkillError(f"tracked generated projection: {tracked[0]}")
+
+
 def validate(root: Path) -> tuple[list[str], list[str]]:
     attendees = attendee_names(root)
     maintainers = maintainer_names(root)
     duplicates = sorted(set(attendees) & set(maintainers))
     if duplicates:
         raise SkillError(f"duplicate skill across catalogs: {', '.join(duplicates)}")
+    validate_projection_boundary(root)
     return attendees, maintainers
 
 
