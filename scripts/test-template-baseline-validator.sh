@@ -75,44 +75,9 @@ copy_clean_copilot_assets() {
 }
 
 write_clean_stage_cards() {
-  local card
-
-  mkdir -p "$fixture/workshop/stage-cards"
-  for card in \
-    "01-orient" \
-    "02-clarify" \
-    "03-shape" \
-    "04-execute" \
-    "05-verify" \
-    "06-learn"; do
-    cat >"$fixture/workshop/stage-cards/$card.md" <<'EOF'
-Status: Working
-
-## Purpose
-
-Fixed guidance.
-
-## Risk controlled
-
-Fixed guidance.
-
-## Minimum evidence
-
-Fixed guidance.
-
-## Optional Copilot example
-
-Fixed, replaceable example.
-
-## Exit question
-
-Fixed question.
-
-## Evidence
-
-_Replace this line with your evidence._
-EOF
-  done
+  rm -rf "$fixture/workshop/stage-cards"
+  mkdir -p "$fixture/workshop"
+  cp -a "$repo_root/workshop/stage-cards" "$fixture/workshop/stage-cards"
 }
 
 write_clean_ui_resources() {
@@ -232,7 +197,35 @@ cat >>"$fixture/workshop/stage-cards/01-orient.md" <<'EOF'
 Observed PetClinic behavior.
 EOF
 expect_failure \
-  "filled Stage Card is present: workshop/stage-cards/01-orient.md"
+  "filled or modified Stage Card is present: workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
+expect_clean
+
+sed -i '/^## Minimum evidence$/a\\\nClaim: orientation complete.' \
+  "$fixture/workshop/stage-cards/01-orient.md"
+expect_failure \
+  "filled or modified Stage Card is present: workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
+expect_clean
+
+sed -i '/Evidence Lenses/d' \
+  "$fixture/workshop/stage-cards/01-orient.md"
+expect_failure \
+  "filled or modified Stage Card is present: workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
+expect_clean
+
+sed -i '/^## Risk controlled$/a\\\n## Purpose' \
+  "$fixture/workshop/stage-cards/01-orient.md"
+expect_failure \
+  "filled or modified Stage Card is present: workshop/stage-cards/01-orient.md"
+write_clean_stage_cards
+expect_clean
+
+sed -i 's#`/codebase-design`#`/tdd`#' \
+  "$fixture/workshop/stage-cards/01-orient.md"
+expect_failure \
+  "filled or modified Stage Card is present: workshop/stage-cards/01-orient.md"
 write_clean_stage_cards
 expect_clean
 

@@ -46,6 +46,8 @@ require_absent_reference_only_file() {
 
 require_blank_stage_cards() {
   local card
+  local actual_hash
+  local expected_hash
   local first_line
   local heading
   local relative_path
@@ -96,7 +98,7 @@ require_blank_stage_cards() {
     done
 
     test "$(grep -Fxc '_Replace this line with your evidence._' "$root/$relative_path")" -eq 1 ||
-      fail "filled Stage Card is present: $relative_path"
+      fail "filled or modified Stage Card is present: $relative_path"
 
     awk '
       $0 == "## Evidence" {
@@ -109,7 +111,31 @@ require_blank_stage_cards() {
         exit 1
       }
     ' "$root/$relative_path" ||
-      fail "filled Stage Card is present: $relative_path"
+      fail "filled or modified Stage Card is present: $relative_path"
+
+    case "$card" in
+      01-orient.md)
+        expected_hash="1b5c9d0b8b87f62d05001ac7fdc1a59ccbef9f1be1e69998572838d2f39c7267"
+        ;;
+      02-clarify.md)
+        expected_hash="239448c07cc217997692944e112130603a4f00677c09adfb11a9109e9afa9f4b"
+        ;;
+      03-shape.md)
+        expected_hash="247fa184787b1a651a4aefe020215efce6eceba38e5987e683c9f275c68b1e90"
+        ;;
+      04-execute.md)
+        expected_hash="d247a16e3460a74ca03acdfa76e50cfb10d6b081dd6b26eb5d6bdc0b2d2c1210"
+        ;;
+      05-verify.md)
+        expected_hash="70830d45477dc3b9c1498939d81788c3db43984afc44ff2ad63a6b687ab0da46"
+        ;;
+      06-learn.md)
+        expected_hash="205316a8da16086ec8df9912843f4602b089d395be8eb1a635207f60629a164d"
+        ;;
+    esac
+    actual_hash="$(sha256sum "$root/$relative_path" | cut -d ' ' -f 1)"
+    test "$actual_hash" = "$expected_hash" ||
+      fail "filled or modified Stage Card is present: $relative_path"
   done
 }
 
