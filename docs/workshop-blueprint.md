@@ -235,7 +235,7 @@ Stage times are cadence guidance, not per-stage deadlines. The opening, start of
 | 0:15–0:35 | Orient | Reconstruct the Inherited System and create the Orient Stage Card using code, test, local, deployed, and agent-client evidence. |
 | 0:35–0:55 | Clarify | Query the Clinic Stakeholder, distinguish facts from product decisions, expose uncertainty, and record bounded assumptions without manufacturing certainty. |
 | 0:55–1:10 | Shape and Commitment Gate | Create the smallest useful Work Contract, assess the first three Evidence Lenses, and decide to proceed, narrow, or escalate. |
-| 1:20–2:25 | Execute with progressive review | Each attendee drives their own bounded evidence loop. Stage Cards become Review ready progressively; partners perform Reciprocal Evidence Review asynchronously at natural pauses without a fixed review window. |
+| 1:10–2:25 | Execute with progressive review | Each attendee drives their own bounded evidence loop. Stage Cards become Review ready progressively; partners perform Reciprocal Evidence Review asynchronously at natural pauses without a fixed review window. |
 | 2:25–2:40 | Verify and Acceptance Gate | Trace claims to fresh local and deployed evidence, consider peer or Evidence Coach observations, record residual gaps, and make an individual acceptance judgment. |
 | 2:40–3:00 | Learn | Record a principle, risk, and adaptation. Each pair selects its strongest or most surprising learning for the room while the Workshop Host clusters themes and closes on time. |
 
