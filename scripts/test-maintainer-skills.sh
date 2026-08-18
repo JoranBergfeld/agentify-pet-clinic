@@ -6,6 +6,25 @@ python_bin="${PYTHON_BIN:-python3}"
 fixture="$(mktemp -d "$repo_root/.maintainer-skills-fixture.XXXXXX")"
 trap 'rm -rf "$fixture"' EXIT
 
+approved_skills=(
+  ask-matt
+  grill-me
+  grill-with-docs
+  handoff
+  implement
+  improve-codebase-architecture
+  research
+  resolving-merge-conflicts
+  setup-matt-pocock-skills
+  teach
+  to-questionnaire
+  to-tickets
+  triage
+  wait-what
+  wizard
+  writing-for-agents
+)
+
 fail_test() {
   echo "FAIL: $*" >&2
   exit 1
@@ -34,12 +53,20 @@ write_fixture() {
   rm -rf "$fixture"
   mkdir -p \
     "$fixture/.github/skills/code-review" \
-    "$fixture/docs/agents/maintainer-skills/research" \
+    "$fixture/docs/agents/maintainer-skills" \
     "$fixture/scripts"
   printf '%s\n' '# Code review' \
     >"$fixture/.github/skills/code-review/SKILL.md"
-  printf '%s\n' '# Research' \
-    >"$fixture/docs/agents/maintainer-skills/research/SKILL.md"
+  for name in "${approved_skills[@]}"; do
+    mkdir -p "$fixture/docs/agents/maintainer-skills/$name"
+    printf '# %s\n' "$name" \
+      >"$fixture/docs/agents/maintainer-skills/$name/SKILL.md"
+  done
+  cat >>"$fixture/docs/agents/maintainer-skills/implement/SKILL.md" <<'EOF'
+Require an authorized Work Contract before implementation.
+Pause for the human Commitment Gate before execution.
+Commit or push only with explicit human authorization.
+EOF
   cat >"$fixture/skills-lock.json" <<'EOF'
 {
   "version": 1,
@@ -56,22 +83,49 @@ EOF
   chmod +x \
     "$fixture/scripts/validate-maintainer-skills.sh" \
     "$fixture/scripts/setup-maintainer-skills.sh"
-  cat >"$fixture/maintainer-skills-lock.json" <<EOF
-{
-  "version": 1,
-  "source": {
-    "repository": "https://github.com/mattpocock/skills",
-    "revision": "9c9f36ccd3995266cd675468af71639c8dde1ec5",
-    "license": "MIT"
-  },
-  "skills": {
-    "research": {
-      "skillPath": "skills/engineering/research/SKILL.md",
-      "contentHash": "$(content_hash "$fixture/docs/agents/maintainer-skills/research")"
-    }
-  }
+  "$python_bin" - "$fixture" "${approved_skills[@]}" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import sys
+
+root = Path(sys.argv[1])
+names = sys.argv[2:]
+
+
+def content_hash(skill_root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(path for path in skill_root.rglob("*") if path.is_file()):
+        relative = path.relative_to(skill_root).as_posix().encode()
+        content = path.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
+catalog = root / "docs/agents/maintainer-skills"
+lock = {
+    "version": 1,
+    "source": {
+        "repository": "https://github.com/mattpocock/skills",
+        "revision": "9c9f36ccd3995266cd675468af71639c8dde1ec5",
+        "license": "MIT",
+    },
+    "skills": {
+        name: {
+            "skillPath": f"skills/{name}/SKILL.md",
+            "contentHash": content_hash(catalog / name),
+        }
+        for name in names
+    },
 }
-EOF
+(root / "maintainer-skills-lock.json").write_text(
+    json.dumps(lock, indent=2) + "\n",
+    encoding="utf-8",
+)
+PY
 }
 
 expect_failure() {
@@ -104,6 +158,27 @@ expect_failure \
   "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
 
 write_fixture
+cp -a \
+  "$fixture/docs/agents/maintainer-skills/research" \
+  "$fixture/docs/agents/maintainer-skills/extra"
+"$python_bin" - "$fixture/maintainer-skills-lock.json" <<'PY'
+from pathlib import Path
+import json
+import sys
+
+path = Path(sys.argv[1])
+lock = json.loads(path.read_text(encoding="utf-8"))
+lock["skills"]["extra"] = {
+    "skillPath": "skills/extra/SKILL.md",
+    "contentHash": lock["skills"]["research"]["contentHash"],
+}
+path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+PY
+expect_failure \
+  "approved maintainer inventory mismatch: extra extra" \
+  "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
+
+write_fixture
 rm -rf "$fixture/docs/agents/maintainer-skills/research"
 expect_failure \
   "catalog inventory mismatch: missing research" \
@@ -122,6 +197,24 @@ test -f "$fixture/.claude/skills/research/SKILL.md" ||
 diff -qr "$fixture/.agents/skills" "$fixture/.claude/skills" >/dev/null ||
   fail_test "client projections differ"
 "$fixture/scripts/setup-maintainer-skills.sh" "$fixture"
+
+marker="$fixture/.agents/skills/.maintainer-skills-managed.json"
+"$python_bin" - "$marker" <<'PY'
+from pathlib import Path
+import json
+import sys
+
+path = Path(sys.argv[1])
+marker = json.loads(path.read_text(encoding="utf-8"))
+marker["skills"].append("../../victim")
+path.write_text(json.dumps(marker, indent=2) + "\n", encoding="utf-8")
+PY
+printf '%s\n' 'preserve' >"$fixture/victim"
+expect_failure \
+  "invalid managed skill name: ../../victim" \
+  "$fixture/scripts/setup-maintainer-skills.sh" "$fixture"
+test "$(<"$fixture/victim")" = "preserve" ||
+  fail_test "unsafe marker entry modified a path outside the projection"
 
 write_fixture
 mkdir -p "$fixture/.agents/skills/research"
@@ -147,6 +240,35 @@ printf '%s\n' '# tracked' >"$fixture/.agents/skills/research/SKILL.md"
 git -C "$fixture" add -f .agents/skills/research/SKILL.md
 expect_failure \
   "tracked generated projection: .agents/skills/research/SKILL.md" \
+  "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
+
+write_fixture
+sed -i \
+  '/Require an authorized Work Contract before implementation/d' \
+  "$fixture/docs/agents/maintainer-skills/implement/SKILL.md"
+"$python_bin" - "$fixture" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import sys
+
+root = Path(sys.argv[1])
+skill_root = root / "docs/agents/maintainer-skills/implement"
+digest = hashlib.sha256()
+for path in sorted(path for path in skill_root.rglob("*") if path.is_file()):
+    relative = path.relative_to(skill_root).as_posix().encode()
+    content = path.read_bytes()
+    digest.update(len(relative).to_bytes(8, "big"))
+    digest.update(relative)
+    digest.update(len(content).to_bytes(8, "big"))
+    digest.update(content)
+lock_path = root / "maintainer-skills-lock.json"
+lock = json.loads(lock_path.read_text(encoding="utf-8"))
+lock["skills"]["implement"]["contentHash"] = digest.hexdigest()
+lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+PY
+expect_failure \
+  "missing maintainer authority contract: implement" \
   "$fixture/scripts/validate-maintainer-skills.sh" "$fixture"
 
 echo "maintainer skill tests passed"

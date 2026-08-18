@@ -389,6 +389,14 @@ expect_excluded_skill_reference \
   "docs/workshop-blueprint.md" \
   "Use /wizard to adapt the workshop workflow." \
   "wizard"
+write_valid_fixture
+mkdir -p "$fixture/docs/workshop"
+printf '%s\n' \
+  "Use /handoff after completing the exercise." \
+  >"$fixture/docs/workshop/participant-guide.md"
+expect_failure \
+  "docs/workshop/participant-guide.md references excluded repository skill: handoff"
+rm "$fixture/docs/workshop/participant-guide.md"
 
 guidance_authority_files=(
   "CONTEXT.md"

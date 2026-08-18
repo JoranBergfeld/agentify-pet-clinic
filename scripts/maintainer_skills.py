@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,32 @@ LOCK = Path("maintainer-skills-lock.json")
 ATTENDEE = Path(".github/skills")
 PROJECTIONS = (Path(".agents/skills"), Path(".claude/skills"))
 MARKER = ".maintainer-skills-managed.json"
+APPROVED_MAINTAINER_SKILLS = frozenset(
+    {
+        "ask-matt",
+        "grill-me",
+        "grill-with-docs",
+        "handoff",
+        "implement",
+        "improve-codebase-architecture",
+        "research",
+        "resolving-merge-conflicts",
+        "setup-matt-pocock-skills",
+        "teach",
+        "to-questionnaire",
+        "to-tickets",
+        "triage",
+        "wait-what",
+        "wizard",
+        "writing-for-agents",
+    }
+)
+SKILL_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+IMPLEMENT_AUTHORITY_CONTRACTS = (
+    "Require an authorized Work Contract before implementation.",
+    "Pause for the human Commitment Gate before execution.",
+    "Commit or push only with explicit human authorization.",
+)
 
 
 class SkillError(RuntimeError):
@@ -38,6 +65,11 @@ def directory_names(root: Path) -> set[str]:
     return {path.name for path in root.iterdir() if path.is_dir()}
 
 
+def require_skill_name(name: str, description: str) -> None:
+    if not SKILL_NAME.fullmatch(name):
+        raise SkillError(f"invalid {description} skill name: {name}")
+
+
 def load_json(path: Path, description: str) -> dict:
     if not path.is_file():
         raise SkillError(f"missing {description}: {path.name}")
@@ -54,6 +86,8 @@ def attendee_names(root: Path) -> list[str]:
     lock = load_json(root / "skills-lock.json", "attendee lock file")
     locked = set(lock.get("skills", {}))
     installed = directory_names(root / ATTENDEE)
+    for name in locked | installed:
+        require_skill_name(name, "attendee")
     missing = sorted(installed - locked)
     extra = sorted(locked - installed)
     if missing:
@@ -74,6 +108,20 @@ def maintainer_names(root: Path) -> list[str]:
     catalog_root = root / CATALOG
     locked = set(lock["skills"])
     installed = directory_names(catalog_root)
+    for name in locked | installed:
+        require_skill_name(name, "maintainer")
+    approved_missing = sorted(APPROVED_MAINTAINER_SKILLS - locked)
+    approved_extra = sorted(locked - APPROVED_MAINTAINER_SKILLS)
+    if approved_missing:
+        raise SkillError(
+            "approved maintainer inventory mismatch: missing "
+            + ", ".join(approved_missing)
+        )
+    if approved_extra:
+        raise SkillError(
+            "approved maintainer inventory mismatch: extra "
+            + ", ".join(approved_extra)
+        )
     missing = sorted(locked - installed)
     extra = sorted(installed - locked)
     if missing:
@@ -88,6 +136,13 @@ def maintainer_names(root: Path) -> list[str]:
         actual = content_hash(skill_root)
         if actual != expected:
             raise SkillError(f"content hash mismatch: {name}")
+    implement_content = (catalog_root / "implement" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    if not all(
+        contract in implement_content for contract in IMPLEMENT_AUTHORITY_CONTRACTS
+    ):
+        raise SkillError("missing maintainer authority contract: implement")
     return sorted(locked)
 
 
@@ -138,6 +193,8 @@ def load_managed_names(projection: Path) -> set[str]:
     names = data.get("skills")
     if not isinstance(names, list) or not all(isinstance(name, str) for name in names):
         raise SkillError(f"invalid projection marker: {marker.as_posix()}")
+    for name in names:
+        require_skill_name(name, "managed")
     return set(names)
 
 
@@ -153,9 +210,13 @@ def preflight_projection(
     root: Path, projection: Path, expected: set[str]
 ) -> set[str]:
     absolute = root / projection
+    resolved_projection = absolute.resolve()
     managed = load_managed_names(absolute)
     for name in expected:
+        require_skill_name(name, "projected")
         destination = absolute / name
+        if destination.parent.resolve() != resolved_projection:
+            raise SkillError(f"unsafe projected skill path: {name}")
         if destination.exists() and name not in managed:
             raise SkillError(
                 f"refusing to overwrite unmanaged skill: "

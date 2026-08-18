@@ -261,7 +261,9 @@ done < <(
     for guidance_dir in \
       "$root/.github/instructions" \
       "$root/.github/agents" \
-      "$root/docs/agents"; do
+      "$root/docs/agents" \
+      "$root/docs/workshop" \
+      "$root/workshop"; do
       if test -d "$guidance_dir"; then
         find "$guidance_dir" \
           -type f \
