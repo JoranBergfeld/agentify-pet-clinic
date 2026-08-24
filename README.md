@@ -26,7 +26,7 @@ These boundaries apply throughout the workshop:
 - **Staff-facing, read-only**: No writes to PetClinic data; no identity
   guessing or claimed mutations.
 - **Existing infrastructure**: Keep the solution inside one Spring Boot process
-  using the workshop Azure baseline. Do not add databases, AI Services, or new
+  using the workshop Azure baseline. Do not add another database or new
   infrastructure.
 - **Retrieved records only**: Answer only from fetched PetClinic data. Admit
   absent records and unsupported requests. Never provide veterinary diagnosis
@@ -101,10 +101,10 @@ decisions will matter.
 product challenge. Separate your implementation observations from product facts.
 
 **Do**:
-- Consult the [Clinic Stakeholder knowledge](docs/workshop/clinic-stakeholder-knowledge.md)
-  and query what is known/preferred/unknown using the [Participant Guide](docs/workshop/participant-guide.md)
-  guidance on getting product knowledge.
-- Record exactly what the Clinic Stakeholder says about capability scope, UI,
+- Invoke or ask the repository's **Clinic Stakeholder** what is known, preferred,
+  and explicitly unknown. See [Getting product knowledge](docs/workshop/participant-guide.md#getting-product-knowledge)
+  in the Participant Guide for guidance.
+- Record exactly what the Clinic Stakeholder reports about capability scope, UI,
   integration points, and known gaps.
 - Distinguish facts (the Stakeholder confirmed this), assumptions (you guessed
   this), deferrals (will be decided later), and narrowing (you chose to exclude
@@ -322,8 +322,6 @@ Document adaptations and decisions in your Stage Cards.
   work): [docs/workshop/evidence-lenses.md](docs/workshop/evidence-lenses.md)
 - **Reciprocal Evidence Review** (structured peer review mechanics):
   [docs/workshop/reciprocal-evidence-review.md](docs/workshop/reciprocal-evidence-review.md)
-- **Clinic Stakeholder knowledge** (product facts and uncertainty):
-  [docs/workshop/clinic-stakeholder-knowledge.md](docs/workshop/clinic-stakeholder-knowledge.md)
 - **Azure Preflight and cleanup guide** (environment setup and tear-down):
   [docs/workshop/azure-preflight-and-cleanup.md](docs/workshop/azure-preflight-and-cleanup.md)
 - **Workshop Blueprint** (instructor and maintainer reference; not attendee
