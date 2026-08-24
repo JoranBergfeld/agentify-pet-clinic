@@ -37,7 +37,7 @@ Use the current official feature identifiers:
 
 - `ghcr.io/devcontainers/features/java:1`;
 - `ghcr.io/devcontainers/features/azure-cli:1`;
-- `ghcr.io/azure/azd-devcontainer-feature/azd:1`;
+- `ghcr.io/azure/azure-dev/azd:0`;
 - `ghcr.io/devcontainers/features/github-cli:1`;
 - `ghcr.io/devcontainers/features/docker-in-docker:4`; and
 - `ghcr.io/devcontainers/features/common-utils:2`.
