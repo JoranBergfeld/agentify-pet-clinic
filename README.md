@@ -202,8 +202,9 @@ Accepted with residual gap, or Not yet accepted.
 
 **Do**:
 - Test locally: Run focused tests for your capability. Record pass/fail.
-- Smoke test: Deploy to Azure (or demonstrate locally) and show the feature
-  working end-to-end. Record what you see.
+- Smoke test: Deploy to Azure and show the feature working end-to-end. If Azure
+  is unavailable or deployment fails, demonstrate locally and record the
+  missing deployed evidence as an explicit gap.
 - Challenge your own evidence: What could be wrong? What did you not test?
   What depends on assumptions?
 - Identify residual gaps: incomplete tests, unverified integrations, unclear
