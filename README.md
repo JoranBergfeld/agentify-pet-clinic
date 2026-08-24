@@ -25,9 +25,12 @@ These boundaries apply throughout the workshop:
 
 - **Staff-facing, read-only**: No writes to PetClinic data; no identity
   guessing or claimed mutations.
-- **Existing infrastructure**: Keep the solution inside one Spring Boot process
-  using the workshop Azure baseline. Do not add another database or new
-  infrastructure.
+- **Fixed architecture**: Keep the solution inside one Spring Boot process using
+  the workshop Azure baseline. Use a framework-agnostic read-only query boundary
+  with purpose-built records rather than exposing repositories or JPA entities.
+- **No additional components**: Do not add write tools, RAG, Azure AI Search, a
+  Foundry project or Agent Service, another database, or persistent transcript
+  storage.
 - **Retrieved records only**: Answer only from fetched PetClinic data. Admit
   absent records and unsupported requests. Never provide veterinary diagnosis
   or treatment advice.
