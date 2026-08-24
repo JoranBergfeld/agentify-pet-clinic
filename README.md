@@ -244,6 +244,10 @@ work—something durable enough to transfer to your next project.
 - One adaptation: something you changed about the workflow and what risk it
   controlled.
 
+**Finish when:** At the human-owned Learning Gate, you decide which
+evidence-grounded learning is durable enough to retain and which would become
+stale context or empty ceremony.
+
 ### Learning Gate
 
 **This is a human-owned decision.** You decide what is durable enough to retain.
@@ -255,11 +259,13 @@ Peer review happens asynchronously using **Stage Cards** as the evidence spine.
 You do not need review approval to move forward; review challenges evidence at
 natural pauses.
 
-When a Stage Card is complete and committed, mark it **Review ready** in the
-card. Your Auditor (your partner in the workshop) will asynchronously review
-your committed card at that named commit revision, using the
+When a Stage Card's evidence is committed and ready for scrutiny, mark it
+**Review ready**. Your Auditor (your partner in the workshop) will asynchronously
+review your committed card at that named commit revision, using the
 [Reciprocal Evidence Review aid](docs/workshop/reciprocal-evidence-review.md)
-to structure critique.
+to structure critique. The statuses **Working**, **Review ready**, and
+**Reviewed** reflect review readiness, not stage completion, pass/fail, or Risk
+Gate authority.
 
 Review examines:
 - **Intent**: Is your purpose clear?
