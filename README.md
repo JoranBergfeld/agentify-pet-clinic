@@ -144,6 +144,8 @@ public seams, and acceptance evidence legible.
   - **Scope**: What capabilities are in/out?
   - **Constraints**: What cannot change (safety envelope, timeline, Azure
     baseline)?
+  - **Agent authority**: What may the Engineering Agent decide and do, and what
+    remains under human control?
   - **Assumptions**: What must be true for this to work?
   - **Public seams**: Where will you observe it working (test, demo, smoke
     test)?
