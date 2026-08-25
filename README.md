@@ -5,7 +5,7 @@
 You are learning a reusable way to work with coding agents that keeps you in
 control of intent, scope, risk, and acceptance. You'll practice this method on
 a bounded change to Spring PetClinic: adding a small, staff-facing, read-only
-**Clinic Assistant** conversational agent.
+**Clinic Assistant** conversational agent. The intent with this repository is to give a scenario which is that of a consultant who has their first week at a new company. You may know very little of the application, infrastructure and use case that you'll be working on. In this vague scenario, you'll be asked to practise and leverage your skills with coding agents to get to desired end state. This repository is written with the idea to work with someone else, and review each others findings to first of all learn from eachother, but secondly to simulate the scenario where someone from the fictional team reviews your work.
 
 Completing every feature is not required. A bounded slice with honest evidence
 and explicit gaps is a valid outcome.
@@ -76,7 +76,7 @@ when a clock expires.
 
 ### Stage 1: Orient
 
-**Purpose**: Understand the Inherited System—the application you're changing,
+**Purpose**: Understand the Inherited System, the application you're changing,
 how to run it locally, what tests exist, how to deploy, and where product
 decisions will matter.
 
