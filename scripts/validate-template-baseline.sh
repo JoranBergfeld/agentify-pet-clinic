@@ -115,22 +115,22 @@ require_blank_stage_cards() {
 
     case "$card" in
       01-orient.md)
-        expected_hash="bf3a969cfca5391c4f6cbab18eebd65feff6908b4df6340a248d9e0867ad4d79"
+        expected_hash="4c5741d35bcb3262ae8f2194ea1906d5f63f2359eece0d3f13891953a67597aa"
         ;;
       02-clarify.md)
-        expected_hash="30175a417713fe3f22f25485514041dac3f440d5d0d8f30384f24a03e0c1ba80"
+        expected_hash="86cddde54de7a640e6cf7d5fd7c469521294ecb395882454b8137da7546670e0"
         ;;
       03-shape.md)
-        expected_hash="510d9ba810c74e6f184b68d555b57e00909f7d97b52c1c9a21d290f8c955509b"
+        expected_hash="6a6e13f74351330e663cba189463b7b99e34b6c51ba8faa51d2bd4f155676387"
         ;;
       04-execute.md)
-        expected_hash="5b0e2270860aa5f23c34c19506e49b40cef8f1ff1f117d9eb3a49b9170742405"
+        expected_hash="8b8c4a702325505172a894ddda703ded3330794cf51cbff507bbf931035454d2"
         ;;
       05-verify.md)
-        expected_hash="3b9d6c1b7d1598f8d4abb745356467e65c5672fa6d82ca9d437f3a85ed2974eb"
+        expected_hash="7fd81148d753261e417e182a4b733ee3aac2be82046ada060bb6ba10426b9740"
         ;;
       06-learn.md)
-        expected_hash="be33b0e65f71186398b9f94ff8cfd1d0c68bcfe13193404521fcb9ef5e659fab"
+        expected_hash="bd6efeaa30e5d44d3fb0b3b4c3aeb6a84540e0ae91869a8277e1ab5df39090d8"
         ;;
     esac
     actual_hash="$(sha256sum "$root/$relative_path" | cut -d ' ' -f 1)"

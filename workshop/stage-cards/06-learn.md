@@ -8,7 +8,8 @@ When this card is Review ready, ask your partner to use
 
 ## Goal
 
-Keep the lessons that can improve your future work.
+Choose the lessons that will help you next time. Keep only lessons that the
+results support.
 
 ## What can go wrong
 

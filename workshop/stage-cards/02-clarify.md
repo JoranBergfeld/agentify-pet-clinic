@@ -8,7 +8,20 @@ When this card is Review ready, ask your partner to use
 
 ## Goal
 
-Make important unknowns clear. Keep product decisions with you.
+Decide what the product should do before choosing how to build it. An important
+question is one whose answer could change the product's behavior, scope, or
+what counts as correct. You make those decisions, not the agent.
+
+## Questions to answer
+
+- What exact behavior should the product provide, and what existing behavior
+  must stay the same?
+- What should happen in a concrete example, including missing or uncertain data?
+- What behavior, data, users, and systems are in scope or out of scope?
+- What must the system refuse, avoid, or leave for a person to decide?
+- Which product choices need a stakeholder answer, and which may you decide or
+  defer?
+- What visible result would show that the chosen behavior is correct?
 
 ## What can go wrong
 
@@ -18,13 +31,16 @@ Guessing answers, adding hidden work, or treating code details as product rules.
 
 - Important knowns and unknowns.
 - Clinic Stakeholder facts, preferences, and unknowns kept separate.
-- Assumptions, delayed choices, scope cuts, or requests for help, with effects.
+- Your answer to each relevant question, or who must answer it.
+- Assumptions, delayed choices, scope cuts, or requests for help, with their
+  effects on the work.
 - Decisions you must make before the agent starts.
 
 ## Optional Copilot help
 
-`/grilling` can help find missing questions. Another method is fine if it finds
-the same decisions without making them for you.
+Ask the **Clinic Stakeholder** custom agent what is known, preferred, or still
+unknown. `/grilling` can help find missing questions. Another method is fine if
+it finds the same decisions without making them for you.
 
 ## Check before the next step
 

@@ -8,7 +8,7 @@ When this card is Review ready, ask your partner to use
 
 ## Goal
 
-Understand the current system before you decide what to change.
+Learn how the system works now. Do this before you choose what to change.
 
 ## What can go wrong
 

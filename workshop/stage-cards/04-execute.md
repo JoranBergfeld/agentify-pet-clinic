@@ -8,7 +8,8 @@ When this card is Review ready, ask your partner to use
 
 ## Goal
 
-Work in small steps. Check the result after each step.
+Make one small change at a time. Check what happened before you make the next
+change.
 
 ## What can go wrong
 

@@ -8,7 +8,8 @@ When this card is Review ready, ask your partner to use
 
 ## Goal
 
-Choose the smallest safe piece of work that can produce useful evidence.
+Choose one small, safe task. Make sure its result will show you if the change
+works.
 
 ## What can go wrong
 

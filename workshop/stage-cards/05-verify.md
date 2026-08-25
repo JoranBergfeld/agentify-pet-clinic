@@ -8,7 +8,8 @@ When this card is Review ready, ask your partner to use
 
 ## Goal
 
-Check every acceptance claim with new evidence. Clearly record any gaps.
+Use new test results or a demo to check every claim. Write down what works,
+what does not work, and what is still unknown.
 
 ## What can go wrong
 
