@@ -261,9 +261,15 @@ done < <(
     for guidance_dir in \
       "$root/.github/instructions" \
       "$root/.github/agents" \
-      "$root/docs/agents"; do
+      "$root/docs/agents" \
+      "$root/docs/workshop" \
+      "$root/workshop"; do
       if test -d "$guidance_dir"; then
-        find "$guidance_dir" -type f -name '*.md' -print0
+        find "$guidance_dir" \
+          -type f \
+          -name '*.md' \
+          ! -path "$root/docs/agents/maintainer-skills/*" \
+          -print0
       fi
     done
     for skill in "${supported_skills[@]}"; do
@@ -670,6 +676,6 @@ require_contract ".github/copilot-instructions.md" "Learning Gate"
 require_frontmatter_contract \
   ".github/instructions/repository-maintenance.instructions.md" \
   "applyTo" \
-  "applyTo: \"AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh\""
+  "applyTo: \"AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,maintainer-skills-lock.json,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/maintainer_skills.py,scripts/setup-maintainer-skills.sh,scripts/validate-maintainer-skills.sh,scripts/test-maintainer-skills.sh,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh\""
 
 echo "Copilot assets are structurally valid"

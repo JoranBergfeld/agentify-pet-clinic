@@ -253,6 +253,21 @@ test -f "$copilot_validator" ||
   fail "missing Copilot asset validator: scripts/validate-copilot-assets.sh"
 test -x "$copilot_validator" ||
   fail "Copilot asset validator is not executable: scripts/validate-copilot-assets.sh"
-"$copilot_validator" "$root"
+if ! copilot_output="$("$copilot_validator" "$root" 2>&1)"; then
+  printf '%s\n' "$copilot_output" >&2
+  exit 1
+fi
+
+maintainer_validator="$root/scripts/validate-maintainer-skills.sh"
+test -f "$root/maintainer-skills-lock.json" ||
+  fail "missing maintainer-skills-lock.json"
+test -x "$maintainer_validator" ||
+  fail "missing executable maintainer skill validator"
+if ! maintainer_output="$("$maintainer_validator" "$root" 2>&1)"; then
+  fail "${maintainer_output#maintainer skills invalid: }"
+fi
+
+printf '%s\n' "$copilot_output"
+printf '%s\n' "$maintainer_output"
 
 echo "template baseline is structurally clean"

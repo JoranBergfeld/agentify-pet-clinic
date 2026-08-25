@@ -82,7 +82,7 @@ write_valid_fixture() {
   write_skill_lock
   write_file \
     ".github/instructions/repository-maintenance.instructions.md" \
-    $'---\napplyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh"\n---\n\n# Repository maintenance'
+    $'---\napplyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,maintainer-skills-lock.json,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/maintainer_skills.py,scripts/setup-maintainer-skills.sh,scripts/validate-maintainer-skills.sh,scripts/test-maintainer-skills.sh,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh"\n---\n\n# Repository maintenance'
   write_file \
     ".github/agents/clinic-stakeholder.agent.md" \
     $'---\nname: Clinic Stakeholder\ndescription: Clarifies known Clinic Assistant facts, available preferences, and explicit uncertainty without making product decisions.\ntools: ["read", "search"]\ndisable-model-invocation: true\n---\n\nRead [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request.\nSeparate **Fixed facts**, **Available preferences**, and **Explicit unknowns** in each answer. Link to the relevant canonical knowledge sections when useful.\nIf the canonical knowledge or named Reference Challenge context is missing, inaccessible, contradictory, or silent on the question, explicitly say that the stakeholder does not know.\nDo not choose the Driver\'s bounded slice\nDo not make consequential product decisions.\nDo not cross the Commitment Gate.\nDo not authorize Engineering Agent scope.\nDo not manufacture certainty.\nDo not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.\nReturn unresolved decisions to the human.'
@@ -389,6 +389,14 @@ expect_excluded_skill_reference \
   "docs/workshop-blueprint.md" \
   "Use /wizard to adapt the workshop workflow." \
   "wizard"
+write_valid_fixture
+mkdir -p "$fixture/docs/workshop"
+printf '%s\n' \
+  "Use /handoff after completing the exercise." \
+  >"$fixture/docs/workshop/participant-guide.md"
+expect_failure \
+  "docs/workshop/participant-guide.md references excluded repository skill: handoff"
+rm "$fixture/docs/workshop/participant-guide.md"
 
 guidance_authority_files=(
   "CONTEXT.md"
@@ -418,6 +426,15 @@ printf '%s\n' \
 output="$("$validator" "$fixture")"
 test "$output" = "Copilot assets are structurally valid" ||
   fail_test "skill-name prefix produced unexpected output: $output"
+
+write_valid_fixture
+mkdir -p "$fixture/docs/agents/maintainer-skills/research"
+printf '%s\n' \
+  "Use /handoff after completing maintainer work." \
+  >"$fixture/docs/agents/maintainer-skills/research/SKILL.md"
+output="$("$validator" "$fixture")"
+test "$output" = "Copilot assets are structurally valid" ||
+  fail_test "maintainer catalog produced unexpected output: $output"
 
 expect_lock_inventory_mutation \
   "missing" \
@@ -500,9 +517,9 @@ expect_line_mutation \
 write_valid_fixture
 write_file \
   ".github/instructions/repository-maintenance.instructions.md" \
-  $'---\napplyTo:\n  - ".github/skills/**"\n  - ".github/agents/**"\n  - ".github/instructions/**"\n  - "docs/agents/**"\n  - "docs/superpowers/**"\n  - "CONTEXT.md"\n---\n\napplyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh"'
+  $'---\napplyTo:\n  - ".github/skills/**"\n  - ".github/agents/**"\n  - ".github/instructions/**"\n  - "docs/agents/**"\n  - "docs/superpowers/**"\n  - "CONTEXT.md"\n---\n\napplyTo: "AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,maintainer-skills-lock.json,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/maintainer_skills.py,scripts/setup-maintainer-skills.sh,scripts/validate-maintainer-skills.sh,scripts/test-maintainer-skills.sh,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh"'
 expect_failure \
-  ".github/instructions/repository-maintenance.instructions.md does not contain required contract: applyTo: \"AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh\""
+  ".github/instructions/repository-maintenance.instructions.md does not contain required contract: applyTo: \"AGENTS.md,CONTEXT.md,.github/copilot-instructions.md,.github/skills/**,.github/agents/**,.github/instructions/**,maintainer-skills-lock.json,docs/agents/**,docs/superpowers/**,docs/workshop/**,scripts/maintainer_skills.py,scripts/setup-maintainer-skills.sh,scripts/validate-maintainer-skills.sh,scripts/test-maintainer-skills.sh,scripts/validate-copilot-assets.sh,scripts/test-copilot-assets.sh\""
 
 expect_missing_file ".github/agents/clinic-stakeholder.agent.md"
 expect_missing_file "docs/workshop/clinic-stakeholder-knowledge.md"

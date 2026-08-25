@@ -50,6 +50,10 @@ _site/
 ### Agent worktrees ###
 .worktrees/
 
+### Maintainer skill projections ###
+/.agents/
+/.claude/
+
 ### Workshop Azure Path ###
 .azure/
 .azure-reference-smoke-*

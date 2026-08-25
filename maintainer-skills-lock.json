@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "source": {
+    "repository": "https://github.com/mattpocock/skills",
+    "revision": "9c9f36ccd3995266cd675468af71639c8dde1ec5",
+    "license": "MIT"
+  },
+  "skills": {
+    "ask-matt": {
+      "skillPath": "skills/engineering/ask-matt/SKILL.md",
+      "contentHash": "ec74e1e3b2bae1689c1e0b780b55bde17dbe4f6a3f3bcd90f0e5fdcb11015b23"
+    },
+    "grill-me": {
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "contentHash": "1d7b1f48eb68647a94058d75d80902c351adb013a93bdb98c1218fffb2896bc3"
+    },
+    "grill-with-docs": {
+      "skillPath": "skills/engineering/grill-with-docs/SKILL.md",
+      "contentHash": "04ba6a6139df57e6a011eb79311212fa5f3dc47ec6177845d1defea19c68bb60"
+    },
+    "handoff": {
+      "skillPath": "skills/productivity/handoff/SKILL.md",
+      "contentHash": "c8646a846de8896217189af07caee05204df6aa15601dcf4a4edb791043f20e2"
+    },
+    "implement": {
+      "skillPath": "skills/engineering/implement/SKILL.md",
+      "contentHash": "4cc4150d0ad7f7eae403dbf8f38e94d54c74957e66a8a68ba32cc92b406ae554"
+    },
+    "improve-codebase-architecture": {
+      "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "contentHash": "184034119e0224e6d1dbed4b8a01f1ed5a0428441dcf31df11cc22bad9c98fa3"
+    },
+    "research": {
+      "skillPath": "skills/engineering/research/SKILL.md",
+      "contentHash": "c45f968cf11f2c136e03fa5d874d952b9d4dfd461e9dd3ae7202527705cd5ba0"
+    },
+    "resolving-merge-conflicts": {
+      "skillPath": "skills/engineering/resolving-merge-conflicts/SKILL.md",
+      "contentHash": "844baba1a2dab71380a3c7d92d92bd2d464ec41d0dd2e813a7fd5f26a736ca75"
+    },
+    "setup-matt-pocock-skills": {
+      "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "contentHash": "46f28b22513093c975c7fda68601eb14ac0953b5dfe57e070c27c08100ed8f44"
+    },
+    "teach": {
+      "skillPath": "skills/productivity/teach/SKILL.md",
+      "contentHash": "51170bde4a202a163bf246b1023623cd654e38697f11cdc7778e9d69966bd08f"
+    },
+    "to-questionnaire": {
+      "skillPath": "skills/productivity/to-questionnaire/SKILL.md",
+      "contentHash": "bc37cd96a59118ad1d42621da3b1ef6eefb03c7bb0782f1704f86665199e6de2"
+    },
+    "to-tickets": {
+      "skillPath": "skills/engineering/to-tickets/SKILL.md",
+      "contentHash": "28c5d0629aaca58263f54ade8088885f446b48aaf070c6de375ba17f5ee69334"
+    },
+    "triage": {
+      "skillPath": "skills/engineering/triage/SKILL.md",
+      "contentHash": "82aac7e75cace6baac2954af5a59267110148881c8ae78f8a31748a287691ff6"
+    },
+    "wait-what": {
+      "skillPath": "skills/productivity/wait-what/SKILL.md",
+      "contentHash": "8378397164f0a5397e271ab9306d81b706b37ed0e97947a61658a7c8e104b773"
+    },
+    "wizard": {
+      "skillPath": "skills/engineering/wizard/SKILL.md",
+      "contentHash": "b4da6a168d70c286606f490819d23e8b78d5cb40d23e306334e8f1570bd9ac68"
+    },
+    "writing-for-agents": {
+      "skillPath": "skills/productivity/writing-for-agents/SKILL.md",
+      "contentHash": "c6833cfae282543485ef511867e5798d9cdc9fb2c39a716ee7cb3ff535bedeae"
+    }
+  }
+}

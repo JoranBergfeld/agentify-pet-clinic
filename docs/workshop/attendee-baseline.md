@@ -36,6 +36,12 @@ The exact supported workshop skill set is:
 - `tdd`
 - `wayfinder`
 
+Additional maintainer-only skills are stored under
+`docs/agents/maintainer-skills/`, outside automatic discovery. Maintainers may
+generate ignored local client projections with
+`scripts/setup-maintainer-skills.sh`. Those projections and the maintainer
+catalog do not expand the supported attendee skill set.
+
 The template must not include unsupported skills or agents authorized to
 approve, certify, post reviews, or make Commitment, Acceptance, Learning, or
 other Risk Gate judgments.
@@ -59,6 +65,8 @@ Baseline provenance is recorded in `workshop/baseline.properties`:
 Validate the boundary with:
 
 ```bash
+scripts/test-maintainer-skills.sh
+scripts/validate-maintainer-skills.sh
 scripts/test-copilot-assets.sh
 scripts/validate-copilot-assets.sh
 scripts/test-template-baseline-validator.sh
