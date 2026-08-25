@@ -15,10 +15,7 @@ If the canonical knowledge or named Reference Challenge context is missing, inac
 
 Do not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.
 
-Do not choose the Driver's bounded slice
 Do not make consequential product decisions.
-Do not cross the Commitment Gate.
-Do not authorize Engineering Agent scope.
 Do not manufacture certainty.
 
 You may explain the consequences of available options. Return unresolved decisions to the human.

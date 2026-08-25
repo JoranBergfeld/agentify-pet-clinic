@@ -12,31 +12,18 @@ and explicit gaps is a valid outcome.
 
 ## The challenge
 
-**Product challenge**: Add the smallest useful evidence-producing, staff-facing,
-read-only Clinic Assistant vertical slice to Spring PetClinic.
+**Product challenge**: Add the smallest useful evidence-producing, staff-facing, read-only Clinic Assistant vertical slice to Spring PetClinic.
 
-**Learning goal**: Practice controlled, inspectable agent-assisted engineering
-while retaining human authority over intent, scope, risk decisions, and
-acceptance.
+**Learning goal**: Practice controlled, inspectable agent-assisted engineering while retaining human authority over intent, scope, risk decisions, and acceptance. Bonus points if you do not write code yourself.
 
-### Safety envelope
+### Requirements & Boundaries
 
 These boundaries apply throughout the workshop:
 
-- **Staff-facing, read-only**: No writes to PetClinic data; no identity
-  guessing or claimed mutations.
-- **Fixed architecture**: Keep the solution inside one Spring Boot process using
-  the workshop Azure baseline. Use a framework-agnostic read-only query boundary
-  with purpose-built records rather than exposing repositories or JPA entities.
-- **No additional components**: Do not add write tools, RAG, Azure AI Search, a
-  Foundry project or Agent Service, another database, or persistent transcript
-  storage.
-- **Retrieved records only**: Answer only from fetched PetClinic data. Admit
-  absent records and unsupported requests. Never provide veterinary diagnosis
-  or treatment advice.
-- **Intentional ambiguity preserved**: The exact capability family, UI surface,
-  wording, and implementation remain your decisions. This README does not
-  choose them for you.
+- **No data mutations, read-only data**: No writes to PetClinic data; no identity guessing or claimed mutations.
+- **Fixed architecture**: Keep the solution inside one Spring Boot process using the workshop Azure baseline. You can add on top of the architecture, but do not adjust the way we are currently deploying.
+- **Retrieved records only**: Answer only from fetched PetClinic data. Admit absent records and unsupported requests. Never provide veterinary diagnosis or treatment advice.
+- **Intentional ambiguity**: The exact capability family, UI surface, wording, and implementation remain your decisions. This README does not choose them for you. This is by design. No real scenario will give you a complete picture from the get-go.
 
 ## Start the workshop
 
@@ -44,8 +31,7 @@ These boundaries apply throughout the workshop:
 
 1. Use this template to create your own repository.
 2. Clone your repository.
-3. Follow the [Azure Preflight and cleanup guide](docs/workshop/azure-preflight-and-cleanup.md)
-   to verify your local environment and Azure setup.
+3. Follow the [Azure Preflight and cleanup guide](docs/workshop/azure-preflight-and-cleanup.md) to verify your local environment and Azure setup.
 4. Verify the inherited application:
    ```bash
    ./mvnw test
@@ -63,40 +49,31 @@ These boundaries apply throughout the workshop:
    - `05-verify.md`
    - `06-learn.md`
 4. Begin with **Orient** (see "Work through the six stages" below).
-5. As you work, edit each Stage Card in place on your solution branch to record
-   evidence. The draft PR diff will show your evidence accumulating. Use the
-   [Participant Guide](docs/workshop/participant-guide.md) for detailed
-   authority, Stage Card operation, and exception handling.
+5. As you work, edit each Stage Card in place on your solution branch to record evidence. The draft PR diff will show your evidence accumulating. Use the [Participant Guide](docs/workshop/participant-guide.md) for detailed authority, Stage Card operation, and exception handling.
+6. Review the PR of your peer and have your discussion whenever it suits you both. It would be encouraged to review after each stage.
 
 ## Work through the six stages
 
-The Reference Workflow guides you through six stages. Each stage is a concrete
-bounded move. Stages are independent: you move on when evidence supports it, not
-when a clock expires.
+The Reference Workflow guides you through six stages. Each stage is a concrete bounded move.
 
 ### Stage 1: Orient
 
-**Purpose**: Understand the Inherited System, the application you're changing,
-how to run it locally, what tests exist, how to deploy, and where product
-decisions will matter.
+**Purpose**: Understand the Inherited System, the application you're changing, how to run it locally, what tests exist, how to deploy, and where product decisions will matter.
 
 **Do**:
 - Run the application locally and verify `./mvnw test` passes.
 - Identify the local run path and test seams (how tests reach the application).
 - Map the public application API and public test entry points.
 - Explore the Azure deployment topology and how to check status.
-- Read `CONTEXT.md` and identify repository constraints that affect product
-  decisions.
+- Read `CONTEXT.md` and identify repository constraints that affect product decisions.
 
 **Record** (in Stage Card `01-orient.md`):
-- Facts you discovered: what you can reproduce, how to run tests, what tests
-  exist, deployment topology, constraints.
+- Facts you discovered: what you can reproduce, how to run tests, what tests exist, deployment topology, constraints.
 - Assumptions you made: what you guessed because it was unavailable.
 - Unresolved decisions: what consequential questions remain.
 
 **Move on when**:
-- You can answer: "How do I run the inherited system? How do I verify it works?
-  Where will a new capability fit? What decisions are reserved?"
+- You can answer: "How do I run the inherited system? How do I verify it works? Where will a new capability fit? What decisions are reserved?"
 
 ### Stage 2: Clarify
 
