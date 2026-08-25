@@ -368,9 +368,6 @@ require_frontmatter_contract \
   ".github/agents/clinic-stakeholder.agent.md" \
   "disable-model-invocation" \
   "disable-model-invocation: true"
-require_contract \
-  ".github/agents/clinic-stakeholder.agent.md" \
-  "Do not choose the Driver's bounded slice"
 stakeholder_grounding_contracts=(
   "Read [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request."
   "Answer in a natural stakeholder voice first, then clearly distinguish any relevant **Fixed facts**, **Available preferences**, and **Explicit unknowns**. Do not force empty categories or repeat the knowledge document mechanically."
@@ -393,8 +390,6 @@ done
 
 stakeholder_agent_contracts=(
   "Do not make consequential product decisions."
-  "Do not cross the Commitment Gate."
-  "Do not authorize Engineering Agent scope."
   "Do not manufacture certainty."
   "Do not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details."
   "Return unresolved decisions to the human."

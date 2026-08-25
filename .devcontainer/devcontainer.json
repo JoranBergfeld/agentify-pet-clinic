@@ -1,26 +1,36 @@
 {
-  "name": "Java",
+  "name": "Agentic Engineering Workshop",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {},
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21-oracle",
       "jdkDistro": "oracle"
     },
     "ghcr.io/devcontainers/features/azure-cli:1": {},
     "ghcr.io/azure/azure-dev/azd:0": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {}
   },
-
+  "forwardPorts": [
+    8080
+  ],
+  "portsAttributes": {
+    "8080": {
+      "label": "Spring PetClinic",
+      "onAutoForward": "openBrowserOnce",
+      "protocol": "http"
+    }
+  },
   "customizations": {
     "vscode": {
-      "settings": {},
       "extensions": [
+        "GitHub.copilot-chat",
         "redhat.vscode-xml",
-        "visualstudioexptteam.vscodeintellicode",
         "vscjava.vscode-java-pack"
       ]
     }
   },
+  "postCreateCommand": "bash .devcontainer/verify-workshop-tools.sh && ./mvnw -q -DskipTests dependency:go-offline",
   "remoteUser": "vscode"
 }

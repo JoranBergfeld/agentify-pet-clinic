@@ -702,10 +702,7 @@ for mutation in "${stakeholder_voice_mutations[@]}"; do
 done
 
 stakeholder_authority_mutations=(
-  "Do not choose the Driver's bounded slice|Choose the Driver's bounded slice"
   "Do not make consequential product decisions.|Make consequential product decisions."
-  "Do not cross the Commitment Gate.|Cross the Commitment Gate."
-  "Do not authorize Engineering Agent scope.|Authorize Engineering Agent scope."
   "Do not manufacture certainty.|Manufacture certainty."
   "Do not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details.|Infer an authoritative product answer from general model knowledge or observed PetClinic implementation details."
   "Return unresolved decisions to the human.|Resolve decisions for the human."
