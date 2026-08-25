@@ -97,15 +97,15 @@ The optional **Evidence Coach** may inspect committed, Review-ready Stage Cards 
 
 Each attendee maintains one living Markdown **Stage Card** per Reference Workflow stage in a draft solution pull request. A card combines fixed guidance with participant-owned evidence:
 
-- **Purpose**
-- **Risk controlled**
-- **Minimum evidence**
-- **Optional Copilot example**
-- **Exit question**
+- **Goal**
+- **What can go wrong**
+- **What to record**
+- **Optional Copilot help**
+- **Check before the next step**
 
 Each card moves independently through **Working → Review ready → Reviewed**. New evidence or feedback may reopen a Reviewed card to Working. These states express review readiness, not pass/fail status or irreversible stage completion.
 
-| Stage | Minimum evidence | Exit question |
+| Stage | What to record | Check before the next step |
 | --- | --- | --- |
 | Orient | An inherited-system snapshot covering local run and test paths, a concrete application and public test seam, Azure topology, observed facts, and unresolved product decisions | Do I understand enough to choose the next decision? |
 | Clarify | Consequential knowns, unknowns, stakeholder uncertainty, and bounded assumptions | What must a human decide before authority is granted? |

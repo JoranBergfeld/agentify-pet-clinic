@@ -2,37 +2,34 @@ Status: Working
 
 # Clarify Stage Card
 
-Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while working.
-When this card is Review ready, follow
+Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while you work.
+When this card is Review ready, ask your partner to use
 [Reciprocal Evidence Review](../../docs/workshop/reciprocal-evidence-review.md).
 
-## Purpose
+## Goal
 
-Expose consequential ambiguity and keep product decisions with the human.
+Make important unknowns clear. Keep product decisions with you.
 
-## Risk controlled
+## What can go wrong
 
-Manufacturing certainty, silently expanding scope, or treating implementation
-details as authoritative product requirements.
+Guessing answers, adding hidden work, or treating code details as product rules.
 
-## Minimum evidence
+## What to record
 
-- Consequential knowns and unknowns.
-- Clinic Stakeholder facts, preferences, and explicit uncertainty kept
-  distinct.
-- Assumptions, deferrals, narrowing decisions, or escalations with their
-  consequences.
-- Decisions that still require human authority before execution.
+- Important knowns and unknowns.
+- Clinic Stakeholder facts, preferences, and unknowns kept separate.
+- Assumptions, delayed choices, scope cuts, or requests for help, with effects.
+- Decisions you must make before the agent starts.
 
-## Optional Copilot example
+## Optional Copilot help
 
-`/grilling` is one concrete, replaceable way to surface ambiguity; use another
-method when it exposes the same decisions without answering for the human.
+`/grilling` can help find missing questions. Another method is fine if it finds
+the same decisions without making them for you.
 
-## Exit question
+## Check before the next step
 
-**What must a human decide before authority is granted?**
+**What must I decide before I allow the work to start?**
 
-## Evidence
+## Your evidence
 
 _Replace this line with your evidence._

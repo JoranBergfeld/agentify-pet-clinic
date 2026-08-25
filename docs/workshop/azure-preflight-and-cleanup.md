@@ -1,51 +1,19 @@
 # Azure Preflight and Cleanup
 
-Use this guide before the workshop to prove that your Azure subscription can
-host the workshop application. **Preflight is not workshop exercise time.** It
-performs a real deployment and verifies it so the live workshop can begin from
-a known-good Inherited System. Preflight intentionally leaves the environment
-running; run cleanup only after the workshop or at the recorded deadline.
+Use this guide before the workshop. It checks that your Azure subscription can
+run the workshop application. Preflight creates real Azure resources. These
+resources can cost money. Preflight keeps them running for the workshop. Run
+cleanup after the workshop or before the cleanup time you set.
 
-## Prove partner review access
+First complete one option in [Local setup](local-setup.md). You can run the
+Azure steps from your computer or a Codespace.
 
-The Workshop Host provides pair assignments before Preflight. Each Driver
-grants their assigned partner collaborator access to their private workshop
-repository:
+## Sign in to Azure
 
-```bash
-gh api --method PUT repos/<driver>/<repository>/collaborators/<partner> -f permission=push
-```
+You need an Azure account. Your Azure subscription must allow App Service and
+Microsoft Foundry model deployments.
 
-Replace the placeholders with GitHub logins and the repository name. The
-partner must accept the invitation before the proof step.
-
-Prove access rather than trusting the grant:
-
-1. The Driver creates a temporary repository issue named
-   `Preflight partner access proof`.
-2. The partner opens that private repository and posts a throwaway comment on
-   the issue.
-3. The Driver confirms the comment is visible, then the partner deletes their
-   throwaway comment.
-4. The Driver closes the temporary issue.
-
-If the partner cannot open the repository or comment, correct the invitation,
-account, or organization policy and repeat the proof before the workshop.
-Do not defer this failure to live exercise time.
-
-## Accounts and local tools
-
-You need:
-
-- a GitHub account with the workshop repository cloned locally;
-- an Azure account with access to a subscription that permits App Service and
-  Microsoft Foundry model deployments;
-- Bash, Git, `curl`, `jq`, and `date`;
-- Azure CLI (`az`) and Azure Developer CLI (`azd`); and
-- JDK 21. The repository's Maven wrapper packages the application during
-  `azd up`.
-
-Authenticate both Azure clients:
+Sign in with both Azure tools:
 
 ```bash
 az login
@@ -247,7 +215,7 @@ deadline as met.
 
 | Failure | Owner and action |
 | --- | --- |
-| Missing tool, login, wrong active subscription, or invalid local environment | Attendee corrects the local setup and reruns readiness. |
+| Azure login fails or the wrong subscription is active | Attendee signs in, selects the correct subscription, and reruns readiness. |
 | Provider registration, role grant, policy denial, zero quota, or deletion permission | Subscription administrator resolves it. |
 | Tested model/version/SKU unavailable or a coordinated override is needed | Workshop owner selects, validates, and publishes a new envelope. |
 | Azure reports temporary provisioning, role, health, or deletion propagation | Wait, then rerun the same script; the scripts already bound health and cleanup retries. |

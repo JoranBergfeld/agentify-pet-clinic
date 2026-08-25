@@ -199,10 +199,10 @@ expect_failure \
 write_clean_stage_cards
 expect_clean
 
-sed -i '/^## Risk controlled$/d' \
+sed -i '/^## What can go wrong$/d' \
   "$fixture/workshop/stage-cards/01-orient.md"
 expect_failure \
-  "Stage Card template is missing required heading '## Risk controlled': workshop/stage-cards/01-orient.md"
+  "Stage Card template is missing required heading '## What can go wrong': workshop/stage-cards/01-orient.md"
 write_clean_stage_cards
 expect_clean
 
@@ -215,7 +215,7 @@ expect_failure \
 write_clean_stage_cards
 expect_clean
 
-sed -i '/^## Minimum evidence$/a\\\nClaim: orientation complete.' \
+sed -i '/^## What to record$/a\\\nClaim: orientation complete.' \
   "$fixture/workshop/stage-cards/01-orient.md"
 expect_failure \
   "filled or modified Stage Card is present: workshop/stage-cards/01-orient.md"
@@ -229,7 +229,7 @@ expect_failure \
 write_clean_stage_cards
 expect_clean
 
-sed -i '/^## Risk controlled$/a\\\n## Purpose' \
+sed -i '/^## What can go wrong$/a\\\n## Goal' \
   "$fixture/workshop/stage-cards/01-orient.md"
 expect_failure \
   "filled or modified Stage Card is present: workshop/stage-cards/01-orient.md"

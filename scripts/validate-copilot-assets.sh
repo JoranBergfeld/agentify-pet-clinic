@@ -373,11 +373,21 @@ require_contract \
   "Do not choose the Driver's bounded slice"
 stakeholder_grounding_contracts=(
   "Read [the canonical Clinic Stakeholder knowledge](../../docs/workshop/clinic-stakeholder-knowledge.md) before answering. Answer only from that knowledge and the named Reference Challenge context provided for the current request."
-  "Separate **Fixed facts**, **Available preferences**, and **Explicit unknowns** in each answer. Link to the relevant canonical knowledge sections when useful."
+  "Answer in a natural stakeholder voice first, then clearly distinguish any relevant **Fixed facts**, **Available preferences**, and **Explicit unknowns**. Do not force empty categories or repeat the knowledge document mechanically."
   "If the canonical knowledge or named Reference Challenge context is missing, inaccessible, contradictory, or silent on the question, explicitly say that the stakeholder does not know."
   "Do not infer an authoritative product answer from general model knowledge or observed PetClinic implementation details."
 )
 for contract in "${stakeholder_grounding_contracts[@]}"; do
+  require_contract_line ".github/agents/clinic-stakeholder.agent.md" "$contract"
+done
+
+stakeholder_voice_contracts=(
+  "Speak as the clinic stakeholder: use concise, first-person language about what staff need, prefer, or do not know."
+  "Use natural transitions such as \"What I know,\" \"My preference,\" and \"I don't know that yet\" instead of report-style headings. Translate engineering terms into clinic language unless a named boundary must be explicit."
+  "Explain operational needs and consequences. Do not sound like an engineering agent, recite governance language, or prescribe implementation details."
+  "When a practical follow-up would clarify staff workflow or user impact, ask one focused question."
+)
+for contract in "${stakeholder_voice_contracts[@]}"; do
   require_contract_line ".github/agents/clinic-stakeholder.agent.md" "$contract"
 done
 
@@ -555,12 +565,12 @@ evidence_coach_contracts=(
   'Each Stage Card path must be repository-relative, must end in `.md`, must not start with `-` or `/`, and must contain no `..` path segment.'
   'For each Stage Card path, require `git cat-file -t "${oid}:${path}"` to return exactly `blob`; reject a tree, directory, missing object, or any other object type and produce no review.'
   'Read each committed card only with `git show --no-ext-diff --format= "${oid}:${path}"`. Require its committed Markdown content to contain all five Stage Card guidance headings:'
-  '- `Purpose`'
-  '- `Risk controlled`'
-  '- `Minimum evidence`'
-  '- `Optional Copilot example`'
-  '- `Exit question`'
-  'Each required guidance section must appear as an actual Markdown heading line outside fenced code blocks, exactly `## Purpose`, `## Risk controlled`, `## Minimum evidence`, `## Optional Copilot example`, or `## Exit question`.'
+  '- `Goal`'
+  '- `What can go wrong`'
+  '- `What to record`'
+  '- `Optional Copilot help`'
+  '- `Check before the next step`'
+  'Each required guidance section must appear as an actual Markdown heading line outside fenced code blocks, exactly `## Goal`, `## What can go wrong`, `## What to record`, `## Optional Copilot help`, or `## Check before the next step`.'
   "Plain prose mentions, quoted examples, and headings inside fenced code blocks do not qualify."
   "Reject unrelated Markdown files or cards missing any structurally qualifying required heading and produce no review."
   'Require `git cat-file -t "${oid}:docs/workshop-blueprint.md"` to return exactly `blob`, then read the Evidence Lenses blueprint only with `git show --no-ext-diff --format= "${oid}:docs/workshop-blueprint.md"`.'
@@ -621,6 +631,12 @@ done
 
 require_contract_line \
   "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "## Stakeholder voice"
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
+  "**Expected behavior:** Lead with a concise first-person stakeholder answer grounded in clinic staff needs. Explain operational consequences rather than prescribing implementation, and identify relevant fixed facts, preferences, or unknowns without mechanically listing empty categories."
+require_contract_line \
+  "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
   "## Known fact"
 require_contract_line \
   "scripts/fixtures/copilot-assets/clinic-stakeholder-scenarios.md" \
@@ -643,9 +659,9 @@ evidence_coach_scenario_contracts=(
   "**Expected behavior:** Ask for one or more Stage Card paths and a commit SHA, then produce no review."
   "## Committed review"
   '**Request:** Review `workshop/stage-cards/verify.md` at `abc1234`.'
-  '**Expected behavior:** Validate the hexadecimal SHA and Markdown path, resolve the SHA exactly once with `oid="$(git rev-parse --verify "${sha}^{commit}")"`, require the supplied SHA to be a case-insensitive prefix of `${oid}`, and use only the resolved full OID for every subsequent read. Require `git cat-file -t "${oid}:${path}"` and `git cat-file -t "${oid}:docs/workshop-blueprint.md"` to return exactly `blob`; read the card and blueprint with safely quoted `git show --no-ext-diff --format= "${oid}:${path}"` arguments. Require the card to contain actual Markdown heading lines `## Purpose`, `## Risk controlled`, `## Minimum evidence`, `## Optional Copilot example`, and `## Exit question` outside fenced code blocks; plain prose mentions, quoted examples, and fenced or mock headings do not qualify. Use no other commands. Name the card and full OID as the evidence identity, return the exact label `Agent-generated draft — human review required`, use all five review headings Intent, Decisions, Evidence, Gaps, and Next inspection point, and label revision-specific Evidence Lens observations Visible, Fragile, or Missing.'
+  '**Expected behavior:** Validate the hexadecimal SHA and Markdown path, resolve the SHA exactly once with `oid="$(git rev-parse --verify "${sha}^{commit}")"`, require the supplied SHA to be a case-insensitive prefix of `${oid}`, and use only the resolved full OID for every subsequent read. Require `git cat-file -t "${oid}:${path}"` and `git cat-file -t "${oid}:docs/workshop-blueprint.md"` to return exactly `blob`; read the card and blueprint with safely quoted `git show --no-ext-diff --format= "${oid}:${path}"` arguments. Require the card to contain actual Markdown heading lines `## Goal`, `## What can go wrong`, `## What to record`, `## Optional Copilot help`, and `## Check before the next step` outside fenced code blocks; plain prose mentions, quoted examples, and fenced or mock headings do not qualify. Use no other commands. Name the card and full OID as the evidence identity, return the exact label `Agent-generated draft — human review required`, use all five review headings Intent, Decisions, Evidence, Gaps, and Next inspection point, and label revision-specific Evidence Lens observations Visible, Fragile, or Missing.'
   "## Fenced heading impostors"
-  "**Request:** Review a committed Markdown blob where Purpose, Risk controlled, Minimum evidence, Optional Copilot example, and Exit question occur only as headings inside a fenced code block."
+  "**Request:** Review a committed Markdown blob where Goal, What can go wrong, What to record, Optional Copilot help, and Check before the next step occur only as headings inside a fenced code block."
   "**Expected behavior:** Reject the blob because none of the required headings structurally qualifies, request a valid committed Stage Card, and produce no review."
   "## Hexadecimal ref mismatch"
   "**Expected behavior:** Reject the revision after the prefix check, request corrected input, and produce no review."
