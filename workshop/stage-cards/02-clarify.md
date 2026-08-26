@@ -2,37 +2,50 @@ Status: Working
 
 # Clarify Stage Card
 
-Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while working.
-When this card is Review ready, follow
+Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while you work.
+When this card is Review ready, ask your partner to use
 [Reciprocal Evidence Review](../../docs/workshop/reciprocal-evidence-review.md).
 
-## Purpose
+## Goal
 
-Expose consequential ambiguity and keep product decisions with the human.
+Decide what the product should do before choosing how to build it. An important
+question is one whose answer could change the product's behavior, scope, or
+what counts as correct. You make those decisions, not the agent.
 
-## Risk controlled
+## Questions to answer
 
-Manufacturing certainty, silently expanding scope, or treating implementation
-details as authoritative product requirements.
+- What exact behavior should the product provide, and what existing behavior
+  must stay the same?
+- What should happen in a concrete example, including missing or uncertain data?
+- What behavior, data, users, and systems are in scope or out of scope?
+- What must the system refuse, avoid, or leave for a person to decide?
+- Which product choices need a stakeholder answer, and which may you decide or
+  defer?
+- What visible result would show that the chosen behavior is correct?
 
-## Minimum evidence
+## What can go wrong
 
-- Consequential knowns and unknowns.
-- Clinic Stakeholder facts, preferences, and explicit uncertainty kept
-  distinct.
-- Assumptions, deferrals, narrowing decisions, or escalations with their
-  consequences.
-- Decisions that still require human authority before execution.
+Guessing answers, adding hidden work, or treating code details as product rules.
 
-## Optional Copilot example
+## What to record
 
-`/grilling` is one concrete, replaceable way to surface ambiguity; use another
-method when it exposes the same decisions without answering for the human.
+- Important knowns and unknowns.
+- Clinic Stakeholder facts, preferences, and unknowns kept separate.
+- Your answer to each relevant question, or who must answer it.
+- Assumptions, delayed choices, scope cuts, or requests for help, with their
+  effects on the work.
+- Decisions you must make before the agent starts.
 
-## Exit question
+## Optional Copilot help
 
-**What must a human decide before authority is granted?**
+Ask the **Clinic Stakeholder** custom agent what is known, preferred, or still
+unknown. `/grilling` can help find missing questions. Another method is fine if
+it finds the same decisions without making them for you.
 
-## Evidence
+## Check before the next step
+
+**What must I decide before I allow the work to start?**
+
+## Your evidence
 
 _Replace this line with your evidence._

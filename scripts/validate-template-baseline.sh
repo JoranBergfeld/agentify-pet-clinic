@@ -61,12 +61,12 @@ require_blank_stage_cards() {
     "06-learn.md"
   )
   local -a required_headings=(
-    "## Purpose"
-    "## Risk controlled"
-    "## Minimum evidence"
-    "## Optional Copilot example"
-    "## Exit question"
-    "## Evidence"
+    "## Goal"
+    "## What can go wrong"
+    "## What to record"
+    "## Optional Copilot help"
+    "## Check before the next step"
+    "## Your evidence"
   )
 
   test -d "$stage_cards_dir" ||
@@ -101,7 +101,7 @@ require_blank_stage_cards() {
       fail "filled or modified Stage Card is present: $relative_path"
 
     awk '
-      $0 == "## Evidence" {
+      $0 == "## Your evidence" {
         in_evidence = 1
         next
       }
@@ -115,22 +115,22 @@ require_blank_stage_cards() {
 
     case "$card" in
       01-orient.md)
-        expected_hash="1b5c9d0b8b87f62d05001ac7fdc1a59ccbef9f1be1e69998572838d2f39c7267"
+        expected_hash="4c5741d35bcb3262ae8f2194ea1906d5f63f2359eece0d3f13891953a67597aa"
         ;;
       02-clarify.md)
-        expected_hash="239448c07cc217997692944e112130603a4f00677c09adfb11a9109e9afa9f4b"
+        expected_hash="d0ea55eb72e5b2c1f476a5089dcee8571fc91a259e32fc46a4054b82bd4fb5ec"
         ;;
       03-shape.md)
-        expected_hash="247fa184787b1a651a4aefe020215efce6eceba38e5987e683c9f275c68b1e90"
+        expected_hash="6a6e13f74351330e663cba189463b7b99e34b6c51ba8faa51d2bd4f155676387"
         ;;
       04-execute.md)
-        expected_hash="d247a16e3460a74ca03acdfa76e50cfb10d6b081dd6b26eb5d6bdc0b2d2c1210"
+        expected_hash="8b8c4a702325505172a894ddda703ded3330794cf51cbff507bbf931035454d2"
         ;;
       05-verify.md)
-        expected_hash="70830d45477dc3b9c1498939d81788c3db43984afc44ff2ad63a6b687ab0da46"
+        expected_hash="7fd81148d753261e417e182a4b733ee3aac2be82046ada060bb6ba10426b9740"
         ;;
       06-learn.md)
-        expected_hash="205316a8da16086ec8df9912843f4602b089d395be8eb1a635207f60629a164d"
+        expected_hash="bd6efeaa30e5d44d3fb0b3b4c3aeb6a84540e0ae91869a8277e1ab5df39090d8"
         ;;
     esac
     actual_hash="$(sha256sum "$root/$relative_path" | cut -d ' ' -f 1)"

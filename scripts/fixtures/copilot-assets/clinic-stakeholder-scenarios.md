@@ -1,5 +1,11 @@
 # Clinic Stakeholder scenarios
 
+## Stakeholder voice
+
+**Question:** What matters most about the first Clinic Assistant capability?
+
+**Expected behavior:** Lead with a concise first-person stakeholder answer grounded in clinic staff needs. Explain operational consequences rather than prescribing implementation, and identify relevant fixed facts, preferences, or unknowns without mechanically listing empty categories.
+
 ## Known fact
 
 **Question:** Can the Clinic Assistant update an owner's address?

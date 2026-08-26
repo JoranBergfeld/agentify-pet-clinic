@@ -25,13 +25,13 @@ For each Stage Card path, require `git cat-file -t "${oid}:${path}"` to return e
 
 Read each committed card only with `git show --no-ext-diff --format= "${oid}:${path}"`. Require its committed Markdown content to contain all five Stage Card guidance headings:
 
-- `Purpose`
-- `Risk controlled`
-- `Minimum evidence`
-- `Optional Copilot example`
-- `Exit question`
+- `Goal`
+- `What can go wrong`
+- `What to record`
+- `Optional Copilot help`
+- `Check before the next step`
 
-Each required guidance section must appear as an actual Markdown heading line outside fenced code blocks, exactly `## Purpose`, `## Risk controlled`, `## Minimum evidence`, `## Optional Copilot example`, or `## Exit question`.
+Each required guidance section must appear as an actual Markdown heading line outside fenced code blocks, exactly `## Goal`, `## What can go wrong`, `## What to record`, `## Optional Copilot help`, or `## Check before the next step`.
 
 Plain prose mentions, quoted examples, and headings inside fenced code blocks do not qualify.
 

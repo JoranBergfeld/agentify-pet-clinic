@@ -2,38 +2,36 @@ Status: Working
 
 # Verify Stage Card
 
-Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while working.
-When this card is Review ready, follow
+Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while you work.
+When this card is Review ready, ask your partner to use
 [Reciprocal Evidence Review](../../docs/workshop/reciprocal-evidence-review.md).
 
-## Purpose
+## Goal
 
-Trace every acceptance claim to fresh evidence and make residual gaps honest.
+Use new test results or a demo to check every claim. Write down what works,
+what does not work, and what is still unknown.
 
-## Risk controlled
+## What can go wrong
 
-Green-by-proxy, substituting local checks for deployed claims, or treating an
-agent summary as proof of completion.
+Calling the work done because local tests pass or the agent says so, without a
+deployed check.
 
-## Minimum evidence
+## What to record
 
-- Each acceptance claim linked to a focused test, smoke check, or observable
-  demonstration at the correct seam.
-- Independent challenge considered at a named revision, or its absence
-  recorded as an evidence gap.
-- Contradictory evidence, failed checks, and residual risks.
-- The human's Accepted, Accepted with residual gap, or Not yet accepted
-  judgment.
+- Each claim linked to a focused test, deployed smoke check, or visible demo.
+- Partner review at a named commit, or a note that it is missing.
+- Evidence that disagrees, failed checks, and remaining risks.
+- Your decision: Accepted, Accepted with residual gap, or Not yet accepted.
 
-## Optional Copilot example
+## Optional Copilot help
 
-`/code-review` is one concrete, replaceable source of additional challenge;
-use another method when it remains non-authoritative and evidence-focused.
+`/code-review` can add questions. Another method is fine if it checks evidence
+without making the decision for you.
 
-## Exit question
+## Check before the next step
 
 **What can I honestly accept?**
 
-## Evidence
+## Your evidence
 
 _Replace this line with your evidence._

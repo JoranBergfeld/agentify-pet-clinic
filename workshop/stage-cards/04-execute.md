@@ -2,36 +2,35 @@ Status: Working
 
 # Execute Stage Card
 
-Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while working.
-When this card is Review ready, follow
+Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while you work.
+When this card is Review ready, ask your partner to use
 [Reciprocal Evidence Review](../../docs/workshop/reciprocal-evidence-review.md).
 
-## Purpose
+## Goal
 
-Advance through small evidence-producing moves rather than one broad
-delegation.
+Make one small change at a time. Check what happened before you make the next
+change.
 
-## Risk controlled
+## What can go wrong
 
-Losing inspectability, hiding failures, or continuing from agent confidence
-instead of fresh observations.
+Asking for too much, hiding failures, or trusting the agent without checking.
 
-## Minimum evidence
+## What to record
 
-- Each bounded move's purpose, authorized scope, and expected evidence.
-- The fresh result of each move, including failures and inaccessible inputs.
-- The resulting decision to continue, narrow, correct, or escalate.
-- Any Work Contract assumption or acceptance claim changed by the evidence.
+- Each step's purpose, allowed scope, and expected evidence.
+- Each result, including failures and missing inputs.
+- Your choice to continue, reduce scope, fix, or ask for help.
+- Any Work Contract assumption or acceptance claim that changed.
 
-## Optional Copilot example
+## Optional Copilot help
 
-`/tdd` is one concrete, replaceable way to make behavior changes observable;
-use another method when it produces equally focused, risk-shaped evidence.
+`/tdd` can help you make and test a small change. Another method is fine if it
+gives equally clear evidence.
 
-## Exit question
+## Check before the next step
 
-**What did this evidence change?**
+**What did this result change?**
 
-## Evidence
+## Your evidence
 
 _Replace this line with your evidence._

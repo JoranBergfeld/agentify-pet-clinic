@@ -2,36 +2,37 @@ Status: Working
 
 # Shape Stage Card
 
-Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while working.
-When this card is Review ready, follow
+Use the [Evidence Lenses](../../docs/workshop/evidence-lenses.md) while you work.
+When this card is Review ready, ask your partner to use
 [Reciprocal Evidence Review](../../docs/workshop/reciprocal-evidence-review.md).
 
-## Purpose
+## Goal
 
-Define the smallest bounded move that can produce useful acceptance evidence.
+Choose one small, safe task. Make sure its result will show you if the change
+works.
 
-## Risk controlled
+## What can go wrong
 
-Authorizing broad or opaque work whose scope, assumptions, agent authority,
-public seams, and expected evidence cannot be inspected.
+Giving the agent a large or unclear task without limits, tests, or expected
+evidence.
 
-## Minimum evidence
+## What to record
 
-- A Work Contract naming intent, scope, and constraints.
-- Consequential assumptions and decisions reserved for the human.
-- The Engineering Agent's authority and explicit boundaries.
-- The highest useful public seam for testing or demonstration.
-- Expected evidence for the Commitment and Acceptance Gates.
+- Work Contract: goal, scope, and limits.
+- Important assumptions and decisions that stay with you.
+- What the Engineering Agent may and must not do.
+- The public test or demo that will show the behavior.
+- Evidence needed at the Commitment and Acceptance Gates.
 
-## Optional Copilot example
+## Optional Copilot help
 
-`/domain-modeling` is one concrete, replaceable way to sharpen terms and
-boundaries; use another method when it makes the same contract legible.
+`/domain-modeling` can help with names and boundaries. Another method is fine
+if it makes the Work Contract clear.
 
-## Exit question
+## Check before the next step
 
-**Is the next move safe and inspectable?**
+**Is the next step small, safe, and easy to check?**
 
-## Evidence
+## Your evidence
 
 _Replace this line with your evidence._

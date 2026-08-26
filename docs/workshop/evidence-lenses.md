@@ -1,63 +1,55 @@
 # Evidence Lenses
 
-Use these lenses to inspect whether the work is controlled, inspectable, and
-supported by observable evidence. They are a formative conversation aid, not a
-score, certification, Host assessment, or Acceptance Gate decision.
+Use these five lenses to ask if the work is clear and supported by things you
+can see. They help you talk with your partner. They are not a score, approval,
+Host judgment, or Acceptance Gate decision.
 
-Source: [Workshop Blueprint — Evidence Lenses](../workshop-blueprint.md#evidence-lenses).
+Source: [Workshop Blueprint: Evidence Lenses](../workshop-blueprint.md#evidence-lenses).
 
 ## Diagnostic states
 
-- **Visible** — current evidence supports the control and the attendee can
-  explain it.
-- **Fragile** — intent exists, but evidence, ownership, or traceability has a
-  meaningful gap.
-- **Missing** — the control cannot be shown or relies on agent confidence or
-  feature output alone.
+- **Visible**: The evidence is clear, and the Driver can explain it.
+- **Fragile**: An important part of the evidence is weak or unclear.
+- **Missing**: There is no useful evidence, or only the agent says it is true.
 
-A Fragile or Missing observation calls for an honest response: repair the
-evidence, narrow the claim or slice, accept the residual risk explicitly at
-the relevant Risk Gate, or escalate. Never upgrade a state cosmetically.
+For Fragile or Missing, improve the evidence, make the claim smaller, accept
+the risk at the right Risk Gate, or ask for help. Do not hide the gap.
 
 ## Intent and context
 
-Look for a legible staff outcome, a bounded vertical slice, relevant code and
-public test seams, Inherited System constraints, and a clear separation
-between observed facts and unresolved product decisions.
+Check for a clear staff result, small capability, code and public test points,
+system rules, and facts kept separate from open product decisions.
 
-**Auditor prompt:** What outcome are we owning, and what evidence says this is
-the right context for the next move?
+**Ask:** What result are we trying to create, and what evidence shows that this
+is the right place to work?
 
 ## Ambiguity and decisions
 
-Look for consequential unknowns that are surfaced and intentionally resolved,
-deferred, narrowed around, or accepted with understood consequences.
+Check that important unknowns and the Driver's choices are written down. The
+effect of each answer, delay, scope cut, accepted gap, or request for help must
+be clear.
 
-**Auditor prompt:** What do we know, what are we assuming, and what consequence
-follows from that choice?
+**Ask:** What do we know, what are we assuming, and what happens because of that
+choice?
 
 ## Work Contract and authority
 
-Look for a restatable slice, boundaries, assumptions, Engineering Agent
-authority, public test seam, expected acceptance evidence, and decisions
-reserved for the human.
+Check that the Work Contract clearly states the goal, scope, limits,
+assumptions, agent permissions, test point, evidence, and human decisions.
 
-**Auditor prompt:** What have we authorized the agent to decide and do, and
-what remains ours?
+**Ask:** What may the agent do, and what must the Driver decide?
 
 ## Bounded execution
 
-Look for small moves that name a behavior and expected evidence before
-delegation, followed by fresh results and an explicit decision to continue,
-narrow, correct, or escalate.
+Check that each small change had expected evidence before agent work started.
+The result must lead to a choice to continue, reduce scope, fix, or ask for help.
 
-**Auditor prompt:** What is the smallest evidence-producing move, and what did
-its result change?
+**Ask:** What small step was taken, and what did its result change?
 
 ## Verification and learning
 
-Look for acceptance claims traced to focused tests and real smoke or demo
-evidence, honest residual gaps, and learning grounded in what happened.
+Check that each claim links to a new test, deployed check, or demo. Gaps and
+risks must be clear, and lessons must come from what happened.
 
-**Auditor prompt:** Which claim does this evidence support, what gap remains,
-and what would we adapt elsewhere?
+**Ask:** Which claim does this evidence support, what gap remains, and what
+lesson can we use in other work?

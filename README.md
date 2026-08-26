@@ -30,12 +30,48 @@ These boundaries apply throughout the workshop:
 ### Before the workshop (pre-work)
 
 1. Use this template to create your own repository.
-2. Clone your repository.
-3. Follow the [Azure Preflight and cleanup guide](docs/workshop/azure-preflight-and-cleanup.md) to verify your local environment and Azure setup.
-4. Verify the inherited application:
-   ```bash
-   ./mvnw test
-   ```
+2. Choose one of the setup options below.
+
+#### Option 1: Run on your computer
+
+Install the required tools listed in the
+[local setup guide](docs/workshop/local-setup.md#option-1-run-on-your-computer).
+Then clone your workshop repository and start the application:
+
+```bash
+git clone https://github.com/<your-account>/<repository>.git
+cd <repository>
+./mvnw test
+./mvnw spring-boot:run
+```
+
+Open <http://localhost:8080> in your browser. Press `Ctrl+C` to stop the
+application.
+
+#### Option 2: Run in a Codespace
+
+1. Open your workshop repository on GitHub.
+2. Select **Code**, **Codespaces**, and **Create codespace on main**.
+3. Wait for the Codespace to open.
+4. Run these commands in its terminal:
+
+```bash
+./mvnw test
+./mvnw spring-boot:run
+```
+
+When port `8080` appears, select **Open in Browser**. Press `Ctrl+C` to stop the
+application.
+
+After completing either option, follow the
+[Azure Preflight and cleanup guide](docs/workshop/azure-preflight-and-cleanup.md)
+to verify your local environment and Azure setup.
+
+5. Run the inherited application:
+
+    ```bash
+    ./mvnw spring-boot:run
+    ```
 
 ### When the workshop begins
 
