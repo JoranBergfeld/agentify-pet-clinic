@@ -77,9 +77,10 @@ require_frontmatter_contract() {
         }
 
         escape_kind = substr(inner, i + 1, 1)
-        escape_length = escape_kind == "x" ? 2 :
-                        escape_kind == "u" ? 4 :
-                        escape_kind == "U" ? 8 : 0
+        escape_length = 0
+        if (escape_kind == "x") escape_length = 2
+        else if (escape_kind == "u") escape_length = 4
+        else if (escape_kind == "U") escape_length = 8
         if (escape_length == 0) {
           i += 2
         } else {

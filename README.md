@@ -69,9 +69,9 @@ to verify your local environment and Azure setup.
 
 5. Run the inherited application:
 
-  ```bash
-  ./mvnw spring-boot:run
-  ```
+    ```bash
+    ./mvnw spring-boot:run
+    ```
 
 ### When the workshop begins
 

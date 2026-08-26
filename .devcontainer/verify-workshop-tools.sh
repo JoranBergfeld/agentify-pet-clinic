@@ -3,7 +3,7 @@
 set -u
 
 status=0
-required_tools=(git java gh az azd docker curl jq)
+required_tools=(git java python3 gh az azd docker curl jq)
 
 for tool in "${required_tools[@]}"; do
   if ! command -v "$tool" >/dev/null 2>&1; then

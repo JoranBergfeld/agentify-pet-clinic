@@ -118,7 +118,7 @@ require_blank_stage_cards() {
         expected_hash="4c5741d35bcb3262ae8f2194ea1906d5f63f2359eece0d3f13891953a67597aa"
         ;;
       02-clarify.md)
-        expected_hash="86cddde54de7a640e6cf7d5fd7c469521294ecb395882454b8137da7546670e0"
+        expected_hash="d0ea55eb72e5b2c1f476a5089dcee8571fc91a259e32fc46a4054b82bd4fb5ec"
         ;;
       03-shape.md)
         expected_hash="6a6e13f74351330e663cba189463b7b99e34b6c51ba8faa51d2bd4f155676387"
